@@ -79,4 +79,18 @@ final class CoordinatorTests: XCTestCase {
         parent.dismissModal()
         XCTAssertNil(parent.modalCoordinator, "Expected modal coordinator to be nil after dismiss")
     }
+    
+    func testChildCoordinatorBubblesUpNavigationToParent() {
+        let router = Router<MockRoute>(initial: .home)
+
+        let parent = TestCoordinator(router: router)
+        let child = Coordinator(router: router)
+        parent.addChild(child)
+
+        // Child attempts to navigate
+        let handled = child.navigate(to: MockRoute.details)
+
+        XCTAssertTrue(handled, "Expected navigation to bubble up to parent")
+        XCTAssertTrue(parent.didHandleRoute, "Expected parent coordinator to handle the route")
+    }
 }

@@ -9,17 +9,23 @@ open class Coordinator<R: Route>: AnyObject {
     public let router: Router<R>
     public private(set) var children: [Coordinator] = []
     public private(set) var modalCoordinator: Coordinator?
-    
+    public weak var parent: Coordinator?
+
     public init(router: Router<R>) {
         self.router = router
     }
     
     public func addChild(_ coordinator: Coordinator) {
         children.append(coordinator)
+        coordinator.parent = self
     }
     
     public func removeChild(_ coordinator: Coordinator) {
         children.removeAll { $0 === coordinator }
+        
+        if coordinator.parent === self {
+            coordinator.parent = nil
+        }
     }
     
     open func handle(route: R) -> Bool {
@@ -37,7 +43,7 @@ open class Coordinator<R: Route>: AnyObject {
             }
         }
         
-        return false
+        return parent?.navigate(to: route) ?? false
     }
     
     public func presentModal(_ coordinator: Coordinator) {
