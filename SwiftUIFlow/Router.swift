@@ -36,4 +36,8 @@ public final class Router<R: Route>: ObservableObject {
     public func dismissModal() {
         state.presented = nil
     }
+    
+    public func selectTab(_ index: Int) {
+        state.selectedTab = index
+    }
 }

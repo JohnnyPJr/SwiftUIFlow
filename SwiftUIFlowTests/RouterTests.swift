@@ -44,4 +44,12 @@ final class RouterTests: XCTestCase {
         router.dismissModal()
         XCTAssertNil(router.state.presented)
     }
+    
+    func testSelectTabUpdatesState() {
+        let router = Router<MockRoute>(initial: .home)
+
+        router.selectTab(2)
+
+        XCTAssertEqual(router.state.selectedTab, 2, "Expected selected tab index to be updated")
+    }
 }
