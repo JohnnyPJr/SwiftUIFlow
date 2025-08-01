@@ -6,7 +6,6 @@
 //
 
 import Foundation
-
 @testable import SwiftUIFlow
 
 enum MockRoute: String, Route {
