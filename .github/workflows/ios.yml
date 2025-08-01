@@ -1,0 +1,33 @@
+name: SwiftUIFlow CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  macos-test:
+    name: Build and Test macOS Scheme
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install xcpretty (optional for clean output)
+        run: gem install xcpretty
+
+      - name: Clean & Build for Testing
+        run: |
+          scheme="SwiftUIFlow"
+          xcodebuild clean build-for-testing \
+            -scheme "$scheme" \
+            | xcpretty
+
+      - name: Run Tests
+        run: |
+          scheme="SwiftUIFlow"
+          xcodebuild test-without-building \
+            -scheme "$scheme" \
+            | xcpretty
