@@ -8,12 +8,19 @@ on:
 
 jobs:
   macos-test:
-    name: Build and Test macOS Scheme
+    name: Lint, Build, and Test SwiftUIFlow
     runs-on: macos-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Run SwiftLint (non-fatal)
+        run: |
+          swiftlint lint --config swiftlint.yml || echo "SwiftLint warnings found"
 
       - name: Install xcpretty (optional for clean output)
         run: gem install xcpretty

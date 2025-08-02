@@ -1,0 +1,43 @@
+---
+disabled_rules:
+  - todo               # allow TODO comments during development
+
+opt_in_rules:
+  - empty_count
+  - closure_end_indentation
+  - empty_string
+  - redundant_nil_coalescing
+  - first_where
+
+included:
+  - SwiftUIFlow
+  - SwiftUIFlowTests
+
+excluded:
+  - Pods
+  - Carthage
+  - fastlane
+
+reporter: "xcode"
+
+cyclomatic_complexity:
+  warning: 15
+  error: 20
+
+function_body_length:
+  warning: 60
+  error: 100
+
+type_body_length:
+  warning: 300
+  error: 400
+
+file_length:
+  warning: 400
+  error: 800
+
+identifier_name:
+  min_length: 2
+  excluded:
+    - id
+    - R
