@@ -10,9 +10,11 @@ import Foundation
 
 final class TestCoordinator: Coordinator<MockRoute> {
     var didHandleRoute = false
-    
+    var lastHandledRoute: MockRoute?
+
     override func handle(route: MockRoute) -> Bool {
         didHandleRoute = true
+        lastHandledRoute = route
         return true
     }
 }
