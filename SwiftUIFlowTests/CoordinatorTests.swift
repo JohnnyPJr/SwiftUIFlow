@@ -93,4 +93,24 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertTrue(handled, "Expected navigation to bubble up to parent")
         XCTAssertTrue(parent.didHandleRoute, "Expected parent coordinator to handle the route")
     }
+    
+    func testCoordinatorCanHandleDeeplinkDirectly() {
+        let coordinator = TestCoordinator(router: Router<MockRoute>(initial: .home))
+
+        coordinator.handleDeeplink(.details)
+
+        XCTAssertTrue(coordinator.didHandleRoute, "Expected coordinator to handle deeplink directly")
+    }
+
+    func testCoordinatorDelegatesDeeplinkToChildren() {
+        final class ParentCoordinator: Coordinator<MockRoute> {}
+
+        let parent = ParentCoordinator(router: Router<MockRoute>(initial: .home))
+        let child = TestCoordinator(router: Router<MockRoute>(initial: .home))
+        parent.addChild(child)
+
+        parent.handleDeeplink(.details)
+
+        XCTAssertTrue(child.didHandleRoute, "Expected deeplink to be delegated to child coordinator")
+    }
 }

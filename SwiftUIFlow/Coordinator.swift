@@ -54,3 +54,20 @@ open class Coordinator<R: Route>: AnyObject {
         modalCoordinator = nil
     }
 }
+
+extension Coordinator: DeeplinkHandler {
+    public func canHandle(_ route: R) -> Bool {
+        handle(route: route)
+    }
+
+    public func handleDeeplink(_ route: R) {
+        if handle(route: route) { return }
+        for child in children {
+            if child.canHandle(route) {
+                child.handleDeeplink(route)
+                return
+            }
+        }
+        parent?.handleDeeplink(route)
+    }
+}
