@@ -113,4 +113,14 @@ final class CoordinatorTests: XCTestCase {
 
         XCTAssertTrue(child.didHandleRoute, "Expected deeplink to be delegated to child coordinator")
     }
+    
+    func testParentDelegatesRouteHandlingToChild() {
+        let parentWithChild = TestCoordinatorWithChild()
+
+        let handled = parentWithChild.navigate(to: .details)
+
+        XCTAssertTrue(handled, "Expected parent to delegate route to child")
+        XCTAssertTrue(parentWithChild.child.didHandleRoute, "Expected child coordinator to handle the route")
+        XCTAssertEqual(parentWithChild.child.lastHandledRoute, .details, "Expected child to handle the correct route")
+    }
 }

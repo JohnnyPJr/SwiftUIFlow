@@ -18,3 +18,13 @@ final class TestCoordinator: Coordinator<MockRoute> {
         return true
     }
 }
+
+final class TestCoordinatorWithChild: Coordinator<MockRoute> {
+    let child: TestCoordinator
+
+    override init(router: Router<MockRoute> = Router<MockRoute>(initial: .home)) {
+        self.child = TestCoordinator(router: Router<MockRoute>(initial: .home))
+        super.init(router: router)
+        addChild(child)
+    }
+}
