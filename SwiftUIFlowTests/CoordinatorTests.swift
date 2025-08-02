@@ -9,8 +9,10 @@ import XCTest
 @testable import SwiftUIFlow
 
 final class CoordinatorTests: XCTestCase {
+
+    // MARK: - Initialization
     
-    func testCoordinatorStartsWithRouter() {
+    func test_CoordinatorStartsWithRouter() {
         let router = Router<MockRoute>(initial: .home)
         let coordinator = Coordinator(router: router)
 
@@ -18,7 +20,9 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator.children.isEmpty)
     }
 
-    func testCanAddAndRemoveChildCoordinator() {
+    // MARK: - Child Management
+    
+    func test_CanAddAndRemoveChildCoordinator() {
         let parent = Coordinator(router: Router<MockRoute>(initial: .home))
         let child = Coordinator(router: Router<MockRoute>(initial: .home))
 
@@ -29,7 +33,9 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertFalse(parent.children.contains(where: { $0 === child }))
     }
 
-    func testSubclassCanOverrideHandleRoute() {
+    // MARK: - Route Handling
+    
+    func test_SubclassCanOverrideHandleRoute() {
         let router = Router<MockRoute>(initial: .home)
         let coordinator = TestCoordinator(router: router)
 
@@ -39,97 +45,92 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator.didHandleRoute)
     }
     
-    func testNavigateDelegatesToHandleRouteOrChildren() {
+    func test_NavigateDelegatesToHandleRouteOrChildren() {
         let router = Router<MockRoute>(initial: .home)
-        
-        // Parent coordinator that doesn't handle the route
         class NonHandlingCoordinator: Coordinator<MockRoute> {}
         let parent = NonHandlingCoordinator(router: router)
-
-        // Child that will handle the route
         let child = TestCoordinator(router: router)
         parent.addChild(child)
 
         let handled = parent.navigate(to: MockRoute.details)
 
-        XCTAssertTrue(handled, "Expected navigate to delegate handling to child coordinator")
-        XCTAssertTrue(child.didHandleRoute, "Expected child coordinator to handle the route")
+        XCTAssertTrue(handled)
+        XCTAssertTrue(child.didHandleRoute)
     }
     
-    func testNavigateHandlesRouteInCurrentCoordinator() {
+    func test_NavigateHandlesRouteInCurrentCoordinator() {
         let router = Router<MockRoute>(initial: .home)
         let coordinator = TestCoordinator(router: router)
 
-        let handled = coordinator.navigate(to: MockRoute.details)
+        let handled = coordinator.navigate(to: .details)
 
-        XCTAssertTrue(handled, "Expected navigate to handle route in current coordinator")
-        XCTAssertTrue(coordinator.didHandleRoute, "Expected current coordinator to handle the route")
+        XCTAssertTrue(handled)
+        XCTAssertTrue(coordinator.didHandleRoute)
     }
-    
-    func testCanPresentAndDismissModalCoordinator() {
+
+    func test_ChildCoordinatorBubblesUpNavigationToParent() {
         let router = Router<MockRoute>(initial: .home)
-        let parent = Coordinator(router: router)
-        let modal = Coordinator(router: router)
-
-        // Present modal
-        parent.presentModal(modal)
-        XCTAssertTrue(parent.modalCoordinator === modal, "Expected modal coordinator to be stored")
-
-        // Dismiss modal
-        parent.dismissModal()
-        XCTAssertNil(parent.modalCoordinator, "Expected modal coordinator to be nil after dismiss")
-    }
-    
-    func testChildCoordinatorBubblesUpNavigationToParent() {
-        let router = Router<MockRoute>(initial: .home)
-
         let parent = TestCoordinator(router: router)
         let child = Coordinator(router: router)
         parent.addChild(child)
 
-        // Child attempts to navigate
-        let handled = child.navigate(to: MockRoute.details)
+        let handled = child.navigate(to: .details)
 
-        XCTAssertTrue(handled, "Expected navigation to bubble up to parent")
-        XCTAssertTrue(parent.didHandleRoute, "Expected parent coordinator to handle the route")
+        XCTAssertTrue(handled)
+        XCTAssertTrue(parent.didHandleRoute)
     }
     
-    func testCoordinatorCanHandleDeeplinkDirectly() {
+    // MARK: - Modal Handling
+    
+    func test_CanPresentAndDismissModalCoordinator() {
+        let router = Router<MockRoute>(initial: .home)
+        let parent = Coordinator(router: router)
+        let modal = Coordinator(router: router)
+
+        parent.presentModal(modal)
+        XCTAssertTrue(parent.modalCoordinator === modal)
+
+        parent.dismissModal()
+        XCTAssertNil(parent.modalCoordinator)
+    }
+    
+    // MARK: - Deeplink Handling
+    
+    func test_CoordinatorCanHandleDeeplinkDirectly() {
         let coordinator = TestCoordinator(router: Router<MockRoute>(initial: .home))
 
         coordinator.handleDeeplink(.details)
 
-        XCTAssertTrue(coordinator.didHandleRoute, "Expected coordinator to handle deeplink directly")
+        XCTAssertTrue(coordinator.didHandleRoute)
     }
 
-    func testCoordinatorDelegatesDeeplinkToChildren() {
+    func test_CoordinatorDelegatesDeeplinkToChildren() {
         final class ParentCoordinator: Coordinator<MockRoute> {}
-
         let parent = ParentCoordinator(router: Router<MockRoute>(initial: .home))
         let child = TestCoordinator(router: Router<MockRoute>(initial: .home))
         parent.addChild(child)
 
         parent.handleDeeplink(.details)
 
-        XCTAssertTrue(child.didHandleRoute, "Expected deeplink to be delegated to child coordinator")
+        XCTAssertTrue(child.didHandleRoute)
     }
     
-    func testParentDelegatesRouteHandlingToChild() {
+    func test_ParentDelegatesRouteHandlingToChild() {
         let parentWithChild = TestCoordinatorWithChild()
 
         let handled = parentWithChild.navigate(to: .details)
 
-        XCTAssertTrue(handled, "Expected parent to delegate route to child")
-        XCTAssertTrue(parentWithChild.child.didHandleRoute, "Expected child coordinator to handle the route")
-        XCTAssertEqual(parentWithChild.child.lastHandledRoute, .details, "Expected child to handle the correct route")
+        XCTAssertTrue(handled)
+        XCTAssertTrue(parentWithChild.child.didHandleRoute)
+        XCTAssertEqual(parentWithChild.child.lastHandledRoute, .details)
     }
     
-    func testParentDelegatesDeeplinkHandlingToChild() {
+    func test_ParentDelegatesDeeplinkHandlingToChild() {
         let parentWithChild = TestCoordinatorWithChild()
 
         parentWithChild.handleDeeplink(.details)
 
-        XCTAssertTrue(parentWithChild.child.didHandleRoute, "Expected child coordinator to handle deeplink")
-        XCTAssertEqual(parentWithChild.child.lastHandledRoute, .details, "Expected child to handle the correct deeplink route")
+        XCTAssertTrue(parentWithChild.child.didHandleRoute)
+        XCTAssertEqual(parentWithChild.child.lastHandledRoute, .details)
     }
 }

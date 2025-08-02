@@ -9,40 +9,49 @@ import XCTest
 @testable import SwiftUIFlow
 
 final class NavigationStateTests: XCTestCase {
-    func testInitialStateHasCorrectRootAndDefaults() {
-        let state = NavigationState<MockRoute>(root: .login)
-        
-        XCTAssertEqual(state.root, .login)
-        XCTAssertTrue(state.stack.isEmpty, "Stack should be empty on initialization")
-        XCTAssertEqual(state.selectedTab, 0, "Default selected tab should be 0")
-        XCTAssertNil(state.presented, "No modal should be presented initially")
+
+    // MARK: - Initialization
+    
+    func test_InitialStateHasEmptyStackAndDefaultTab() {
+        let state = NavigationState(root: MockRoute.home)
+        XCTAssertEqual(state.root, .home)
+        XCTAssertTrue(state.stack.isEmpty)
+        XCTAssertEqual(state.selectedTab, 0)
+        XCTAssertNil(state.presented)
+    }
+
+    // MARK: - Stack Management
+    
+    func test_CanPushRouteOntoStack() {
+        var state = NavigationState(root: MockRoute.home)
+        state.stack.append(.details)
+        XCTAssertEqual(state.stack, [.details])
     }
     
-    func testPushAndPopUpdatesStack() {
-        var state = NavigationState<MockRoute>(root: .home)
-        
+    func test_CanPopRouteFromStack() {
+        var state = NavigationState(root: MockRoute.home)
         state.stack.append(.details)
-        XCTAssertEqual(state.stack.count, 1)
-        XCTAssertEqual(state.stack.last, .details)
-        
         _ = state.stack.popLast()
         XCTAssertTrue(state.stack.isEmpty)
     }
+
+    // MARK: - Modal Handling
     
-    func testPresentedModalCanBeSetAndDismissed() {
-        var state = NavigationState<MockRoute>(root: .home)
-        
+    func test_CanPresentAndDismissModal() {
+        var state = NavigationState(root: MockRoute.home)
         state.presented = .modal
         XCTAssertEqual(state.presented, .modal)
-        
+
         state.presented = nil
         XCTAssertNil(state.presented)
     }
+
+    // MARK: - Tab Selection
     
-    func testSelectedTabCanBeChanged() {
-        var state = NavigationState<MockRoute>(root: .home)
-        
+    func test_CanChangeSelectedTab() {
+        var state = NavigationState(root: MockRoute.home)
         state.selectedTab = 2
         XCTAssertEqual(state.selectedTab, 2)
     }
 }
+

@@ -9,34 +9,41 @@ import XCTest
 @testable import SwiftUIFlow
 
 final class RouterTests: XCTestCase {
-    func testInitializesWithRootState() {
+
+    // MARK: - Initialization
+    
+    func test_InitializesWithRootState() {
         let router = Router<MockRoute>(initial: .home)
         XCTAssertEqual(router.state.root, .home)
         XCTAssertTrue(router.state.stack.isEmpty)
     }
+
+    // MARK: - Navigation Stack Management
     
-    func testPushAddsRouteToStack() {
+    func test_PushAddsRouteToStack() {
         let router = Router<MockRoute>(initial: .home)
         router.push(.details)
         XCTAssertEqual(router.state.stack, [.details])
     }
     
-    func testPopRemovesLastRoute() {
+    func test_PopRemovesLastRoute() {
         let router = Router<MockRoute>(initial: .home)
         router.push(.details)
         router.pop()
         XCTAssertTrue(router.state.stack.isEmpty)
     }
     
-    func testSetRootChangesRootAndClearsStack() {
+    func test_SetRootChangesRootAndClearsStack() {
         let router = Router<MockRoute>(initial: .home)
         router.push(.details)
         router.setRoot(.login)
         XCTAssertEqual(router.state.root, .login)
         XCTAssertTrue(router.state.stack.isEmpty)
     }
+
+    // MARK: - Modal Handling
     
-    func testPresentAndDismissModal() {
+    func test_PresentAndDismissModal() {
         let router = Router<MockRoute>(initial: .home)
         router.present(.modal)
         XCTAssertEqual(router.state.presented, .modal)
@@ -44,12 +51,13 @@ final class RouterTests: XCTestCase {
         router.dismissModal()
         XCTAssertNil(router.state.presented)
     }
+
+    // MARK: - Tab Selection
     
-    func testSelectTabUpdatesState() {
+    func test_SelectTabUpdatesState() {
         let router = Router<MockRoute>(initial: .home)
-
         router.selectTab(2)
-
-        XCTAssertEqual(router.state.selectedTab, 2, "Expected selected tab index to be updated")
+        XCTAssertEqual(router.state.selectedTab, 2)
     }
 }
+
