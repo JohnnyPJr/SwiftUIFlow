@@ -37,24 +37,19 @@ jobs:
       - name: Install xcpretty
         run: gem install xcpretty
 
+      # 🔹 Build for iOS with a simulator that exists on the runner
       - name: Clean & Build for Testing (iOS)
         run: |
           set -eo pipefail
           scheme="SwiftUIFlow"
+          device=$(xcrun simctl list devices available | grep -m 1 "iPhone" | awk -F "(" '{print $1}' | xargs)
+          echo "Using simulator: $device"
           xcodebuild clean build-for-testing \
             -scheme "$scheme" \
-            -destination "platform=iOS Simulator,name=iPhone 15" \
+            -destination "platform=iOS Simulator,name=$device" \
             | xcpretty
 
-      - name: Clean & Build for Testing (macOS)
-        run: |
-          set -eo pipefail
-          scheme="SwiftUIFlow"
-          xcodebuild clean build-for-testing \
-            -scheme "$scheme" \
-            -destination "platform=macOS" \
-            | xcpretty
-
+      # 🔹 Run tests on macOS (same as your local runs)
       - name: Run Tests (macOS)
         run: |
           set -eo pipefail
