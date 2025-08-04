@@ -15,9 +15,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "A2C6E50E2E3C40A80048CFBD"
-               BuildableName = "SwiftUIFlow.framework"
-               BlueprintName = "SwiftUIFlow"
+               BlueprintIdentifier = "A2B187F12E40DA0E0067DE4F"
+               BuildableName = "SwifUIFlowJP.framework"
+               BlueprintName = "SwifUIFlowJP"
                ReferencedContainer = "container:SwiftUIFlow.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -35,9 +35,9 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "A2C6E5192E3C40A80048CFBD"
-               BuildableName = "SwiftUIFlowTests.xctest"
-               BlueprintName = "SwiftUIFlowTests"
+               BlueprintIdentifier = "A2B187FB2E40DA0E0067DE4F"
+               BuildableName = "SwifUIFlowJPTests.xctest"
+               BlueprintName = "SwifUIFlowJPTests"
                ReferencedContainer = "container:SwiftUIFlow.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -63,9 +63,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A2C6E50E2E3C40A80048CFBD"
-            BuildableName = "SwiftUIFlow.framework"
-            BlueprintName = "SwiftUIFlow"
+            BlueprintIdentifier = "A2B187F12E40DA0E0067DE4F"
+            BuildableName = "SwifUIFlowJP.framework"
+            BlueprintName = "SwifUIFlowJP"
             ReferencedContainer = "container:SwiftUIFlow.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
