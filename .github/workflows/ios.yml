@@ -8,7 +8,7 @@ on:
 
 jobs:
   macos-test:
-    name: Lint, Build (iOS), and Test (macOS)
+    name: Lint, Build, and Test on macOS
     runs-on: macos-latest
 
     steps:
@@ -37,24 +37,20 @@ jobs:
       - name: Install xcpretty
         run: gem install xcpretty
 
-      # 🔹 Build for iOS with a simulator that exists on the runner
-      - name: Clean & Build for Testing (iOS)
+      - name: Clean & Build for Testing
         run: |
           set -eo pipefail
           scheme="SwiftUIFlow"
-          device=$(xcrun simctl list devices available | grep -m 1 "iPhone" | awk -F "(" '{print $1}' | xargs)
-          echo "Using simulator: $device"
           xcodebuild clean build-for-testing \
             -scheme "$scheme" \
-            -destination "platform=iOS Simulator,name=$device" \
+            -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" \
             | xcpretty
 
-      # 🔹 Run tests on macOS (same as your local runs)
-      - name: Run Tests (macOS)
+      - name: Run Tests
         run: |
           set -eo pipefail
           scheme="SwiftUIFlow"
           xcodebuild test-without-building \
             -scheme "$scheme" \
-            -destination "platform=macOS" \
+            -destination "platform=iOS Simulator,name=iPhone 16 Pro Max,OS=latest" \
             | xcpretty
