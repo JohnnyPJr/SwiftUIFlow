@@ -1,0 +1,54 @@
+name: SwiftUIFlow CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  macos-test:
+    name: Lint, Build, and Test on macOS
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Clear Derived Data
+        run: rm -rf ~/Library/Developer/Xcode/DerivedData/*
+
+      - name: Update Homebrew
+        run: brew update
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Run SwiftLint
+        run: |
+          set -eo pipefail
+          swiftlint lint --config swiftlint.yml --reporter github-actions-logging
+
+      - name: Setup Xcode 16.2
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.2"
+
+      - name: Install xcpretty
+        run: gem install xcpretty
+
+      - name: Clean & Build for Testing (macOS)
+        run: |
+          set -eo pipefail
+          scheme="SwiftUIFlow"
+          xcodebuild clean build-for-testing \
+            -scheme "$scheme" \
+            | xcpretty
+
+      - name: Run Tests (macOS)
+        run: |
+          set -eo pipefail
+          scheme="SwiftUIFlow"
+          xcodebuild test-without-building \
+            -scheme "$scheme" \
+            | xcpretty
