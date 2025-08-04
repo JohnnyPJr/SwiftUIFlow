@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import SwiftUIFlow
+@testable import SwifUIFlowJP
 
 final class NavigationStateTests: XCTestCase {
 
