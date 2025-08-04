@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import SwifUIFlowJP
+@testable import SwifUIFlow
 
 enum MockRoute: String, Route {
     case login
