@@ -8,7 +8,7 @@ on:
 
 jobs:
   macos-test:
-    name: Lint, Build, and Test on macOS
+    name: Lint, Build (iOS), and Test (macOS)
     runs-on: macos-latest
 
     steps:
@@ -37,12 +37,22 @@ jobs:
       - name: Install xcpretty
         run: gem install xcpretty
 
+      - name: Clean & Build for Testing (iOS)
+        run: |
+          set -eo pipefail
+          scheme="SwiftUIFlow"
+          xcodebuild clean build-for-testing \
+            -scheme "$scheme" \
+            -destination "platform=iOS Simulator,name=iPhone 15" \
+            | xcpretty
+
       - name: Clean & Build for Testing (macOS)
         run: |
           set -eo pipefail
           scheme="SwiftUIFlow"
           xcodebuild clean build-for-testing \
             -scheme "$scheme" \
+            -destination "platform=macOS" \
             | xcpretty
 
       - name: Run Tests (macOS)
@@ -51,4 +61,5 @@ jobs:
           scheme="SwiftUIFlow"
           xcodebuild test-without-building \
             -scheme "$scheme" \
+            -destination "platform=macOS" \
             | xcpretty
