@@ -15,6 +15,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Clear Derived Data
+        run: rm -rf ~/Library/Developer/Xcode/DerivedData/*
+
       - name: Update Homebrew
         run: brew update
 
@@ -23,6 +26,7 @@ jobs:
 
       - name: Run SwiftLint (non-fatal)
         run: |
+          set -e
           swiftlint lint --config swiftlint.yml --reporter github-actions-logging || echo "SwiftLint warnings found"
 
       - name: Setup Xcode 16.2
@@ -35,6 +39,7 @@ jobs:
 
       - name: Clean & Build for Testing
         run: |
+          set -e
           scheme="SwiftUIFlow"
           xcodebuild clean build-for-testing \
             -scheme "$scheme" \
@@ -42,6 +47,7 @@ jobs:
 
       - name: Run Tests
         run: |
+          set -e
           scheme="SwiftUIFlow"
           xcodebuild test-without-building \
             -scheme "$scheme" \
