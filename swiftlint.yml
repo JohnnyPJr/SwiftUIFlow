@@ -10,8 +10,8 @@ opt_in_rules:
   - first_where
 
 included:
-  - SwiftUIFlowJP
-  - SwiftUIFlowJPTests
+  - SwiftUIFlow
+  - SwiftUIFlowTests
 
 excluded:
   - Pods
