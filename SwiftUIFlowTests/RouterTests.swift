@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import SwifUIFlow
+@testable import SwiftUIFlow
 
 final class RouterTests: XCTestCase {
 

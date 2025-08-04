@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A2B187FD2E40DA0E0067DE4F /* SwifUIFlow.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2B187F22E40DA0E0067DE4F /* SwifUIFlow.framework */; };
+		A2B187FD2E40DA0E0067DE4F /* SwiftUIFlow.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2B187F22E40DA0E0067DE4F /* SwiftUIFlow.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -21,19 +21,21 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		A2B187F22E40DA0E0067DE4F /* SwifUIFlow.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SwifUIFlow.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		A2B187FC2E40DA0E0067DE4F /* SwifUIFlowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwifUIFlowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A2B187F22E40DA0E0067DE4F /* SwiftUIFlow.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SwiftUIFlow.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		A2B187FC2E40DA0E0067DE4F /* SwiftUIFlowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftUIFlowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A2B187F32E40DA0E0067DE4F /* SwifUIFlow */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = SwifUIFlow;
+			name = SwifUIFlow;
+			path = SwiftUIFlow;
 			sourceTree = "<group>";
 		};
 		A2B188002E40DA0E0067DE4F /* SwifUIFlowTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = SwifUIFlowTests;
+			name = SwifUIFlowTests;
+			path = SwiftUIFlowTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -50,7 +52,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A2B187FD2E40DA0E0067DE4F /* SwifUIFlow.framework in Frameworks */,
+				A2B187FD2E40DA0E0067DE4F /* SwiftUIFlow.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -69,8 +71,8 @@
 		A2C6E5102E3C40A80048CFBD /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A2B187F22E40DA0E0067DE4F /* SwifUIFlow.framework */,
-				A2B187FC2E40DA0E0067DE4F /* SwifUIFlowTests.xctest */,
+				A2B187F22E40DA0E0067DE4F /* SwiftUIFlow.framework */,
+				A2B187FC2E40DA0E0067DE4F /* SwiftUIFlowTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -88,9 +90,9 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		A2B187F12E40DA0E0067DE4F /* SwifUIFlow */ = {
+		A2B187F12E40DA0E0067DE4F /* SwiftUIFlow */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A2B188072E40DA0E0067DE4F /* Build configuration list for PBXNativeTarget "SwifUIFlow" */;
+			buildConfigurationList = A2B188072E40DA0E0067DE4F /* Build configuration list for PBXNativeTarget "SwiftUIFlow" */;
 			buildPhases = (
 				A2B187ED2E40DA0E0067DE4F /* Headers */,
 				A2B187EE2E40DA0E0067DE4F /* Sources */,
@@ -105,16 +107,16 @@
 			fileSystemSynchronizedGroups = (
 				A2B187F32E40DA0E0067DE4F /* SwifUIFlow */,
 			);
-			name = SwifUIFlow;
+			name = SwiftUIFlow;
 			packageProductDependencies = (
 			);
 			productName = SwifUIFlowJP;
-			productReference = A2B187F22E40DA0E0067DE4F /* SwifUIFlow.framework */;
+			productReference = A2B187F22E40DA0E0067DE4F /* SwiftUIFlow.framework */;
 			productType = "com.apple.product-type.framework";
 		};
-		A2B187FB2E40DA0E0067DE4F /* SwifUIFlowTests */ = {
+		A2B187FB2E40DA0E0067DE4F /* SwiftUIFlowTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A2B188082E40DA0E0067DE4F /* Build configuration list for PBXNativeTarget "SwifUIFlowTests" */;
+			buildConfigurationList = A2B188082E40DA0E0067DE4F /* Build configuration list for PBXNativeTarget "SwiftUIFlowTests" */;
 			buildPhases = (
 				A2B187F82E40DA0E0067DE4F /* Sources */,
 				A2B187F92E40DA0E0067DE4F /* Frameworks */,
@@ -128,11 +130,11 @@
 			fileSystemSynchronizedGroups = (
 				A2B188002E40DA0E0067DE4F /* SwifUIFlowTests */,
 			);
-			name = SwifUIFlowTests;
+			name = SwiftUIFlowTests;
 			packageProductDependencies = (
 			);
 			productName = SwifUIFlowJPTests;
-			productReference = A2B187FC2E40DA0E0067DE4F /* SwifUIFlowTests.xctest */;
+			productReference = A2B187FC2E40DA0E0067DE4F /* SwiftUIFlowTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
@@ -167,8 +169,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A2B187F12E40DA0E0067DE4F /* SwifUIFlow */,
-				A2B187FB2E40DA0E0067DE4F /* SwifUIFlowTests */,
+				A2B187F12E40DA0E0067DE4F /* SwiftUIFlow */,
+				A2B187FB2E40DA0E0067DE4F /* SwiftUIFlowTests */,
 			);
 		};
 /* End PBXProject section */
@@ -209,7 +211,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -f \"${SRCROOT}/swiftlint.yml\" ]; then\n  echo \">>> ✅ Running SwiftLint\"\n\n  /opt/homebrew/bin/swiftlint lint \\\n    --config \"${SRCROOT}/swiftlint.yml\" \\\n    --reporter xcode \\\n    \"${SRCROOT}/SwifUIFlow\" || true\n\n  /opt/homebrew/bin/swiftlint lint \\\n    --config \"${SRCROOT}/swiftlint.yml\" \\\n    --reporter xcode \\\n    \"${SRCROOT}/SwifUIFlowTests\" || true\n\nelse\n  echo \"warning: SwiftLint config not found at ${SRCROOT}/swiftlint.yml\"\nfi\n";
+			shellScript = "if [ -f \"${SRCROOT}/swiftlint.yml\" ]; then\n  echo \">>> ✅ Running SwiftLint\"\n\n  /opt/homebrew/bin/swiftlint lint \\\n    --config \"${SRCROOT}/swiftlint.yml\" \\\n    --reporter xcode \\\n    \"${SRCROOT}/SwiftUIFlow\" || true\n\n  /opt/homebrew/bin/swiftlint lint \\\n    --config \"${SRCROOT}/swiftlint.yml\" \\\n    --reporter xcode \\\n    \"${SRCROOT}/SwiftUIFlowTests\" || true\n\nelse\n  echo \"warning: SwiftLint config not found at ${SRCROOT}/swiftlint.yml\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -233,7 +235,7 @@
 /* Begin PBXTargetDependency section */
 		A2B187FF2E40DA0E0067DE4F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = A2B187F12E40DA0E0067DE4F /* SwifUIFlow */;
+			target = A2B187F12E40DA0E0067DE4F /* SwiftUIFlow */;
 			targetProxy = A2B187FE2E40DA0E0067DE4F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -502,7 +504,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A2B188072E40DA0E0067DE4F /* Build configuration list for PBXNativeTarget "SwifUIFlow" */ = {
+		A2B188072E40DA0E0067DE4F /* Build configuration list for PBXNativeTarget "SwiftUIFlow" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A2B188032E40DA0E0067DE4F /* Debug */,
@@ -511,7 +513,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A2B188082E40DA0E0067DE4F /* Build configuration list for PBXNativeTarget "SwifUIFlowTests" */ = {
+		A2B188082E40DA0E0067DE4F /* Build configuration list for PBXNativeTarget "SwiftUIFlowTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A2B188052E40DA0E0067DE4F /* Debug */,

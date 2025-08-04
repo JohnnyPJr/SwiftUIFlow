@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import SwifUIFlow
+@testable import SwiftUIFlow
 
 final class TestCoordinator: Coordinator<MockRoute> {
     var didHandleRoute = false

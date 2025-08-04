@@ -16,8 +16,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A2B187F12E40DA0E0067DE4F"
-               BuildableName = "SwifUIFlow.framework"
-               BlueprintName = "SwifUIFlow"
+               BuildableName = "SwiftUIFlow.framework"
+               BlueprintName = "SwiftUIFlow"
                ReferencedContainer = "container:SwiftUIFlow.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -36,8 +36,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A2B187FB2E40DA0E0067DE4F"
-               BuildableName = "SwifUIFlowTests.xctest"
-               BlueprintName = "SwifUIFlowTests"
+               BuildableName = "SwiftUIFlowTests.xctest"
+               BlueprintName = "SwiftUIFlowTests"
                ReferencedContainer = "container:SwiftUIFlow.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -64,8 +64,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A2B187F12E40DA0E0067DE4F"
-            BuildableName = "SwifUIFlow.framework"
-            BlueprintName = "SwifUIFlow"
+            BuildableName = "SwiftUIFlow.framework"
+            BlueprintName = "SwiftUIFlow"
             ReferencedContainer = "container:SwiftUIFlow.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
