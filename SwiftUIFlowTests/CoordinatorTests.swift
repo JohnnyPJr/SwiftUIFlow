@@ -5,13 +5,12 @@
 //  Created by Ioannis Platsis on 1/8/25.
 //
 
-import XCTest
 @testable import SwiftUIFlow
+import XCTest
 
 final class CoordinatorTests: XCTestCase {
-
     // MARK: - Initialization
-    
+
     func test_CoordinatorStartsWithRouter() {
         let router = Router<MockRoute>(initial: .home)
         let coordinator = Coordinator(router: router)
@@ -21,7 +20,7 @@ final class CoordinatorTests: XCTestCase {
     }
 
     // MARK: - Child Management
-    
+
     func test_CanAddAndRemoveChildCoordinator() {
         let parent = Coordinator(router: Router<MockRoute>(initial: .home))
         let child = Coordinator(router: Router<MockRoute>(initial: .home))
@@ -34,7 +33,7 @@ final class CoordinatorTests: XCTestCase {
     }
 
     // MARK: - Route Handling
-    
+
     func test_SubclassCanOverrideHandleRoute() {
         let router = Router<MockRoute>(initial: .home)
         let coordinator = TestCoordinator(router: router)
@@ -44,7 +43,7 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertTrue(handled)
         XCTAssertTrue(coordinator.didHandleRoute)
     }
-    
+
     func test_NavigateDelegatesToHandleRouteOrChildren() {
         let router = Router<MockRoute>(initial: .home)
         class NonHandlingCoordinator: Coordinator<MockRoute> {}
@@ -57,7 +56,7 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertTrue(handled)
         XCTAssertTrue(child.didHandleRoute)
     }
-    
+
     func test_NavigateHandlesRouteInCurrentCoordinator() {
         let router = Router<MockRoute>(initial: .home)
         let coordinator = TestCoordinator(router: router)
@@ -79,9 +78,9 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertTrue(handled)
         XCTAssertTrue(parent.didHandleRoute)
     }
-    
+
     // MARK: - Modal Handling
-    
+
     func test_CanPresentAndDismissModalCoordinator() {
         let router = Router<MockRoute>(initial: .home)
         let parent = Coordinator(router: router)
@@ -93,9 +92,9 @@ final class CoordinatorTests: XCTestCase {
         parent.dismissModal()
         XCTAssertNil(parent.modalCoordinator)
     }
-    
+
     // MARK: - Deeplink Handling
-    
+
     func test_CoordinatorCanHandleDeeplinkDirectly() {
         let coordinator = TestCoordinator(router: Router<MockRoute>(initial: .home))
 
@@ -114,7 +113,7 @@ final class CoordinatorTests: XCTestCase {
 
         XCTAssertTrue(child.didHandleRoute)
     }
-    
+
     func test_ParentDelegatesRouteHandlingToChild() {
         let parentWithChild = TestCoordinatorWithChild()
 
@@ -124,7 +123,7 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertTrue(parentWithChild.child.didHandleRoute)
         XCTAssertEqual(parentWithChild.child.lastHandledRoute, .details)
     }
-    
+
     func test_ParentDelegatesDeeplinkHandlingToChild() {
         let parentWithChild = TestCoordinatorWithChild()
 

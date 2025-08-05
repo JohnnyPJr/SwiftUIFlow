@@ -15,8 +15,8 @@ public struct NavigationState<R: Route>: Equatable {
 
     public init(root: R) {
         self.root = root
-        self.stack = []
-        self.selectedTab = 0
-        self.presented = nil
+        stack = []
+        selectedTab = 0
+        presented = nil
     }
 }

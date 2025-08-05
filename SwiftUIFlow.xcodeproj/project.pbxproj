@@ -95,8 +95,9 @@
 			buildConfigurationList = A2B188072E40DA0E0067DE4F /* Build configuration list for PBXNativeTarget "SwiftUIFlow" */;
 			buildPhases = (
 				A2B187ED2E40DA0E0067DE4F /* Headers */,
+				A20F87AA2E419B4100A94608 /* SwiftFormat */,
 				A2B187EE2E40DA0E0067DE4F /* Sources */,
-				A2B188192E40DD620067DE4F /* Run Script */,
+				A2B188192E40DD620067DE4F /* SwiftLint */,
 				A2B187EF2E40DA0E0067DE4F /* Frameworks */,
 				A2B187F02E40DA0E0067DE4F /* Resources */,
 			);
@@ -193,7 +194,27 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		A2B188192E40DD620067DE4F /* Run Script */ = {
+		A20F87AA2E419B4100A94608 /* SwiftFormat */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)",
+			);
+			name = SwiftFormat;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$DERIVED_FILE_DIR/swiftformat-done",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ -f /opt/homebrew/bin/swiftformat ]; then\n  echo \">>> ✅ Running SwiftFormat\"\n  /opt/homebrew/bin/swiftformat \"${SRCROOT}\"\nelif [ -f /usr/local/bin/swiftformat ]; then\n  echo \">>> ✅ Running SwiftFormat\"\n  /usr/local/bin/swiftformat \"${SRCROOT}\"\nelse\n  echo \"warning: SwiftFormat not installed. Install via 'brew install swiftformat'.\"\nfi\n";
+		};
+		A2B188192E40DD620067DE4F /* SwiftLint */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -203,7 +224,7 @@
 			inputPaths = (
 				"$(SRCROOT)/swiftlint.yml",
 			);
-			name = "Run Script";
+			name = SwiftLint;
 			outputFileListPaths = (
 			);
 			outputPaths = (
