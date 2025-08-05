@@ -1,0 +1,11 @@
+--swiftversion 5.9
+--indent 4
+--linebreaks lf
+--semicolons never
+--commas inline
+--disable redundantReturn
+--disable trailingCommas
+--stripunusedargs closure-only
+--wraparguments after-first
+--wrapcollections after-first
+--disable blankLinesAroundMark

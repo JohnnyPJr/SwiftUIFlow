@@ -1,6 +1,8 @@
 ---
 disabled_rules:
   - todo               # allow TODO comments during development
+  - for_where
+  - type_name
 
 opt_in_rules:
   - empty_count

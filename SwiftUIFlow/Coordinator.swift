@@ -14,42 +14,42 @@ open class Coordinator<R: Route>: AnyObject {
     public init(router: Router<R>) {
         self.router = router
     }
-    
+
     public func addChild(_ coordinator: Coordinator) {
         children.append(coordinator)
         coordinator.parent = self
     }
-    
+
     public func removeChild(_ coordinator: Coordinator) {
         children.removeAll { $0 === coordinator }
-        
+
         if coordinator.parent === self {
             coordinator.parent = nil
         }
     }
-    
+
     open func handle(route: R) -> Bool {
         return false
     }
-    
+
     open func navigate(to route: R) -> Bool {
         if handle(route: route) {
             return true
         }
-        
+
         for child in children {
             if child.navigate(to: route) {
                 return true
             }
         }
-        
+
         return parent?.navigate(to: route) ?? false
     }
-    
+
     public func presentModal(_ coordinator: Coordinator) {
         modalCoordinator = coordinator
     }
-    
+
     public func dismissModal() {
         modalCoordinator = nil
     }

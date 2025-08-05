@@ -5,13 +5,12 @@
 //  Created by Ioannis Platsis on 2/8/25.
 //
 
-import XCTest
 @testable import SwiftUIFlow
+import XCTest
 
 final class CoordinationIntegrationTests: XCTestCase {
-
     // MARK: - Full Navigation Flow
-    
+
     func test_FullNavigationFlowWithTabsModalsAndDeeplinks() {
         let router = Router<MockRoute>(initial: .home)
         let mainCoordinator = TestCoordinator(router: router)
@@ -23,7 +22,8 @@ final class CoordinationIntegrationTests: XCTestCase {
 
         // 2. Present modal coordinator
         mainCoordinator.presentModal(modalCoordinator)
-        XCTAssertTrue(mainCoordinator.modalCoordinator === modalCoordinator, "Expected modal coordinator to be presented")
+        XCTAssertTrue(mainCoordinator.modalCoordinator === modalCoordinator,
+                      "Expected modal coordinator to be presented")
 
         // 3. Navigate via modal coordinator
         let handledModal = modalCoordinator.navigate(to: .details)
@@ -40,4 +40,3 @@ final class CoordinationIntegrationTests: XCTestCase {
         XCTAssertEqual(mainCoordinator.lastHandledRoute, .details)
     }
 }
-
