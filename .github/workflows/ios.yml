@@ -21,8 +21,15 @@ jobs:
       - name: Update Homebrew
         run: brew update
 
-      - name: Install SwiftLint
-        run: brew install swiftlint
+      - name: Install SwiftLint and SwiftFormat
+        run: |
+          brew install swiftlint
+          brew install swiftformat
+
+      - name: Run SwiftFormat (fail if unformatted)
+        run: |
+          set -eo pipefail
+          swiftformat . --lint
 
       - name: Run SwiftLint
         run: |
