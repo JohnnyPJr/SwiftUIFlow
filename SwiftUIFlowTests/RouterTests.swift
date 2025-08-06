@@ -67,4 +67,12 @@ final class RouterTests: XCTestCase {
 
         XCTAssertNotNil(view, "Expected view to be built for route")
     }
+
+    func test_viewFactoryBuildsIncorrectView() {
+        let factory = ViewFactory<MockRoute>()
+        let router = Router<MockRoute>(initial: .home, factory: factory)
+        let view = router.view(for: .details)
+
+        XCTAssertNil(view, "Expected view to be nil")
+    }
 }
