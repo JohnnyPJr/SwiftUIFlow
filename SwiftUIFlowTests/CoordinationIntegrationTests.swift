@@ -12,9 +12,9 @@ final class CoordinationIntegrationTests: XCTestCase {
     // MARK: - Full Navigation Flow
 
     func test_FullNavigationFlowWithTabsModalsAndDeeplinks() {
-        let router = Router<MockRoute>(initial: .home)
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
         let mainCoordinator = TestCoordinator(router: router)
-        let modalCoordinator = TestCoordinator(router: Router<MockRoute>(initial: .modal))
+        let modalCoordinator = TestCoordinator(router: Router<MockRoute>(initial: .modal, factory: MockViewFactory()))
 
         // 1. Switch tab
         router.selectTab(1)

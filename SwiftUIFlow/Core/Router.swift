@@ -7,12 +7,15 @@
 
 import Combine
 import Foundation
+import SwiftUI
 
 public final class Router<R: Route>: ObservableObject {
     @Published public private(set) var state: NavigationState<R>
+    private let factory: ViewFactory<R>
 
-    public init(initial root: R) {
-        state = NavigationState(root: root)
+    public init(initial: R, factory: ViewFactory<R>) {
+        state = NavigationState(root: initial)
+        self.factory = factory
     }
 
     public func push(_ route: R) {
@@ -38,5 +41,10 @@ public final class Router<R: Route>: ObservableObject {
 
     public func selectTab(_ index: Int) {
         state.selectedTab = index
+    }
+
+    // MARK: - View Building
+    public func view(for route: R) -> AnyView? {
+        factory.buildView(for: route)
     }
 }

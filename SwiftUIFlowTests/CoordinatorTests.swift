@@ -12,7 +12,7 @@ final class CoordinatorTests: XCTestCase {
     // MARK: - Initialization
 
     func test_CoordinatorStartsWithRouter() {
-        let router = Router<MockRoute>(initial: .home)
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
         let coordinator = Coordinator(router: router)
 
         XCTAssertTrue(coordinator.router === router)
@@ -22,8 +22,8 @@ final class CoordinatorTests: XCTestCase {
     // MARK: - Child Management
 
     func test_CanAddAndRemoveChildCoordinator() {
-        let parent = Coordinator(router: Router<MockRoute>(initial: .home))
-        let child = Coordinator(router: Router<MockRoute>(initial: .home))
+        let parent = Coordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
+        let child = Coordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
 
         parent.addChild(child)
         XCTAssertTrue(parent.children.contains(where: { $0 === child }))
@@ -35,7 +35,7 @@ final class CoordinatorTests: XCTestCase {
     // MARK: - Route Handling
 
     func test_SubclassCanOverrideHandleRoute() {
-        let router = Router<MockRoute>(initial: .home)
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
         let coordinator = TestCoordinator(router: router)
 
         let handled = coordinator.handle(route: .details)
@@ -45,7 +45,7 @@ final class CoordinatorTests: XCTestCase {
     }
 
     func test_NavigateDelegatesToHandleRouteOrChildren() {
-        let router = Router<MockRoute>(initial: .home)
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
         class NonHandlingCoordinator: Coordinator<MockRoute> {}
         let parent = NonHandlingCoordinator(router: router)
         let child = TestCoordinator(router: router)
@@ -58,7 +58,7 @@ final class CoordinatorTests: XCTestCase {
     }
 
     func test_NavigateHandlesRouteInCurrentCoordinator() {
-        let router = Router<MockRoute>(initial: .home)
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
         let coordinator = TestCoordinator(router: router)
 
         let handled = coordinator.navigate(to: .details)
@@ -68,7 +68,7 @@ final class CoordinatorTests: XCTestCase {
     }
 
     func test_ChildCoordinatorBubblesUpNavigationToParent() {
-        let router = Router<MockRoute>(initial: .home)
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
         let parent = TestCoordinator(router: router)
         let child = Coordinator(router: router)
         parent.addChild(child)
@@ -82,7 +82,7 @@ final class CoordinatorTests: XCTestCase {
     // MARK: - Modal Handling
 
     func test_CanPresentAndDismissModalCoordinator() {
-        let router = Router<MockRoute>(initial: .home)
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
         let parent = Coordinator(router: router)
         let modal = Coordinator(router: router)
 
@@ -96,7 +96,7 @@ final class CoordinatorTests: XCTestCase {
     // MARK: - Deeplink Handling
 
     func test_CoordinatorCanHandleDeeplinkDirectly() {
-        let coordinator = TestCoordinator(router: Router<MockRoute>(initial: .home))
+        let coordinator = TestCoordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
 
         coordinator.handleDeeplink(.details)
 
@@ -105,8 +105,8 @@ final class CoordinatorTests: XCTestCase {
 
     func test_CoordinatorDelegatesDeeplinkToChildren() {
         final class ParentCoordinator: Coordinator<MockRoute> {}
-        let parent = ParentCoordinator(router: Router<MockRoute>(initial: .home))
-        let child = TestCoordinator(router: Router<MockRoute>(initial: .home))
+        let parent = ParentCoordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
+        let child = TestCoordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
         parent.addChild(child)
 
         parent.handleDeeplink(.details)
