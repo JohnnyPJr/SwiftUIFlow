@@ -6,7 +6,6 @@
 //
 
 public protocol DeeplinkHandler {
-    associatedtype R: Route
-    func canHandle(_ route: R) -> Bool
-    func handleDeeplink(_ route: R)
+    func canHandle(_ route: any Route) -> Bool
+    func handleDeeplink(_ route: any Route)
 }

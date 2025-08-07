@@ -63,7 +63,7 @@ final class CoordinatorTests: XCTestCase {
     func test_NavigateHandlesRouteInCurrentCoordinator() {
         let sut = makeSUT()
 
-        let handled = sut.coordinator.navigate(to: .details)
+        let handled = sut.coordinator.navigate(to: MockRoute.details)
 
         XCTAssertTrue(handled)
         XCTAssertTrue(sut.coordinator.didHandleRoute)
@@ -72,7 +72,7 @@ final class CoordinatorTests: XCTestCase {
     func test_ChildCoordinatorBubblesUpNavigationToParent() {
         let coordinator = TestCoordinatorWithChildThatCantHandleNavigation()
 
-        let handled = coordinator.child.navigate(to: .details)
+        let handled = coordinator.child.navigate(to: MockRoute.details)
 
         XCTAssertTrue(handled)
         XCTAssertTrue(coordinator.didHandleRoute)
@@ -96,7 +96,7 @@ final class CoordinatorTests: XCTestCase {
     func test_CoordinatorCanHandleDeeplinkDirectly() {
         let sut = makeSUT()
 
-        sut.coordinator.handleDeeplink(.details)
+        sut.coordinator.handleDeeplink(MockRoute.details)
 
         XCTAssertTrue(sut.coordinator.didHandleRoute)
     }
@@ -104,20 +104,20 @@ final class CoordinatorTests: XCTestCase {
     func test_ParentDelegatesRouteHandlingToChild() {
         let parentWithChild = TestCoordinatorWithChild()
 
-        let handled = parentWithChild.navigate(to: .details)
+        let handled = parentWithChild.navigate(to: MockRoute.details)
 
         XCTAssertTrue(handled)
         XCTAssertTrue(parentWithChild.child.didHandleRoute)
-        XCTAssertEqual(parentWithChild.child.lastHandledRoute, .details)
+        XCTAssertEqual(parentWithChild.child.lastHandledRoute, MockRoute.details)
     }
 
     func test_ParentDelegatesDeeplinkHandlingToChild() {
         let parentWithChild = TestCoordinatorWithChild()
 
-        parentWithChild.handleDeeplink(.details)
+        parentWithChild.handleDeeplink(MockRoute.details)
 
         XCTAssertTrue(parentWithChild.child.didHandleRoute)
-        XCTAssertEqual(parentWithChild.child.lastHandledRoute, .details)
+        XCTAssertEqual(parentWithChild.child.lastHandledRoute, MockRoute.details)
     }
 
     // MARK: Helpers
