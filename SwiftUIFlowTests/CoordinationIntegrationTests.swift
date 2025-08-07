@@ -26,7 +26,7 @@ final class CoordinationIntegrationTests: XCTestCase {
                       "Expected modal coordinator to be presented")
 
         // 3. Navigate via modal coordinator
-        let handledModal = modalCoordinator.navigate(to: .details)
+        let handledModal = modalCoordinator.navigate(to: MockRoute.details)
         XCTAssertTrue(handledModal, "Expected modal coordinator to handle navigation")
         XCTAssertEqual(modalCoordinator.lastHandledRoute, .details)
 
@@ -35,8 +35,8 @@ final class CoordinationIntegrationTests: XCTestCase {
         XCTAssertNil(mainCoordinator.modalCoordinator, "Expected modal to be dismissed")
 
         // 5. Deeplink handled by main coordinator
-        mainCoordinator.handleDeeplink(.details)
+        mainCoordinator.handleDeeplink(MockRoute.details)
         XCTAssertTrue(mainCoordinator.didHandleRoute, "Expected deeplink to be handled by main coordinator")
-        XCTAssertEqual(mainCoordinator.lastHandledRoute, .details)
+        XCTAssertEqual(mainCoordinator.lastHandledRoute, MockRoute.details)
     }
 }
