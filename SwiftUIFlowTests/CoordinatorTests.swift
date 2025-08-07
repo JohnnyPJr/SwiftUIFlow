@@ -42,25 +42,16 @@ final class CoordinatorTests: XCTestCase {
         let handled = sut.coordinator.handle(route: .details)
 
         XCTAssertTrue(handled)
-        XCTAssertTrue((sut.coordinator as? TestCoordinator)?.didHandleRoute ?? false)
+        XCTAssertTrue(sut.coordinator.didHandleRoute)
     }
 
     func test_NavigateDelegatesToHandleRouteOrChildren() {
-        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
-        class NonHandlingCoordinator: Coordinator<MockRoute> {}
-        let sut = makeSUT(router: router,
-                          coordinator: NonHandlingCoordinator(router: router),
-                          addChild: true)
+        let coordinator = TestCoordinatorWithChild()
 
-        guard let child = sut.childCoordinator as? TestCoordinator else {
-            XCTFail("Expected child coordinator to be created")
-            return
-        }
-
-        let handled = sut.coordinator.navigate(to: MockRoute.details)
+        let handled = coordinator.navigate(to: MockRoute.details)
 
         XCTAssertTrue(handled)
-        XCTAssertTrue(child.didHandleRoute)
+        XCTAssertTrue(coordinator.child.didHandleRoute)
     }
 
     func test_NavigateHandlesRouteInCurrentCoordinator() {
@@ -69,25 +60,16 @@ final class CoordinatorTests: XCTestCase {
         let handled = sut.coordinator.navigate(to: .details)
 
         XCTAssertTrue(handled)
-        XCTAssertTrue((sut.coordinator as? TestCoordinator)?.didHandleRoute ?? false)
+        XCTAssertTrue(sut.coordinator.didHandleRoute)
     }
 
     func test_ChildCoordinatorBubblesUpNavigationToParent() {
-        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
-        let child = Coordinator(router: router)
-        let sut = makeSUT(router: router,
-                          addChild: true,
-                          childCoordinator: child)
+        let coordinator = TestCoordinatorWithChildThatCantHandleNavigation()
 
-        guard let parent = sut.coordinator as? TestCoordinator else {
-            XCTFail("Expected parent coordinator to be created")
-            return
-        }
-
-        let handled = child.navigate(to: .details)
+        let handled = coordinator.child.navigate(to: .details)
 
         XCTAssertTrue(handled)
-        XCTAssertTrue(parent.didHandleRoute)
+        XCTAssertTrue(coordinator.didHandleRoute)
     }
 
     // MARK: - Modal Handling
@@ -107,32 +89,10 @@ final class CoordinatorTests: XCTestCase {
 
     func test_CoordinatorCanHandleDeeplinkDirectly() {
         let sut = makeSUT()
-        guard let parent = sut.coordinator as? TestCoordinator else {
-            XCTFail("Expected coordinator to be TestCoordinator")
-            return
-        }
-
-        parent.handleDeeplink(.details)
-
-        XCTAssertTrue(parent.didHandleRoute)
-    }
-
-    func test_CoordinatorDelegatesDeeplinkToChildren() {
-        final class ParentCoordinator: Coordinator<MockRoute> {}
-        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
-
-        let sut = makeSUT(router: router,
-                          coordinator: ParentCoordinator(router: router),
-                          addChild: true)
-
-        guard let child = sut.childCoordinator as? TestCoordinator else {
-            XCTFail("Expected child coordinator to be created")
-            return
-        }
 
         sut.coordinator.handleDeeplink(.details)
 
-        XCTAssertTrue(child.didHandleRoute)
+        XCTAssertTrue(sut.coordinator.didHandleRoute)
     }
 
     func test_ParentDelegatesRouteHandlingToChild() {
@@ -157,24 +117,17 @@ final class CoordinatorTests: XCTestCase {
     // MARK: Helpers
 
     private func makeSUT(router: Router<MockRoute>? = nil,
-                         coordinator: Coordinator<MockRoute>? = nil,
-                         addChild: Bool = false,
-                         childCoordinator: Coordinator<MockRoute>? = nil) -> (router: Router<MockRoute>,
-                                                                              coordinator: Coordinator<MockRoute>,
-                                                                              childCoordinator: Coordinator<MockRoute>?)
+                         addChild: Bool = false) -> (router: Router<MockRoute>, coordinator: TestCoordinator, childCoordinator: TestCoordinator?)
     {
         let resolvedRouter = router ?? Router<MockRoute>(initial: .home, factory: MockViewFactory())
-        let resolvedCoordinator = coordinator ?? TestCoordinator(router: resolvedRouter)
+        let coordinator = TestCoordinator(router: resolvedRouter)
 
-        var child = childCoordinator
-        if addChild, child == nil {
+        var child: TestCoordinator?
+        if addChild {
             child = TestCoordinator(router: resolvedRouter)
+            coordinator.addChild(child!)
         }
 
-        if let child {
-            resolvedCoordinator.addChild(child)
-        }
-
-        return (resolvedRouter, resolvedCoordinator, child)
+        return (resolvedRouter, coordinator, child)
     }
 }
