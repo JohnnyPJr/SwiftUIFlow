@@ -8,6 +8,12 @@
 @testable import SwiftUIFlow
 import XCTest
 
+struct SUT {
+    let router: Router<MockRoute>
+    let coordinator: TestCoordinator
+    let childCoordinator: TestCoordinator?
+}
+
 final class CoordinatorTests: XCTestCase {
     // MARK: - Initialization
 
@@ -116,9 +122,7 @@ final class CoordinatorTests: XCTestCase {
 
     // MARK: Helpers
 
-    private func makeSUT(router: Router<MockRoute>? = nil,
-                         addChild: Bool = false) -> (router: Router<MockRoute>, coordinator: TestCoordinator, childCoordinator: TestCoordinator?)
-    {
+    private func makeSUT(router: Router<MockRoute>? = nil, addChild: Bool = false) -> SUT {
         let resolvedRouter = router ?? Router<MockRoute>(initial: .home, factory: MockViewFactory())
         let coordinator = TestCoordinator(router: resolvedRouter)
 
@@ -128,6 +132,8 @@ final class CoordinatorTests: XCTestCase {
             coordinator.addChild(child!)
         }
 
-        return (resolvedRouter, coordinator, child)
+        return SUT(router: resolvedRouter,
+                   coordinator: coordinator,
+                   childCoordinator: child)
     }
 }
