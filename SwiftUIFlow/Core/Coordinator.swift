@@ -7,23 +7,9 @@
 
 import Foundation
 
-open class BaseCoordinator: AnyCoordinator {
+open class Coordinator<R: Route>: AnyCoordinator {
     public weak var parent: AnyCoordinator?
 
-    public init() {}
-
-    open func navigate(to route: any Route) -> Bool {
-        false
-    }
-
-    open func canHandle(_ route: any Route) -> Bool {
-        false
-    }
-
-    open func handleDeeplink(_ route: any Route) {}
-}
-
-open class Coordinator<R: Route>: BaseCoordinator {
     public let router: Router<R>
     public private(set) var children: [AnyCoordinator] = []
     public private(set) var modalCoordinator: AnyCoordinator?
@@ -34,14 +20,14 @@ open class Coordinator<R: Route>: BaseCoordinator {
 
     public func addChild(_ coordinator: AnyCoordinator) {
         children.append(coordinator)
-        (coordinator as? BaseCoordinator)?.parent = self
+        coordinator.parent = self
     }
 
     public func removeChild(_ coordinator: AnyCoordinator) {
         children.removeAll { $0 === coordinator }
 
-        if let base = coordinator as? BaseCoordinator, base.parent === self {
-            base.parent = nil
+        if coordinator.parent === self {
+            coordinator.parent = nil
         }
     }
 
@@ -49,7 +35,7 @@ open class Coordinator<R: Route>: BaseCoordinator {
         return false
     }
 
-    override public func navigate(to route: any Route) -> Bool {
+    public func navigate(to route: any Route) -> Bool {
         print("📍 \(Self.self): Received route \(route.identifier)")
 
         // STEP 1: Route is not of this coordinator's type
@@ -117,24 +103,26 @@ open class Coordinator<R: Route>: BaseCoordinator {
         return nil
     }
 
-    public func presentModal(_ coordinator: BaseCoordinator) {
+    public func presentModal(_ coordinator: AnyCoordinator) {
         modalCoordinator = coordinator
         coordinator.parent = self
     }
 
     public func dismissModal() {
-        if let coordinator = modalCoordinator as? BaseCoordinator, coordinator.parent === self {
-            coordinator.parent = nil
+        if modalCoordinator?.parent === self {
+            modalCoordinator?.parent = nil
         }
         modalCoordinator = nil
     }
+}
 
-    override public func canHandle(_ route: any Route) -> Bool {
+extension Coordinator: DeeplinkHandler {
+    public func canHandle(_ route: any Route) -> Bool {
         guard let typed = route as? R else { return false }
         return handle(route: typed)
     }
 
-    override public func handleDeeplink(_ route: any Route) {
+    public func handleDeeplink(_ route: any Route) {
         guard let typed = route as? R else {
             for child in children {
                 if child.canHandle(route) {
