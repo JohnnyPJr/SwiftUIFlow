@@ -114,9 +114,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
         modalCoordinator = nil
     }
-}
 
-extension Coordinator: DeeplinkHandler {
     public func canHandle(_ route: any Route) -> Bool {
         guard let typed = route as? R else { return false }
         return handle(route: typed)
