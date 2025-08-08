@@ -5,11 +5,28 @@
 //  Created by Ioannis Platsis on 1/8/25.
 //
 
-open class Coordinator<R: Route>: AnyCoordinator {
+import Foundation
+
+open class BaseCoordinator: AnyCoordinator {
+    public weak var parent: AnyCoordinator?
+
+    public init() {}
+
+    open func navigate(to route: any Route) -> Bool {
+        false
+    }
+
+    open func canHandle(_ route: any Route) -> Bool {
+        false
+    }
+
+    open func handleDeeplink(_ route: any Route) {}
+}
+
+open class Coordinator<R: Route>: BaseCoordinator {
     public let router: Router<R>
     public private(set) var children: [AnyCoordinator] = []
     public private(set) var modalCoordinator: AnyCoordinator?
-    public weak var parent: AnyCoordinator?
 
     public init(router: Router<R>) {
         self.router = router
@@ -17,14 +34,14 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     public func addChild(_ coordinator: AnyCoordinator) {
         children.append(coordinator)
-        (coordinator as? Coordinator)?.parent = self as AnyCoordinator
+        (coordinator as? BaseCoordinator)?.parent = self
     }
 
     public func removeChild(_ coordinator: AnyCoordinator) {
         children.removeAll { $0 === coordinator }
 
-        if let coordinator = coordinator as? Coordinator, coordinator.parent === self as AnyCoordinator {
-            coordinator.parent = nil
+        if let base = coordinator as? BaseCoordinator, base.parent === self {
+            base.parent = nil
         }
     }
 
@@ -32,40 +49,92 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return false
     }
 
-    public func navigate(to route: any Route) -> Bool {
+    override public func navigate(to route: any Route) -> Bool {
+        print("📍 \(Self.self): Received route \(route.identifier)")
+
+        // STEP 1: Route is not of this coordinator's type
         guard let currentRoute = route as? R else {
-            return children.contains { $0.navigate(to: route) } || (parent?.navigate(to: route) ?? false)
+            // Recursively find the first capable coordinator in the whole subtree
+            if let target = findCoordinatorThatCanHandle(route) {
+                print("🔁 \(Self.self): Forwarding unmatched route \(route.identifier) to \(type(of: target))")
+                return target.navigate(to: route)
+            }
+
+            // Bubble up to parent
+            if let parent {
+                print("⬆️ \(Self.self): Bubbling unmatched route \(route.identifier) to parent: \(type(of: parent))")
+                return parent.navigate(to: route)
+            }
+
+            print("🚫 \(Self.self): Unmatched route \(route.identifier) could not be handled")
+            return false
         }
 
+        // STEP 2: Route is of this type — try to handle locally
         if handle(route: currentRoute) {
+            print("✅ \(Self.self): Handled route \(route.identifier)")
             return true
         }
 
+        // STEP 3: If we didn’t handle, exhaustively search children + modals
+        if let target = findCoordinatorThatCanHandle(route) {
+            print("🔁 \(Self.self): Forwarding route \(route.identifier) to \(type(of: target))")
+            return target.navigate(to: route)
+        }
+
+        // STEP 4: Bubble up
+        if let parent {
+            print("⬆️ \(Self.self): Bubbling route \(route.identifier) to parent: \(type(of: parent))")
+            return parent.navigate(to: route)
+        }
+
+        return false
+    }
+
+    private func findCoordinatorThatCanHandle(_ route: any Route) -> AnyCoordinator? {
         for child in children {
-            if child.navigate(to: currentRoute) {
-                return true
+            if child.canHandle(route) {
+                return child
+            }
+
+            // Recursive search
+            if let deepChild = (child as? Coordinator)?.findCoordinatorThatCanHandle(route) {
+                return deepChild
             }
         }
 
-        return children.contains { $0.navigate(to: route) } || (parent?.navigate(to: route) ?? false)
+        // Also check modal recursively
+        if let modal = modalCoordinator {
+            if modal.canHandle(route) {
+                return modal
+            }
+
+            if let deepModal = (modal as? Coordinator)?.findCoordinatorThatCanHandle(route) {
+                return deepModal
+            }
+        }
+
+        return nil
     }
 
-    public func presentModal(_ coordinator: AnyCoordinator) {
+    public func presentModal(_ coordinator: BaseCoordinator) {
         modalCoordinator = coordinator
+        coordinator.parent = self
     }
 
     public func dismissModal() {
+        if let coordinator = modalCoordinator as? BaseCoordinator, coordinator.parent === self {
+            coordinator.parent = nil
+        }
         modalCoordinator = nil
     }
-}
 
-extension Coordinator: DeeplinkHandler {
-    public func canHandle(_ route: any Route) -> Bool {
+    override public func canHandle(_ route: any Route) -> Bool {
         guard let typed = route as? R else { return false }
         return handle(route: typed)
     }
 
-    public func handleDeeplink(_ route: any Route) {
+    override public func handleDeeplink(_ route: any Route) {
         guard let typed = route as? R else {
             for child in children {
                 if child.canHandle(route) {

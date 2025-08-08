@@ -39,4 +39,42 @@ final class CoordinationIntegrationTests: XCTestCase {
         XCTAssertTrue(mainCoordinator.didHandleRoute, "Expected deeplink to be handled by main coordinator")
         XCTAssertEqual(mainCoordinator.lastHandledRoute, MockRoute.details)
     }
+
+    func test_unlockFlowRoutesBatteryStatusThroughModal() {
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
+        XCTAssertEqual(router.state.selectedTab, 1)
+
+        guard let tab2 = mainCoordinator.children.first(where: { $0 is Tab2Coordinator }),
+              tab2.navigate(to: Tab2Route.startUnlock),
+              let unlock = (tab2 as? Tab2Coordinator)?.children.first(where: { $0 is UnlockCoordinator }),
+              unlock.navigate(to: UnlockRoute.enterCode),
+              unlock.navigate(to: UnlockRoute.loading),
+              unlock.navigate(to: UnlockRoute.success)
+        else {
+            XCTFail("Unlock flow setup failed")
+            return
+        }
+
+        guard let result = (unlock as? UnlockCoordinator)?.result else {
+            XCTFail("Missing UnlockResultCoordinator")
+            return
+        }
+
+        // Simulate navigation to unrelated route from modal
+        XCTAssertTrue(result.navigate(to: Tab5Route.batteryStatus))
+
+        XCTAssertEqual(router.state.selectedTab, 4)
+
+        guard let tab5 = mainCoordinator.children.first(where: {
+            ($0 as? Tab5Coordinator)?.didHandleBatteryStatus == true
+        }) else {
+            XCTFail("Tab5Coordinator did not handle battery status")
+            return
+        }
+
+        XCTAssertTrue((tab5 as? Tab5Coordinator)?.didHandleBatteryStatus == true)
+    }
 }

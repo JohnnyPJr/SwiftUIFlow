@@ -35,9 +35,11 @@ final class CoordinatorTests: XCTestCase {
         }
 
         XCTAssertTrue(sut.coordinator.children.contains(where: { $0 === child }))
+        XCTAssertTrue(child.parent === sut.coordinator)
 
         sut.coordinator.removeChild(child)
         XCTAssertFalse(sut.coordinator.children.contains(where: { $0 === child }))
+        XCTAssertNil((child as Coordinator<MockRoute>).parent, "Expected parent to be nil after removal")
     }
 
     // MARK: - Route Handling
