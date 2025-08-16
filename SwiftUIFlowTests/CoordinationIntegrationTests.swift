@@ -77,4 +77,50 @@ final class CoordinationIntegrationTests: XCTestCase {
 
         XCTAssertTrue((tab5 as? Tab5Coordinator)?.didHandleBatteryStatus == true)
     }
+
+//    func test_deeplinkToEnterCodeThenBatteryStatus() {
+//        // Step 1: Initialize main tab coordinator and root router
+//        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+//        let mainCoordinator = MainTabCoordinator(router: router)
+//
+//        // Step 2: Deeplink to .enterCode
+//        mainCoordinator.handleDeeplink(UnlockRoute.enterCode)
+//
+//        // 🔎 Expect tab2 to be selected
+//        XCTAssertEqual(router.state.selectedTab, 1, "Expected tab2 to be selected")
+//
+//        // 🔎 Expect tab2 coordinator to exist
+//        guard let tab2 = mainCoordinator.children.first(where: { $0 is Tab2Coordinator }) as? Tab2Coordinator else {
+//            XCTFail("Expected Tab2Coordinator to be built")
+//            return
+//        }
+//
+//        // 🔎 Expect UnlockCoordinator to exist
+//        guard let unlock = tab2.children.first(where: { $0 is UnlockCoordinator }) as? UnlockCoordinator else {
+//            XCTFail("Expected UnlockCoordinator to be built")
+//            return
+//        }
+//
+//        // 🔎 Expect UnlockCoordinator to have handled .enterCode
+//        XCTAssertTrue(unlock.canHandle(UnlockRoute.enterCode), "UnlockCoordinator should handle .enterCode")
+//
+//        // Step 3: Deeplink to .batteryStatus from *deep in the flow* (e.g., unlock result modal or unlock itself)
+//        // We'll simulate this from unlock.result (modal) if it's there, or unlock directly
+//        let origin: AnyCoordinator = unlock.modalCoordinator ?? unlock
+//
+//        origin.handleDeeplink(Tab5Route.batteryStatus)
+//
+//        // 🔎 Expect tab5 to be selected
+//        XCTAssertEqual(router.state.selectedTab, 4, "Expected tab5 to be selected after deeplink")
+//
+//        // 🔎 Expect Tab5Coordinator to have handled the route
+//        guard let tab5 = mainCoordinator.children.first(where: {
+//            ($0 as? Tab5Coordinator)?.didHandleBatteryStatus == true
+//        }) else {
+//            XCTFail("Tab5Coordinator did not handle battery status")
+//            return
+//        }
+//
+//        XCTAssertTrue((tab5 as? Tab5Coordinator)?.didHandleBatteryStatus == true)
+//    }
 }

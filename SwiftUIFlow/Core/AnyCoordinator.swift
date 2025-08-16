@@ -14,3 +14,10 @@ public protocol AnyCoordinator: AnyObject {
     func canHandle(_ route: any Route) -> Bool
     func handleDeeplink(_ route: any Route)
 }
+
+public extension AnyCoordinator {
+    func handleDeeplink(_ route: any Route) {
+        print("📨 \(Self.self): Handling deeplink → navigating to \(route.identifier)")
+        _ = navigate(to: route)
+    }
+}

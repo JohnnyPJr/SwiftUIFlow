@@ -47,7 +47,7 @@ final class CoordinatorTests: XCTestCase {
     func test_SubclassCanOverrideHandleRoute() {
         let sut = makeSUT()
 
-        let handled = sut.coordinator.handle(route: .details)
+        let handled = sut.coordinator.canHandle(MockRoute.details)
 
         XCTAssertTrue(handled)
         XCTAssertTrue(sut.coordinator.didHandleRoute)

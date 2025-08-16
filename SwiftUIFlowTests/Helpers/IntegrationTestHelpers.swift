@@ -64,7 +64,9 @@ final class MainTabCoordinator: Coordinator<MainTabRoute> {
         addChild(tab5)
     }
 
-    override func handle(route: MainTabRoute) -> Bool {
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? MainTabRoute else { return false }
+
         switch route {
         case .tab2:
             router.selectTab(1)
@@ -101,7 +103,8 @@ final class Tab2Coordinator: Coordinator<Tab2Route> {
         addChild(unlock)
     }
 
-    override func handle(route: Tab2Route) -> Bool {
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? Tab2Route else { return false }
         return route == .startUnlock
     }
 
@@ -119,7 +122,9 @@ final class UnlockCoordinator: Coordinator<UnlockRoute> {
         super.init(router: router)
     }
 
-    override func handle(route: UnlockRoute) -> Bool {
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? UnlockRoute else { return false }
+
         switch route {
         case .enterCode, .loading:
             return true
@@ -142,8 +147,10 @@ final class UnlockCoordinator: Coordinator<UnlockRoute> {
 }
 
 final class UnlockResultCoordinator: Coordinator<UnlockResultRoute> {
-    override func handle(route: UnlockResultRoute) -> Bool {
-        route == .showResult
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? UnlockResultRoute else { return false }
+
+        return route == .showResult
     }
 
     deinit {
@@ -156,7 +163,9 @@ final class UnlockResultCoordinator: Coordinator<UnlockResultRoute> {
 final class Tab5Coordinator: Coordinator<Tab5Route> {
     private(set) var didHandleBatteryStatus = false
 
-    override func handle(route: Tab5Route) -> Bool {
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? Tab5Route else { return false }
+
         if route == .batteryStatus {
             didHandleBatteryStatus = true
             return true

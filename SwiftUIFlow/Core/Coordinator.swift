@@ -31,7 +31,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
     }
 
-    open func handle(route: R) -> Bool {
+    open func canHandle(_ route: any Route) -> Bool {
         return false
     }
 
@@ -57,7 +57,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
 
         // STEP 2: Route is of this type — try to handle locally
-        if handle(route: currentRoute) {
+        if canHandle(currentRoute) {
             print("✅ \(Self.self): Handled route \(route.identifier)")
             return true
         }
@@ -113,35 +113,5 @@ open class Coordinator<R: Route>: AnyCoordinator {
             modalCoordinator?.parent = nil
         }
         modalCoordinator = nil
-    }
-
-    public func canHandle(_ route: any Route) -> Bool {
-        guard let typed = route as? R else { return false }
-        return handle(route: typed)
-    }
-
-    public func handleDeeplink(_ route: any Route) {
-        guard let typed = route as? R else {
-            for child in children {
-                if child.canHandle(route) {
-                    child.handleDeeplink(route)
-                    return
-                }
-            }
-
-            parent?.handleDeeplink(route)
-            return
-        }
-
-        if handle(route: typed) { return }
-
-        for child in children {
-            if child.canHandle(route) {
-                child.handleDeeplink(route)
-                return
-            }
-        }
-
-        parent?.handleDeeplink(route)
     }
 }

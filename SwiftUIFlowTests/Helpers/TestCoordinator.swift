@@ -12,9 +12,19 @@ class TestCoordinator: Coordinator<MockRoute> {
     var didHandleRoute = false
     var lastHandledRoute: MockRoute?
 
-    override func handle(route: MockRoute) -> Bool {
+    override func canHandle(_ route: any Route) -> Bool {
         didHandleRoute = true
-        lastHandledRoute = route
+        lastHandledRoute = route as? MockRoute
+        return true
+    }
+
+    override func navigate(to route: any Route) -> Bool {
+        guard let typed = route as? MockRoute else {
+            return super.navigate(to: route)
+        }
+
+        didHandleRoute = true
+        lastHandledRoute = typed
         return true
     }
 }
