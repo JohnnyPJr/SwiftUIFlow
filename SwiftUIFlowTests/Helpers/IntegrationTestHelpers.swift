@@ -43,8 +43,7 @@ final class DummyFactory<R: Route>: ViewFactory<R> {
     }
 }
 
-//// MARK: - Coordinators
-//
+// MARK: - Coordinators
 
 // MARK: - MainTabCoordinator
 
@@ -62,6 +61,18 @@ final class MainTabCoordinator: Coordinator<MainTabRoute> {
         // Add them as children (now parent will be set correctly)
         addChild(tab2)
         addChild(tab5)
+    }
+
+    func switchTab(to index: Int) {
+        router.selectTab(index)
+    }
+
+    override func resetToCleanState() {
+        super.resetToCleanState()
+        // Reset all child tabs when main coordinator resets
+        for child in children {
+            child.resetToCleanState()
+        }
     }
 
     override func canHandle(_ route: any Route) -> Bool {

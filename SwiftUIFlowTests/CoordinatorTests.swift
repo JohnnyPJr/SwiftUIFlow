@@ -122,6 +122,31 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertEqual(parentWithChild.child.lastHandledRoute, MockRoute.details)
     }
 
+    func test_NavigateWithFlowExistsAndDelegates() {
+        let sut = makeSUT()
+
+        let handled = sut.coordinator.navigateWithFlow(to: MockRoute.details)
+
+        XCTAssertTrue(handled, "Expected navigateWithFlow to handle the route")
+        XCTAssertTrue(sut.coordinator.didHandleRoute, "Expected coordinator to have handled the route")
+        XCTAssertEqual(sut.coordinator.lastHandledRoute, MockRoute.details, "Expected correct route to be handled")
+    }
+
+    func test_ResetToCleanStateExists() {
+        let sut = makeSUT()
+
+        // Setup some state to reset
+        sut.router.push(.details)
+        sut.router.present(.modal)
+
+        // Should not throw or crash
+        sut.coordinator.resetToCleanState()
+
+        // For now, just verify the method exists and can be called
+        // We'll test the actual behavior in integration tests
+        XCTAssertTrue(true, "resetToCleanState should exist and be callable")
+    }
+
     // MARK: Helpers
 
     private func makeSUT(router: Router<MockRoute>? = nil, addChild: Bool = false) -> SUT {

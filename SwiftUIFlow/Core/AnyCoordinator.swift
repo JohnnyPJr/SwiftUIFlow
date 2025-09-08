@@ -11,13 +11,15 @@ public protocol AnyCoordinator: AnyObject {
     var parent: AnyCoordinator? { get set }
 
     func navigate(to route: any Route) -> Bool
+    func navigateWithFlow(to route: any Route) -> Bool
     func canHandle(_ route: any Route) -> Bool
     func handleDeeplink(_ route: any Route)
+    func resetToCleanState()
 }
 
 public extension AnyCoordinator {
     func handleDeeplink(_ route: any Route) {
         print("📨 \(Self.self): Handling deeplink → navigating to \(route.identifier)")
-        _ = navigate(to: route)
+        _ = navigateWithFlow(to: route)
     }
 }

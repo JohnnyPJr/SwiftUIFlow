@@ -78,6 +78,35 @@ final class CoordinationIntegrationTests: XCTestCase {
         XCTAssertTrue((tab5 as? Tab5Coordinator)?.didHandleBatteryStatus == true)
     }
 
+    func test_MainTabCoordinatorCanSwitchTabs() {
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        // Should be able to switch tabs directly
+        mainCoordinator.switchTab(to: 2)
+        XCTAssertEqual(router.state.selectedTab, 2, "Expected tab to switch to index 2")
+
+        mainCoordinator.switchTab(to: 4)
+        XCTAssertEqual(router.state.selectedTab, 4, "Expected tab to switch to index 4")
+    }
+
+    func test_CoordinatorsCanResetToCleanState() {
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        // Setup some state
+        router.push(.tab2)
+        router.present(.tab3)
+        router.selectTab(2)
+
+        // Reset should clean everything
+        mainCoordinator.resetToCleanState()
+
+        XCTAssertTrue(router.state.stack.isEmpty, "Expected stack to be empty after reset")
+        XCTAssertNil(router.state.presented, "Expected no modal after reset")
+        // Note: selectedTab might not reset - that's tab coordinator specific behavior
+    }
+
 //    func test_deeplinkToEnterCodeThenBatteryStatus() {
 //        // Step 1: Initialize main tab coordinator and root router
 //        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())

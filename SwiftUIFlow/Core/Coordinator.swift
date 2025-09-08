@@ -77,6 +77,19 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return false
     }
 
+    public func navigateWithFlow(to route: any Route) -> Bool {
+        print("🌊 \(Self.self): Flow navigation to \(route.identifier)")
+        // For now, just delegate to regular navigate
+        // We'll enhance this in Phase 4
+        return navigate(to: route)
+    }
+
+    public func resetToCleanState() {
+        print("🧹 \(Self.self): Resetting to clean state")
+        router.resetToRoot()
+        dismissModal()
+    }
+
     private func findCoordinatorThatCanHandle(_ route: any Route) -> AnyCoordinator? {
         for child in children {
             if child.canHandle(route) {
