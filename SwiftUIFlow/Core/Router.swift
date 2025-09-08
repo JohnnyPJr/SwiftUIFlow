@@ -43,6 +43,19 @@ public final class Router<R: Route>: ObservableObject {
         state.selectedTab = index
     }
 
+    public func popToRoot() {
+        state.stack.removeAll()
+    }
+
+    public func dismissAllModals() {
+        state.presented = nil
+    }
+
+    public func resetToRoot() {
+        state.stack.removeAll()
+        state.presented = nil
+    }
+
     // MARK: - View Building
     public func view(for route: R) -> AnyView? {
         factory.buildView(for: route)

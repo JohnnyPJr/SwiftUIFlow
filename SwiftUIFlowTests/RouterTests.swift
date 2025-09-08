@@ -73,4 +73,35 @@ final class RouterTests: XCTestCase {
 
         XCTAssertNil(view, "Expected view to be nil")
     }
+
+    func test_PopToRootClearsEntireStack() {
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        router.push(.details)
+        router.push(.login)
+
+        router.popToRoot()
+
+        XCTAssertTrue(router.state.stack.isEmpty, "Expected stack to be empty after popToRoot")
+    }
+
+    func test_DismissAllModalsClearsPresented() {
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        router.present(.modal)
+
+        router.dismissAllModals()
+
+        XCTAssertNil(router.state.presented, "Expected presented to be nil after dismissAllModals")
+    }
+
+    func test_ResetToRootClearsStackAndModals() {
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        router.push(.details)
+        router.push(.login)
+        router.present(.modal)
+
+        router.resetToRoot()
+
+        XCTAssertTrue(router.state.stack.isEmpty, "Expected stack to be empty after resetToRoot")
+        XCTAssertNil(router.state.presented, "Expected presented to be nil after resetToRoot")
+    }
 }
