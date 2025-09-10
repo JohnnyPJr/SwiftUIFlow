@@ -90,6 +90,26 @@ final class MainTabCoordinator: Coordinator<MainTabRoute> {
         }
     }
 
+    override func prepareForFlowNavigation(to route: any Route) -> Bool {
+        print("🔧 \(Self.self): Preparing for flow navigation to \(route.identifier)")
+
+        // Check if this is a route that belongs to a specific tab
+        if route is UnlockRoute {
+            print("🔄 \(Self.self): Switching to tab 1 for UnlockRoute")
+            switchTab(to: 1)
+            return true
+        }
+
+        if route is Tab5Route {
+            print("🔄 \(Self.self): Switching to tab 4 for Tab5Route")
+            switchTab(to: 4)
+            return true
+        }
+
+        // For other routes, use default behavior
+        return super.prepareForFlowNavigation(to: route)
+    }
+
     override func navigate(to route: any Route) -> Bool {
         if route is Tab5Route {
             router.selectTab(4)

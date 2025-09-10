@@ -79,9 +79,20 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     public func navigateWithFlow(to route: any Route) -> Bool {
         print("🌊 \(Self.self): Flow navigation to \(route.identifier)")
-        // For now, just delegate to regular navigate
-        // We'll enhance this in Phase 4
+
+        // Ask this coordinator to prepare for the navigation
+        if !prepareForFlowNavigation(to: route) {
+            print("❌ \(Self.self): Failed to prepare for flow navigation to \(route.identifier)")
+            return false
+        }
+
+        // Now do regular navigation
         return navigate(to: route)
+    }
+
+    public func prepareForFlowNavigation(to route: any Route) -> Bool {
+        print("🔧 \(Self.self): Default preparation - no special preparation needed")
+        return true
     }
 
     public func resetToCleanState() {

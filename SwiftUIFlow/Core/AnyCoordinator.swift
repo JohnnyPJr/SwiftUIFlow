@@ -15,11 +15,16 @@ public protocol AnyCoordinator: AnyObject {
     func canHandle(_ route: any Route) -> Bool
     func handleDeeplink(_ route: any Route)
     func resetToCleanState()
+    func prepareForFlowNavigation(to route: any Route) -> Bool
 }
 
 public extension AnyCoordinator {
     func handleDeeplink(_ route: any Route) {
         print("📨 \(Self.self): Handling deeplink → navigating to \(route.identifier)")
         _ = navigateWithFlow(to: route)
+    }
+
+    func prepareForFlowNavigation(to route: any Route) -> Bool {
+        return true
     }
 }
