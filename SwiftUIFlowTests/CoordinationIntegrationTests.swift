@@ -152,4 +152,42 @@ final class CoordinationIntegrationTests: XCTestCase {
 
         XCTAssertTrue((tab5 as? Tab5Coordinator)?.didHandleBatteryStatus == true)
     }
+
+    func test_navigateWithFlowDismissesModalsDuringTraversal() {
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        // Setup: Tab2 -> Unlock -> Modal
+        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
+        guard let unlock = getUnlockCoordinator(from: mainCoordinator) else {
+            XCTFail("Setup failed")
+            return
+        }
+
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.success))
+        XCTAssertNotNil(getModalCoordinator(from: unlock), "Modal should be presented")
+
+        // Record initial state
+        let initialTabIndex = router.state.selectedTab
+        let modal = getModalCoordinator(from: unlock)!
+
+        // CRITICAL: This should NOT switch tabs or dismiss modals with current implementation
+        // We expect this to fail in the current system
+        let success = modal.navigateWithFlow(to: Tab5Route.batteryStatus)
+
+        // These assertions should FAIL with current implementation
+        XCTAssertTrue(success, "Should succeed")
+        XCTAssertNil(getModalCoordinator(from: unlock), "Modal should be dismissed during traversal")
+        XCTAssertEqual(router.state.selectedTab, 4, "Should switch to tab 5 during traversal")
+    }
+
+    // Helper methods to avoid casting
+    private func getUnlockCoordinator(from mainCoordinator: MainTabCoordinator) -> UnlockCoordinator? {
+        guard let tab2 = mainCoordinator.children.first(where: { $0 is Tab2Coordinator }) as? Tab2Coordinator else { return nil }
+        return tab2.children.first(where: { $0 is UnlockCoordinator }) as? UnlockCoordinator
+    }
+
+    private func getModalCoordinator(from unlock: UnlockCoordinator) -> AnyCoordinator? {
+        return (unlock as Coordinator<UnlockRoute>).modalCoordinator
+    }
 }
