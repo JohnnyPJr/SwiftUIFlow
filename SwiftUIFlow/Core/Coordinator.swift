@@ -18,6 +18,10 @@ open class Coordinator<R: Route>: AnyCoordinator {
         self.router = router
     }
 
+    public var navigationType: NavigationType {
+        return .push
+    }
+
     public func addChild(_ coordinator: AnyCoordinator) {
         children.append(coordinator)
         coordinator.parent = self

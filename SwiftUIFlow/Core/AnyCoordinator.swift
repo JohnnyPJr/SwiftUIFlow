@@ -9,6 +9,7 @@ import Foundation
 
 public protocol AnyCoordinator: AnyObject {
     var parent: AnyCoordinator? { get set }
+    var navigationType: NavigationType { get }
 
     func navigate(to route: any Route) -> Bool
     func navigateWithFlow(to route: any Route) -> Bool
