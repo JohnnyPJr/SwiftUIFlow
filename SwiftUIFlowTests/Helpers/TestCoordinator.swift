@@ -48,3 +48,9 @@ final class TestCoordinatorWithChildThatCantHandleNavigation: TestCoordinator {
         addChild(child)
     }
 }
+
+final class TestModalCoordinator: TestCoordinator {
+    override var navigationType: NavigationType {
+        return .modal
+    }
+}

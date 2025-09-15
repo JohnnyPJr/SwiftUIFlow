@@ -135,16 +135,27 @@ final class CoordinatorTests: XCTestCase {
     func test_ResetToCleanStateExists() {
         let sut = makeSUT()
 
-        // Setup some state to reset
         sut.router.push(.details)
         sut.router.present(.modal)
 
-        // Should not throw or crash
         sut.coordinator.resetToCleanState()
 
-        // For now, just verify the method exists and can be called
-        // We'll test the actual behavior in integration tests
         XCTAssertTrue(true, "resetToCleanState should exist and be callable")
+    }
+
+    func test_CoordinatorHasNavigationType() {
+        let sut = makeSUT()
+
+        let navigationType = sut.coordinator.navigationType
+
+        XCTAssertEqual(navigationType, .push, "Default navigation type should be push")
+    }
+
+    func test_CoordinatorCanOverrideNavigationType() {
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        let modalCoordinator = TestModalCoordinator(router: router)
+
+        XCTAssertEqual(modalCoordinator.navigationType, .modal, "Modal coordinator should have modal navigation type")
     }
 
     // MARK: Helpers
