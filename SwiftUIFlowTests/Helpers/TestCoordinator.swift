@@ -54,3 +54,7 @@ final class TestModalCoordinator: TestCoordinator {
         return .modal
     }
 }
+
+final class TestTabCoordinator: TabCoordinator<MainTabRoute> {
+    // TestTabCoordinator will inherit from TabCoordinator base class
+}
