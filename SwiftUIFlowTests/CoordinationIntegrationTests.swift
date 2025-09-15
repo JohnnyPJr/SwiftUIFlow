@@ -168,7 +168,6 @@ final class CoordinationIntegrationTests: XCTestCase {
         XCTAssertNotNil(getModalCoordinator(from: unlock), "Modal should be presented")
 
         // Record initial state
-        let initialTabIndex = router.state.selectedTab
         let modal = getModalCoordinator(from: unlock)!
 
         // CRITICAL: This should NOT switch tabs or dismiss modals with current implementation
