@@ -145,7 +145,7 @@ final class CoordinatorTests: XCTestCase {
     func test_CoordinatorHasNavigationType() {
         let sut = makeSUT()
 
-        let navigationType = sut.coordinator.navigationType
+        let navigationType = sut.coordinator.navigationType(for: MockRoute.details)
 
         XCTAssertEqual(navigationType, .push, "Default navigation type should be push")
     }
@@ -154,7 +154,8 @@ final class CoordinatorTests: XCTestCase {
         let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
         let modalCoordinator = TestModalCoordinator(router: router)
 
-        XCTAssertEqual(modalCoordinator.navigationType, .modal, "Modal coordinator should have modal navigation type")
+        XCTAssertEqual(modalCoordinator.navigationType(for: MockRoute.details), .modal,
+                       "Modal coordinator should have modal navigation type")
     }
 
     func test_NavigateExecutesBasedOnNavigationType() {
@@ -227,7 +228,9 @@ final class CoordinatorTests: XCTestCase {
 // MARK: - Test Helpers
 
 class TestModalThatCantHandle: Coordinator<MockRoute> {
-    override var navigationType: NavigationType { .modal }
+    override func navigationType(for route: any Route) -> NavigationType {
+        return .modal
+    }
 
     override func canHandle(_ route: any Route) -> Bool {
         // This modal can't handle any routes

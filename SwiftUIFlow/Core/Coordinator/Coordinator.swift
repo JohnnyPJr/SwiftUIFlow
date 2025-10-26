@@ -17,7 +17,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         self.router = router
     }
 
-    public var navigationType: NavigationType {
+    open func navigationType(for route: any Route) -> NavigationType {
         return .push
     }
 
@@ -129,7 +129,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     // Execute the actual navigation based on NavigationType
     private func executeNavigation(for route: R) {
-        switch navigationType {
+        switch navigationType(for: route) {
         case .push:
             router.push(route)
         case .modal:
@@ -149,13 +149,13 @@ open class Coordinator<R: Route>: AnyCoordinator {
     open func shouldCleanStateForBubbling(route: any Route) -> Bool {
         // Clean if we have a modal presented or if we're deep in a stack
         // Don't clean if we're a tab coordinator (they handle their own tab switching)
-        if navigationType == .tabSwitch(index: 0) {
+        if case .tabSwitch = navigationType(for: route) {
             return false
         }
         return modalCoordinator != nil || !router.state.stack.isEmpty
     }
 
-    // Clean state when bubbling up - NOW USING navigationType!
+    // Clean state when bubbling up
     open func cleanStateForBubbling() {
         // First handle any modal coordinator
         if modalCoordinator != nil {
@@ -167,18 +167,9 @@ open class Coordinator<R: Route>: AnyCoordinator {
             router.dismissModal()
         }
 
-        // Then clean based on our navigation type
-        switch navigationType {
-        case .push:
-            if !router.state.stack.isEmpty {
-                router.popToRoot()
-            }
-        case .modal:
-            // Modal coordinators dismiss themselves via parent
-            break
-        case .tabSwitch:
-            // Tab coordinators don't clean on bubbling - parent handles tab switching
-            break
+        // Clean navigation stack (TabCoordinators override this to prevent cleaning)
+        if !router.state.stack.isEmpty {
+            router.popToRoot()
         }
     }
 
