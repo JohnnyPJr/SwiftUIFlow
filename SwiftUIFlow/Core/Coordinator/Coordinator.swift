@@ -9,7 +9,6 @@ import Foundation
 
 open class Coordinator<R: Route>: AnyCoordinator {
     public weak var parent: AnyCoordinator?
-
     public let router: Router<R>
     public private(set) var children: [AnyCoordinator] = []
     public private(set) var modalCoordinator: AnyCoordinator?
@@ -29,106 +28,158 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     public func removeChild(_ coordinator: AnyCoordinator) {
         children.removeAll { $0 === coordinator }
-
         if coordinator.parent === self {
             coordinator.parent = nil
         }
     }
 
+    // LOCAL ONLY - does THIS coordinator handle this route directly
     open func canHandle(_ route: any Route) -> Bool {
         return false
     }
 
-    public func navigate(to route: any Route) -> Bool {
-        print("📍 \(Self.self): Received route \(route.identifier)")
-
-        // STEP 1: Route is not of this coordinator's type
-        guard let currentRoute = route as? R else {
-            // Recursively find the first capable coordinator in the whole subtree
-            if let target = findCoordinatorThatCanHandle(route) {
-                print("🔁 \(Self.self): Forwarding unmatched route \(route.identifier) to \(type(of: target))")
-                return target.navigate(to: route)
-            }
-
-            // Bubble up to parent
-            if let parent {
-                print("⬆️ \(Self.self): Bubbling unmatched route \(route.identifier) to parent: \(type(of: parent))")
-                return parent.navigate(to: route)
-            }
-
-            print("🚫 \(Self.self): Unmatched route \(route.identifier) could not be handled")
-            return false
-        }
-
-        // STEP 2: Route is of this type — try to handle locally
-        if canHandle(currentRoute) {
-            print("✅ \(Self.self): Handled route \(route.identifier)")
+    // RECURSIVE - can this coordinator OR its descendants handle the route
+    public func canNavigate(to route: any Route) -> Bool {
+        // Can I handle it directly?
+        if canHandle(route) {
             return true
         }
 
-        // STEP 3: If we didn’t handle, exhaustively search children + modals
-        if let target = findCoordinatorThatCanHandle(route) {
-            print("🔁 \(Self.self): Forwarding route \(route.identifier) to \(type(of: target))")
-            return target.navigate(to: route)
+        // Can any of my children handle it (recursively)?
+        for child in children {
+            if child.canNavigate(to: route) {
+                return true
+            }
         }
 
-        // STEP 4: Bubble up
-        if let parent {
-            print("⬆️ \(Self.self): Bubbling route \(route.identifier) to parent: \(type(of: parent))")
-            return parent.navigate(to: route)
+        // Can my modal handle it (recursively)?
+        if let modal = modalCoordinator {
+            if modal.canNavigate(to: route) {
+                return true
+            }
         }
 
         return false
     }
 
-    public func navigateWithFlow(to route: any Route) -> Bool {
-        print("🌊 \(Self.self): Flow navigation to \(route.identifier)")
+    public func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
+        print("🔍 \(Self.self): Navigating to \(route.identifier)")
 
-        // Ask this coordinator to prepare for the navigation
-        if !prepareForFlowNavigation(to: route) {
-            print("❌ \(Self.self): Failed to prepare for flow navigation to \(route.identifier)")
+        // Check modal first if currently presented
+        if let modal = modalCoordinator {
+            var modalHandledRoute = false
+
+            // Only try to navigate if it's not the caller (prevents infinite loop)
+            if modal !== caller {
+                modalHandledRoute = modal.navigate(to: route, from: self)
+            }
+
+            // If modal handled it and is still our modal, keep it
+            if modalHandledRoute, modalCoordinator === modal {
+                print("📱 \(Self.self): Modal handled \(route.identifier)")
+                return true
+            }
+
+            // Modal is still present, and either:
+            // 1. Didn't handle the route (including when it's the caller), OR
+            // 2. Route is incompatible with modal type
+            // Then dismiss it
+            if modalCoordinator === modal {
+                if !modalHandledRoute || shouldDismissModalFor(route: route) {
+                    print("🚪 \(Self.self): Dismissing modal for \(route.identifier)")
+                    dismissModal()
+                    router.dismissModal()
+                }
+            }
+        }
+
+        // Try to handle directly (after cleaning up incompatible modals)
+        if let typedRoute = route as? R {
+            if canHandle(typedRoute) {
+                print("✅ \(Self.self): Executing navigation for \(route.identifier)")
+                executeNavigation(for: typedRoute)
+                return true
+            }
+        }
+
+        // Check if any child can handle it - skip the caller (prevents infinite loop)
+        for child in children where child !== caller {
+            if child.navigate(to: route, from: self) {
+                print("👶 \(Self.self): Child handled \(route.identifier)")
+                return true
+            }
+        }
+
+        // Bubble up to parent
+        if let parent {
+            print("⬆️ \(Self.self): Bubbling \(route.identifier) to parent")
+
+            // Before bubbling up, should we clean our state?
+            if shouldCleanStateForBubbling(route: route) {
+                print("🧹 \(Self.self): Cleaning state before bubbling")
+                cleanStateForBubbling()
+            }
+
+            return parent.navigate(to: route, from: self)
+        }
+
+        print("❌ \(Self.self): Could not handle \(route.identifier)")
+        return false
+    }
+
+    // Execute the actual navigation based on NavigationType
+    private func executeNavigation(for route: R) {
+        switch navigationType {
+        case .push:
+            router.push(route)
+        case .modal:
+            router.present(route)
+        case let .tabSwitch(index):
+            router.selectTab(index)
+        }
+    }
+
+    // Determine if we should dismiss modal for this route
+    open func shouldDismissModalFor(route: any Route) -> Bool {
+        // Default: dismiss if the route belongs to a different coordinator type
+        return !(route is R)
+    }
+
+    // Determine if we should clean state when bubbling
+    open func shouldCleanStateForBubbling(route: any Route) -> Bool {
+        // Clean if we have a modal presented or if we're deep in a stack
+        // Don't clean if we're a tab coordinator (they handle their own tab switching)
+        if navigationType == .tabSwitch(index: 0) {
             return false
         }
-
-        // Now do regular navigation
-        return navigate(to: route)
+        return modalCoordinator != nil || !router.state.stack.isEmpty
     }
 
-    public func prepareForFlowNavigation(to route: any Route) -> Bool {
-        print("🔧 \(Self.self): Default preparation - no special preparation needed")
-        return true
-    }
-
-    public func resetToCleanState() {
-        print("🧹 \(Self.self): Resetting to clean state")
-        router.resetToRoot()
-        dismissModal()
-    }
-
-    private func findCoordinatorThatCanHandle(_ route: any Route) -> AnyCoordinator? {
-        for child in children {
-            if child.canHandle(route) {
-                return child
-            }
-
-            // Recursive search
-            if let deepChild = (child as? Coordinator)?.findCoordinatorThatCanHandle(route) {
-                return deepChild
-            }
+    // Clean state when bubbling up - NOW USING navigationType!
+    open func cleanStateForBubbling() {
+        // First handle any modal coordinator
+        if modalCoordinator != nil {
+            dismissModal()
         }
 
-        // Also check modal recursively
-        if let modal = modalCoordinator {
-            if modal.canHandle(route) {
-                return modal
-            }
-
-            if let deepModal = (modal as? Coordinator)?.findCoordinatorThatCanHandle(route) {
-                return deepModal
-            }
+        // Always clean router modal state if present
+        if router.state.presented != nil {
+            router.dismissModal()
         }
 
-        return nil
+        // Then clean based on our navigation type
+        switch navigationType {
+        case .push:
+            if !router.state.stack.isEmpty {
+                router.popToRoot()
+            }
+        case .modal:
+            // Modal coordinators dismiss themselves via parent
+            break
+        case .tabSwitch:
+            // Tab coordinators don't clean on bubbling - parent handles tab switching
+            break
+        }
     }
 
     public func presentModal(_ coordinator: AnyCoordinator) {
@@ -141,5 +192,10 @@ open class Coordinator<R: Route>: AnyCoordinator {
             modalCoordinator?.parent = nil
         }
         modalCoordinator = nil
+    }
+
+    public func resetToCleanState() {
+        router.resetToRoot()
+        dismissModal()
     }
 }

@@ -47,7 +47,7 @@ final class DummyFactory<R: Route>: ViewFactory<R> {
 
 // MARK: - MainTabCoordinator
 
-final class MainTabCoordinator: Coordinator<MainTabRoute> {
+final class MainTabCoordinator: TabCoordinator<MainTabRoute> {
     private let tab2: Tab2Coordinator
     private let tab5: Tab5Coordinator
 
@@ -59,12 +59,39 @@ final class MainTabCoordinator: Coordinator<MainTabRoute> {
         super.init(router: router)
 
         // Add them as children (now parent will be set correctly)
+        // Adding placeholder coordinators for tabs 1, 3, 4
+        addChild(Coordinator(router: Router(initial: MainTabRoute.tab1, factory: DummyFactory())))
         addChild(tab2)
+        addChild(Coordinator(router: Router(initial: MainTabRoute.tab3, factory: DummyFactory())))
+        addChild(Coordinator(router: Router(initial: MainTabRoute.tab4, factory: DummyFactory())))
         addChild(tab5)
     }
 
+    override func canHandle(_ route: any Route) -> Bool {
+        // Tab coordinator handles tab routes to switch tabs
+        return route is MainTabRoute
+    }
+
+    override func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
+        // Handle MainTabRoute cases to switch tabs
+        if let tabRoute = route as? MainTabRoute, canHandle(tabRoute) {
+            let tabIndex = switch tabRoute {
+            case .tab1: 0
+            case .tab2: 1
+            case .tab3: 2
+            case .tab4: 3
+            case .tab5: 4
+            }
+            router.selectTab(tabIndex)
+            return true
+        }
+
+        // Otherwise use TabCoordinator's logic for other routes
+        return super.navigate(to: route, from: caller)
+    }
+
     func switchTab(to index: Int) {
-        router.selectTab(index)
+        switchToTab(index)
     }
 
     override func resetToCleanState() {
@@ -75,48 +102,6 @@ final class MainTabCoordinator: Coordinator<MainTabRoute> {
         }
     }
 
-    override func canHandle(_ route: any Route) -> Bool {
-        guard let route = route as? MainTabRoute else { return false }
-
-        switch route {
-        case .tab2:
-            router.selectTab(1)
-            return true
-        case .tab5:
-            router.selectTab(4)
-            return true
-        default:
-            return false
-        }
-    }
-
-    override func prepareForFlowNavigation(to route: any Route) -> Bool {
-        print("🔧 \(Self.self): Preparing for flow navigation to \(route.identifier)")
-
-        // Check if this is a route that belongs to a specific tab
-        if route is UnlockRoute {
-            print("🔄 \(Self.self): Switching to tab 1 for UnlockRoute")
-            switchTab(to: 1)
-            return true
-        }
-
-        if route is Tab5Route {
-            print("🔄 \(Self.self): Switching to tab 4 for Tab5Route")
-            switchTab(to: 4)
-            return true
-        }
-
-        // For other routes, use default behavior
-        return super.prepareForFlowNavigation(to: route)
-    }
-
-    override func navigate(to route: any Route) -> Bool {
-        if route is Tab5Route {
-            router.selectTab(4)
-        }
-        return super.navigate(to: route)
-    }
-
     deinit {
         print("💀 Deinit: \(Self.self)")
     }
@@ -125,18 +110,38 @@ final class MainTabCoordinator: Coordinator<MainTabRoute> {
 // MARK: - Tab2Coordinator
 
 final class Tab2Coordinator: Coordinator<Tab2Route> {
-    private let unlock: UnlockCoordinator
-
-    override init(router: Router<Tab2Route>) {
-        unlock = UnlockCoordinator(router: Router(initial: .enterCode, factory: DummyFactory()))
-        super.init(router: router)
-
-        addChild(unlock)
-    }
+    private var unlock: UnlockCoordinator?
 
     override func canHandle(_ route: any Route) -> Bool {
+        // Tab2 can handle Tab2Routes directly
         guard let route = route as? Tab2Route else { return false }
         return route == .startUnlock
+    }
+
+    override func canNavigate(to route: any Route) -> Bool {
+        // Can handle directly?
+        if canHandle(route) {
+            return true
+        }
+
+        // Will create UnlockCoordinator for UnlockRoutes
+        if route is UnlockRoute {
+            return true
+        }
+
+        // Check existing children
+        return super.canNavigate(to: route)
+    }
+
+    override func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
+        // Special handling for UnlockRoute - ensure child exists
+        if route is UnlockRoute, unlock == nil {
+            unlock = UnlockCoordinator(router: Router(initial: .enterCode, factory: DummyFactory()))
+            addChild(unlock!)
+        }
+
+        // Let base class handle the rest
+        return super.navigate(to: route, from: caller)
     }
 
     deinit {
@@ -147,11 +152,7 @@ final class Tab2Coordinator: Coordinator<Tab2Route> {
 // MARK: - UnlockCoordinator
 
 final class UnlockCoordinator: Coordinator<UnlockRoute> {
-    let result: UnlockResultCoordinator = .init(router: Router(initial: .showResult, factory: DummyFactory()))
-
-    override init(router: Router<UnlockRoute>) {
-        super.init(router: router)
-    }
+    var result: UnlockResultCoordinator?
 
     override func canHandle(_ route: any Route) -> Bool {
         guard let route = route as? UnlockRoute else { return false }
@@ -160,16 +161,19 @@ final class UnlockCoordinator: Coordinator<UnlockRoute> {
         case .enterCode, .loading:
             return true
         case .success:
-            presentModal(result)
+            // Create and present result modal
+            if result == nil {
+                result = UnlockResultCoordinator(router: Router(initial: .showResult, factory: DummyFactory()))
+                presentModal(result!)
+                router.present(.success) // Update router state
+            }
             return true
         }
     }
 
-    override func navigate(to route: any Route) -> Bool {
-        if let modal = modalCoordinator, !modal.canHandle(route) {
-            dismissModal()
-        }
-        return super.navigate(to: route)
+    override func shouldDismissModalFor(route: any Route) -> Bool {
+        // Dismiss modal for non-unlock related routes
+        return !(route is UnlockRoute || route is UnlockResultRoute)
     }
 
     deinit {
@@ -180,7 +184,6 @@ final class UnlockCoordinator: Coordinator<UnlockRoute> {
 final class UnlockResultCoordinator: Coordinator<UnlockResultRoute> {
     override func canHandle(_ route: any Route) -> Bool {
         guard let route = route as? UnlockResultRoute else { return false }
-
         return route == .showResult
     }
 

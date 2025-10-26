@@ -44,31 +44,34 @@ final class CoordinatorTests: XCTestCase {
 
     // MARK: - Route Handling
 
-    func test_SubclassCanOverrideHandleRoute() {
+    func test_CanHandleOnlyReturnsTrueForDirectHandling() {
         let sut = makeSUT()
 
-        let handled = sut.coordinator.canHandle(MockRoute.details)
+        // TestCoordinator handles .details directly
+        XCTAssertTrue(sut.coordinator.canHandle(MockRoute.details))
 
-        XCTAssertTrue(handled)
-        XCTAssertTrue(sut.coordinator.didHandleRoute)
+        // Should NOT handle routes it doesn't directly handle
+        XCTAssertFalse(sut.coordinator.canHandle(MockRoute.home))
+        XCTAssertFalse(sut.coordinator.canHandle(MockRoute.login))
     }
 
-    func test_NavigateDelegatesToHandleRouteOrChildren() {
+    func test_NavigateExecutesRouterActionsWhenHandled() {
+        let sut = makeSUT()
+
+        // Navigate should trigger router.push when canHandle returns true
+        let handled = sut.coordinator.navigate(to: MockRoute.details)
+
+        XCTAssertTrue(handled)
+        XCTAssertEqual(sut.router.state.stack.last, MockRoute.details, "Expected route to be pushed to stack")
+    }
+
+    func test_NavigateDelegatesToChildren() {
         let coordinator = TestCoordinatorWithChild()
 
         let handled = coordinator.navigate(to: MockRoute.details)
 
         XCTAssertTrue(handled)
-        XCTAssertTrue(coordinator.child.didHandleRoute)
-    }
-
-    func test_NavigateHandlesRouteInCurrentCoordinator() {
-        let sut = makeSUT()
-
-        let handled = sut.coordinator.navigate(to: MockRoute.details)
-
-        XCTAssertTrue(handled)
-        XCTAssertTrue(sut.coordinator.didHandleRoute)
+        XCTAssertEqual(coordinator.child.router.state.stack.last, MockRoute.details)
     }
 
     func test_ChildCoordinatorBubblesUpNavigationToParent() {
@@ -77,7 +80,7 @@ final class CoordinatorTests: XCTestCase {
         let handled = coordinator.child.navigate(to: MockRoute.details)
 
         XCTAssertTrue(handled)
-        XCTAssertTrue(coordinator.didHandleRoute)
+        XCTAssertEqual(coordinator.router.state.stack.last, MockRoute.details)
     }
 
     // MARK: - Modal Handling
@@ -93,55 +96,51 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertNil(sut.coordinator.modalCoordinator)
     }
 
-    // MARK: - Deeplink Handling
-
-    func test_CoordinatorCanHandleDeeplinkDirectly() {
+    func test_NavigateDismissesModalWhenModalCantHandle() {
         let sut = makeSUT()
+        let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
+        let modal = TestModalThatCantHandle(router: modalRouter)
 
-        sut.coordinator.handleDeeplink(MockRoute.details)
+        // Present modal
+        sut.coordinator.presentModal(modal)
+        sut.router.present(.modal)
+        XCTAssertNotNil(sut.coordinator.modalCoordinator)
+        XCTAssertNotNil(sut.router.state.presented)
 
-        XCTAssertTrue(sut.coordinator.didHandleRoute)
-    }
-
-    func test_ParentDelegatesRouteHandlingToChild() {
-        let parentWithChild = TestCoordinatorWithChild()
-
-        let handled = parentWithChild.navigate(to: MockRoute.details)
+        // Navigate to route that modal can't handle
+        let handled = sut.coordinator.navigate(to: MockRoute.details)
 
         XCTAssertTrue(handled)
-        XCTAssertTrue(parentWithChild.child.didHandleRoute)
-        XCTAssertEqual(parentWithChild.child.lastHandledRoute, MockRoute.details)
+        XCTAssertNil(sut.coordinator.modalCoordinator, "Modal should be dismissed")
+        XCTAssertNil(sut.router.state.presented, "Router should have dismissed modal")
+        XCTAssertEqual(sut.router.state.stack.last, MockRoute.details, "Route should be pushed after dismissing modal")
     }
 
-    func test_ParentDelegatesDeeplinkHandlingToChild() {
-        let parentWithChild = TestCoordinatorWithChild()
+    // MARK: - State Cleanup
 
-        parentWithChild.handleDeeplink(MockRoute.details)
+    func test_CoordinatorCleansStateWhenBubblingUp() {
+        let parentRouter = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        let parent = TestCoordinator(router: parentRouter)
 
-        XCTAssertTrue(parentWithChild.child.didHandleRoute)
-        XCTAssertEqual(parentWithChild.child.lastHandledRoute, MockRoute.details)
+        let childRouter = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        let child = TestCoordinatorThatCleansOnBubble(router: childRouter)
+
+        parent.addChild(child)
+
+        // Setup child state
+        childRouter.push(.login)
+        childRouter.present(.modal)
+
+        // Navigate to route child can't handle - should clean and bubble
+        let handled = child.navigate(to: MockRoute.details)
+
+        XCTAssertTrue(handled)
+        XCTAssertTrue(childRouter.state.stack.isEmpty, "Child should clean stack when bubbling")
+        XCTAssertNil(childRouter.state.presented, "Child should dismiss modal when bubbling")
+        XCTAssertEqual(parentRouter.state.stack.last, MockRoute.details, "Parent should handle route")
     }
 
-    func test_NavigateWithFlowExistsAndDelegates() {
-        let sut = makeSUT()
-
-        let handled = sut.coordinator.navigateWithFlow(to: MockRoute.details)
-
-        XCTAssertTrue(handled, "Expected navigateWithFlow to handle the route")
-        XCTAssertTrue(sut.coordinator.didHandleRoute, "Expected coordinator to have handled the route")
-        XCTAssertEqual(sut.coordinator.lastHandledRoute, MockRoute.details, "Expected correct route to be handled")
-    }
-
-    func test_ResetToCleanStateExists() {
-        let sut = makeSUT()
-
-        sut.router.push(.details)
-        sut.router.present(.modal)
-
-        sut.coordinator.resetToCleanState()
-
-        XCTAssertTrue(true, "resetToCleanState should exist and be callable")
-    }
+    // MARK: - NavigationType
 
     func test_CoordinatorHasNavigationType() {
         let sut = makeSUT()
@@ -157,6 +156,18 @@ final class CoordinatorTests: XCTestCase {
 
         XCTAssertEqual(modalCoordinator.navigationType, .modal, "Modal coordinator should have modal navigation type")
     }
+
+    func test_NavigateExecutesBasedOnNavigationType() {
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        let modalCoordinator = TestModalCoordinator(router: router)
+
+        _ = modalCoordinator.navigate(to: MockRoute.details)
+
+        XCTAssertEqual(router.state.presented, MockRoute.details, "Modal coordinator should present route")
+        XCTAssertTrue(router.state.stack.isEmpty, "Modal coordinator should not push to stack")
+    }
+
+    // MARK: - Tab Coordinator Tests
 
     func test_TabCoordinatorCanIdentifyTabForChild() {
         let tabRouter = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
@@ -181,6 +192,20 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertEqual(tabRouter.state.selectedTab, 2, "Tab coordinator should switch tabs using router")
     }
 
+    // MARK: - Reset State
+
+    func test_ResetToCleanStateExists() {
+        let sut = makeSUT()
+
+        sut.router.push(.details)
+        sut.router.present(.modal)
+
+        sut.coordinator.resetToCleanState()
+
+        XCTAssertTrue(sut.router.state.stack.isEmpty, "Stack should be empty after reset")
+        XCTAssertNil(sut.router.state.presented, "Modal should be dismissed after reset")
+    }
+
     // MARK: Helpers
 
     private func makeSUT(router: Router<MockRoute>? = nil, addChild: Bool = false) -> SUT {
@@ -196,5 +221,27 @@ final class CoordinatorTests: XCTestCase {
         return SUT(router: resolvedRouter,
                    coordinator: coordinator,
                    childCoordinator: child)
+    }
+}
+
+// MARK: - Test Helpers
+
+class TestModalThatCantHandle: Coordinator<MockRoute> {
+    override var navigationType: NavigationType { .modal }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        // This modal can't handle any routes
+        return false
+    }
+}
+
+class TestCoordinatorThatCleansOnBubble: TestCoordinator {
+    override func canHandle(_ route: any Route) -> Bool {
+        // This coordinator can't handle any routes - will always bubble to parent
+        return false
+    }
+
+    override func shouldCleanStateForBubbling(route: any Route) -> Bool {
+        return true // Always clean when bubbling
     }
 }
