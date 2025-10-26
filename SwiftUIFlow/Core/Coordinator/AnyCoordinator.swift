@@ -9,8 +9,8 @@ import Foundation
 
 public protocol AnyCoordinator: AnyObject {
     var parent: AnyCoordinator? { get set }
-    var navigationType: NavigationType { get }
 
+    func navigationType(for route: any Route) -> NavigationType
     func navigate(to route: any Route, from caller: AnyCoordinator?) -> Bool
     func canHandle(_ route: any Route) -> Bool
     func canNavigate(to route: any Route) -> Bool

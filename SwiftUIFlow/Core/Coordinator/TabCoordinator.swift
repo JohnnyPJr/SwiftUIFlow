@@ -8,8 +8,9 @@
 import Foundation
 
 open class TabCoordinator<R: Route>: Coordinator<R> {
-    override public var navigationType: NavigationType {
-        return .tabSwitch(index: 0)
+    override open func navigationType(for route: any Route) -> NavigationType {
+        // TabCoordinator subclasses MUST override this method to provide route-to-tab-index mapping
+        fatalError("TabCoordinator subclass must override navigationType(for:) to provide route-to-tab-index mapping")
     }
 
     open func getTabIndex(for coordinator: AnyCoordinator) -> Int? {
@@ -23,6 +24,18 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
 
     open func switchToTab(_ index: Int) {
         router.selectTab(index)
+    }
+
+    override open func cleanStateForBubbling() {
+        // TabCoordinators don't clean their stack when bubbling
+        // They only dismiss modals
+        if modalCoordinator != nil {
+            dismissModal()
+        }
+
+        if router.state.presented != nil {
+            router.dismissModal()
+        }
     }
 
     // Override navigate to handle tab switching intelligently
