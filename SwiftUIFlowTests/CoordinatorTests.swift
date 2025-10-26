@@ -89,7 +89,7 @@ final class CoordinatorTests: XCTestCase {
         let sut = makeSUT()
         let modal = Coordinator(router: sut.router)
 
-        sut.coordinator.presentModal(modal)
+        sut.coordinator.presentModal(modal, presenting: .home)
         XCTAssertTrue(sut.coordinator.modalCoordinator === modal)
 
         sut.coordinator.dismissModal()
@@ -101,9 +101,8 @@ final class CoordinatorTests: XCTestCase {
         let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
         let modal = TestModalThatCantHandle(router: modalRouter)
 
-        // Present modal
-        sut.coordinator.presentModal(modal)
-        sut.router.present(.modal)
+        // Present modal (handles both coordinator and router state)
+        sut.coordinator.presentModal(modal, presenting: .modal)
         XCTAssertNotNil(sut.coordinator.modalCoordinator)
         XCTAssertNotNil(sut.router.state.presented)
 
@@ -129,7 +128,11 @@ final class CoordinatorTests: XCTestCase {
 
         // Setup child state
         childRouter.push(.login)
-        childRouter.present(.modal)
+
+        // Present modal properly using presentModal (not direct router access)
+        let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
+        let modal = Coordinator(router: modalRouter)
+        child.presentModal(modal, presenting: .modal)
 
         // Navigate to route child can't handle - should clean and bubble
         let handled = child.navigate(to: MockRoute.details)

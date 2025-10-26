@@ -22,7 +22,7 @@ final class CoordinationIntegrationTests: XCTestCase {
         XCTAssertEqual(router.state.selectedTab, 1, "Expected tab index to change")
 
         // 2. Present modal coordinator
-        mainCoordinator.presentModal(modalCoordinator)
+        mainCoordinator.presentModal(modalCoordinator, presenting: .modal)
         XCTAssertTrue(mainCoordinator.modalCoordinator === modalCoordinator,
                       "Expected modal coordinator to be presented")
 

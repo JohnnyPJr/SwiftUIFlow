@@ -28,13 +28,9 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
 
     override open func cleanStateForBubbling() {
         // TabCoordinators don't clean their stack when bubbling
-        // They only dismiss modals
+        // They only dismiss modals (dismissModal handles both coordinator and router)
         if modalCoordinator != nil {
             dismissModal()
-        }
-
-        if router.state.presented != nil {
-            router.dismissModal()
         }
     }
 

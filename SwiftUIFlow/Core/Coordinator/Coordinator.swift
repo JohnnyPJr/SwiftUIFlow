@@ -9,7 +9,7 @@ import Foundation
 
 open class Coordinator<R: Route>: AnyCoordinator {
     public weak var parent: AnyCoordinator?
-    public let router: Router<R>
+    let router: Router<R>
     public private(set) var children: [AnyCoordinator] = []
     public private(set) var modalCoordinator: AnyCoordinator?
 
@@ -88,7 +88,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
                 if !modalHandledRoute || shouldDismissModalFor(route: route) {
                     print("🚪 \(Self.self): Dismissing modal for \(route.identifier)")
                     dismissModal()
-                    router.dismissModal()
                 }
             }
         }
@@ -157,14 +156,9 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     // Clean state when bubbling up
     open func cleanStateForBubbling() {
-        // First handle any modal coordinator
+        // Dismiss modal coordinator if present (handles both coordinator and router state)
         if modalCoordinator != nil {
             dismissModal()
-        }
-
-        // Always clean router modal state if present
-        if router.state.presented != nil {
-            router.dismissModal()
         }
 
         // Clean navigation stack (TabCoordinators override this to prevent cleaning)
@@ -173,9 +167,10 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
     }
 
-    public func presentModal(_ coordinator: AnyCoordinator) {
+    public func presentModal(_ coordinator: AnyCoordinator, presenting route: R) {
         modalCoordinator = coordinator
         coordinator.parent = self
+        router.present(route)
     }
 
     public func dismissModal() {
@@ -183,6 +178,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
             modalCoordinator?.parent = nil
         }
         modalCoordinator = nil
+        router.dismissModal()
     }
 
     public func resetToCleanState() {

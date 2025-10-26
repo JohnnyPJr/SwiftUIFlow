@@ -163,8 +163,7 @@ final class UnlockCoordinator: Coordinator<UnlockRoute> {
             // Create and present result modal
             if result == nil {
                 result = UnlockResultCoordinator(router: Router(initial: .showResult, factory: DummyFactory()))
-                presentModal(result!)
-                router.present(.success) // Update router state
+                presentModal(result!, presenting: .success) // Handles both coordinator and router
             }
             return true
         }
