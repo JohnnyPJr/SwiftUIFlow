@@ -9,23 +9,10 @@ import Foundation
 @testable import SwiftUIFlow
 
 class TestCoordinator: Coordinator<MockRoute> {
-    var didHandleRoute = false
-    var lastHandledRoute: MockRoute?
-
     override func canHandle(_ route: any Route) -> Bool {
-        didHandleRoute = true
-        lastHandledRoute = route as? MockRoute
-        return true
-    }
-
-    override func navigate(to route: any Route) -> Bool {
-        guard let typed = route as? MockRoute else {
-            return super.navigate(to: route)
-        }
-
-        didHandleRoute = true
-        lastHandledRoute = typed
-        return true
+        guard let route = route as? MockRoute else { return false }
+        // TestCoordinator can handle details routes
+        return route == .details
     }
 }
 
@@ -36,6 +23,11 @@ final class TestCoordinatorWithChild: Coordinator<MockRoute> {
         child = TestCoordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
         super.init(router: router)
         addChild(child)
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        // Parent doesn't handle anything directly
+        return false
     }
 }
 
@@ -49,12 +41,20 @@ final class TestCoordinatorWithChildThatCantHandleNavigation: TestCoordinator {
     }
 }
 
-final class TestModalCoordinator: TestCoordinator {
+final class TestModalCoordinator: Coordinator<MockRoute> {
     override var navigationType: NavigationType {
         return .modal
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? MockRoute else { return false }
+        return route == .details
     }
 }
 
 final class TestTabCoordinator: TabCoordinator<MainTabRoute> {
-    // TestTabCoordinator will inherit from TabCoordinator base class
+    override func canHandle(_ route: any Route) -> Bool {
+        // TestTabCoordinator doesn't handle routes directly
+        return false
+    }
 }

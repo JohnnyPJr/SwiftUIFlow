@@ -14,7 +14,7 @@ final class CoordinationIntegrationTests: XCTestCase {
     func test_FullNavigationFlowWithTabsModalsAndDeeplinks() {
         let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
         let mainCoordinator = TestCoordinator(router: router)
-        let modalCoordinator = TestCoordinator(router: Router<MockRoute>(initial: .modal, factory: MockViewFactory()))
+        let modalCoordinator = TestModalCoordinator(router: Router<MockRoute>(initial: .modal, factory: MockViewFactory()))
 
         // 1. Switch tab
         router.selectTab(1)
@@ -25,57 +25,18 @@ final class CoordinationIntegrationTests: XCTestCase {
         XCTAssertTrue(mainCoordinator.modalCoordinator === modalCoordinator,
                       "Expected modal coordinator to be presented")
 
-        // 3. Navigate via modal coordinator
+        // 3. Navigate via modal coordinator - should present as modal
         let handledModal = modalCoordinator.navigate(to: MockRoute.details)
         XCTAssertTrue(handledModal, "Expected modal coordinator to handle navigation")
-        XCTAssertEqual(modalCoordinator.lastHandledRoute, .details)
+        XCTAssertEqual(modalCoordinator.router.state.presented, .details, "Expected route to be presented as modal")
 
         // 4. Dismiss modal
         mainCoordinator.dismissModal()
         XCTAssertNil(mainCoordinator.modalCoordinator, "Expected modal to be dismissed")
 
-        // 5. Deeplink handled by main coordinator
-        mainCoordinator.handleDeeplink(MockRoute.details)
-        XCTAssertTrue(mainCoordinator.didHandleRoute, "Expected deeplink to be handled by main coordinator")
-        XCTAssertEqual(mainCoordinator.lastHandledRoute, MockRoute.details)
-    }
-
-    func test_unlockFlowRoutesBatteryStatusThroughModal() {
-        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
-        let mainCoordinator = MainTabCoordinator(router: router)
-
-        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
-        XCTAssertEqual(router.state.selectedTab, 1)
-
-        guard let tab2 = mainCoordinator.children.first(where: { $0 is Tab2Coordinator }),
-              tab2.navigate(to: Tab2Route.startUnlock),
-              let unlock = (tab2 as? Tab2Coordinator)?.children.first(where: { $0 is UnlockCoordinator }),
-              unlock.navigate(to: UnlockRoute.enterCode),
-              unlock.navigate(to: UnlockRoute.loading),
-              unlock.navigate(to: UnlockRoute.success)
-        else {
-            XCTFail("Unlock flow setup failed")
-            return
-        }
-
-        guard let result = (unlock as? UnlockCoordinator)?.result else {
-            XCTFail("Missing UnlockResultCoordinator")
-            return
-        }
-
-        // Simulate navigation to unrelated route from modal
-        XCTAssertTrue(result.navigate(to: Tab5Route.batteryStatus))
-
-        XCTAssertEqual(router.state.selectedTab, 4)
-
-        guard let tab5 = mainCoordinator.children.first(where: {
-            ($0 as? Tab5Coordinator)?.didHandleBatteryStatus == true
-        }) else {
-            XCTFail("Tab5Coordinator did not handle battery status")
-            return
-        }
-
-        XCTAssertTrue((tab5 as? Tab5Coordinator)?.didHandleBatteryStatus == true)
+        // 5. Navigate (like deeplink) handled by main coordinator - should push
+        _ = mainCoordinator.navigate(to: MockRoute.details)
+        XCTAssertEqual(router.state.stack.last, MockRoute.details, "Expected route to be pushed")
     }
 
     func test_MainTabCoordinatorCanSwitchTabs() {
@@ -104,89 +65,188 @@ final class CoordinationIntegrationTests: XCTestCase {
 
         XCTAssertTrue(router.state.stack.isEmpty, "Expected stack to be empty after reset")
         XCTAssertNil(router.state.presented, "Expected no modal after reset")
-        // Note: selectedTab might not reset - that's tab coordinator specific behavior
+    }
+
+    func test_unlockFlowNavigatesToBatteryStatusAutomatically() {
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        // Navigate to tab2
+        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
+        XCTAssertEqual(router.state.selectedTab, 1)
+
+        // Get tab2 coordinator
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator at index 1")
+            return
+        }
+
+        // Navigate through unlock flow
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.enterCode))
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.loading))
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.success))
+
+        // Get unlock coordinator
+        guard let unlock = tab2.children.first(where: { $0 is UnlockCoordinator }) as? UnlockCoordinator else {
+            XCTFail("Expected UnlockCoordinator")
+            return
+        }
+
+        // Verify modal is presented
+        XCTAssertNotNil(unlock.modalCoordinator, "Expected result modal to be presented")
+
+        // Navigate to battery status from within the modal
+        // This should dismiss modal, clean state, switch tab, and navigate
+        let success = unlock.modalCoordinator!.navigate(to: Tab5Route.batteryStatus, from: nil)
+
+        XCTAssertTrue(success, "Navigation to battery status should succeed")
+        XCTAssertEqual(router.state.selectedTab, 4, "Should switch to tab 5 (index 4)")
+
+        // Verify Tab5 handled the route
+        guard let tab5 = mainCoordinator.children[4] as? Tab5Coordinator else {
+            XCTFail("Expected Tab5Coordinator at index 4")
+            return
+        }
+
+        XCTAssertTrue(tab5.didHandleBatteryStatus, "Tab5 should have handled battery status")
+
+        // Modal should be auto-dismissed
+        XCTAssertNil(unlock.modalCoordinator, "Modal should be dismissed")
     }
 
     func test_deeplinkToEnterCodeThenBatteryStatus() {
-        // Step 1: Initialize main tab coordinator and root router
+        // Step 1: Initialize main tab coordinator
         let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
         let mainCoordinator = MainTabCoordinator(router: router)
 
-        // Step 2: Deeplink to .enterCode
-        mainCoordinator.handleDeeplink(UnlockRoute.enterCode)
+        // Step 2: Navigate to .enterCode (like a deeplink)
+        _ = mainCoordinator.navigate(to: UnlockRoute.enterCode)
 
-        // 🔎 Expect tab2 to be selected
+        // Expect tab2 to be selected
         XCTAssertEqual(router.state.selectedTab, 1, "Expected tab2 to be selected")
 
-        // 🔎 Expect tab2 coordinator to exist
-        guard let tab2 = mainCoordinator.children.first(where: { $0 is Tab2Coordinator }) as? Tab2Coordinator else {
-            XCTFail("Expected Tab2Coordinator to be built")
+        // Expect tab2 coordinator to exist
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator")
             return
         }
 
-        // 🔎 Expect UnlockCoordinator to exist
+        // Expect UnlockCoordinator to exist as child of tab2
         guard let unlock = tab2.children.first(where: { $0 is UnlockCoordinator }) as? UnlockCoordinator else {
-            XCTFail("Expected UnlockCoordinator to be built")
+            XCTFail("Expected UnlockCoordinator to be created")
             return
         }
 
-        // 🔎 Expect UnlockCoordinator to have handled .enterCode
-        XCTAssertTrue(unlock.canHandle(UnlockRoute.enterCode), "UnlockCoordinator should handle .enterCode")
+        // Verify enterCode was pushed to unlock's router
+        XCTAssertEqual(unlock.router.state.stack.last, .enterCode, "Expected .enterCode to be pushed")
 
-        // Step 3: Deeplink to .batteryStatus from *deep in the flow* (e.g., unlock result modal or unlock itself)
-        // We'll simulate this from unlock.result (modal) if it's there, or unlock directly
-        let origin: AnyCoordinator = unlock.modalCoordinator ?? unlock
+        // Step 3: Navigate to .batteryStatus from current position
+        _ = mainCoordinator.navigate(to: Tab5Route.batteryStatus)
 
-        origin.handleDeeplink(Tab5Route.batteryStatus)
+        // Expect tab5 to be selected
+        XCTAssertEqual(router.state.selectedTab, 4, "Expected tab5 to be selected")
 
-        // 🔎 Expect tab5 to be selected
-        XCTAssertEqual(router.state.selectedTab, 4, "Expected tab5 to be selected after deeplink")
-
-        // 🔎 Expect Tab5Coordinator to have handled the route
-        guard let tab5 = mainCoordinator.children.first(where: {
-            ($0 as? Tab5Coordinator)?.didHandleBatteryStatus == true
-        }) else {
-            XCTFail("Tab5Coordinator did not handle battery status")
+        // Expect Tab5Coordinator to have handled the route
+        guard let tab5 = mainCoordinator.children[4] as? Tab5Coordinator else {
+            XCTFail("Expected Tab5Coordinator")
             return
         }
 
-        XCTAssertTrue((tab5 as? Tab5Coordinator)?.didHandleBatteryStatus == true)
+        XCTAssertTrue(tab5.didHandleBatteryStatus, "Tab5 should have handled battery status")
     }
 
-    func test_navigateWithFlowDismissesModalsDuringTraversal() {
+    func test_navigateAutomaticallyDismissesModalsDuringTraversal() {
         let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
         let mainCoordinator = MainTabCoordinator(router: router)
 
-        // Setup: Tab2 -> Unlock -> Modal
+        // Setup: Navigate to Tab2 -> Unlock -> Modal
         XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
-        guard let unlock = getUnlockCoordinator(from: mainCoordinator) else {
-            XCTFail("Setup failed")
+
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator")
             return
         }
 
-        XCTAssertTrue(unlock.navigate(to: UnlockRoute.success))
-        XCTAssertNotNil(getModalCoordinator(from: unlock), "Modal should be presented")
+        // Navigate through unlock flow
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.enterCode))
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.success))
 
-        // Record initial state
-        let modal = getModalCoordinator(from: unlock)!
+        guard let unlock = tab2.children.first(where: { $0 is UnlockCoordinator }) as? UnlockCoordinator else {
+            XCTFail("Expected UnlockCoordinator")
+            return
+        }
 
-        // CRITICAL: This should NOT switch tabs or dismiss modals with current implementation
-        // We expect this to fail in the current system
-        let success = modal.navigateWithFlow(to: Tab5Route.batteryStatus)
+        // Verify modal is presented
+        XCTAssertNotNil(unlock.modalCoordinator, "Modal should be presented")
+        XCTAssertNotNil(unlock.router.state.presented, "Router should have modal presented")
 
-        // These assertions should FAIL with current implementation
+        // Navigate from modal to battery status - should auto-dismiss and switch tabs
+        let modal = unlock.modalCoordinator!
+        let success = modal.navigate(to: Tab5Route.batteryStatus, from: nil)
+
+        // Now these assertions should PASS with our new implementation
         XCTAssertTrue(success, "Should succeed")
-        XCTAssertNil(getModalCoordinator(from: unlock), "Modal should be dismissed during traversal")
+        XCTAssertNil(unlock.modalCoordinator, "Modal should be auto-dismissed during traversal")
+        XCTAssertNil(unlock.router.state.presented, "Router modal state should be cleared")
         XCTAssertEqual(router.state.selectedTab, 4, "Should switch to tab 5 during traversal")
+
+        // Verify Tab5 handled it
+        guard let tab5 = mainCoordinator.children[4] as? Tab5Coordinator else {
+            XCTFail("Expected Tab5Coordinator")
+            return
+        }
+
+        XCTAssertTrue(tab5.didHandleBatteryStatus, "Tab5 should have handled battery status")
     }
 
-    // Helper methods to avoid casting
-    private func getUnlockCoordinator(from mainCoordinator: MainTabCoordinator) -> UnlockCoordinator? {
-        guard let tab2 = mainCoordinator.children.first(where: { $0 is Tab2Coordinator }) as? Tab2Coordinator else { return nil }
-        return tab2.children.first(where: { $0 is UnlockCoordinator }) as? UnlockCoordinator
-    }
+    func test_complexCrossTabNavigationWithCleanup() {
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
 
-    private func getModalCoordinator(from unlock: UnlockCoordinator) -> AnyCoordinator? {
-        return (unlock as Coordinator<UnlockRoute>).modalCoordinator
+        // Setup complex state: Tab2 with deep navigation and modal
+        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
+
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator")
+            return
+        }
+
+        // Build up complex state
+        tab2.router.push(.startUnlock) // Push to tab2 stack
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.enterCode))
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.loading))
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.success)) // This presents a modal
+
+        guard let unlock = tab2.children.first(where: { $0 is UnlockCoordinator }) as? UnlockCoordinator else {
+            XCTFail("Expected UnlockCoordinator")
+            return
+        }
+
+        // Verify complex state exists
+        XCTAssertFalse(tab2.router.state.stack.isEmpty, "Tab2 should have items in stack")
+        XCTAssertNotNil(unlock.modalCoordinator, "Unlock should have modal")
+        XCTAssertNotNil(unlock.router.state.presented, "Unlock router should have presented state")
+
+        // Navigate to battery status from deep within modal
+        // This should trigger full cleanup: dismiss modal, pop stacks, switch tab
+        let success = unlock.modalCoordinator!.navigate(to: Tab5Route.batteryStatus, from: nil)
+
+        XCTAssertTrue(success, "Navigation should succeed")
+
+        // Verify cleanup happened
+        XCTAssertNil(unlock.modalCoordinator, "Modal should be dismissed")
+        XCTAssertNil(unlock.router.state.presented, "Modal state should be cleared")
+        XCTAssertTrue(unlock.router.state.stack.isEmpty, "Unlock stack should be cleared")
+
+        // Verify tab switch
+        XCTAssertEqual(router.state.selectedTab, 4, "Should be on tab 5")
+
+        // Verify target was reached
+        guard let tab5 = mainCoordinator.children[4] as? Tab5Coordinator else {
+            XCTFail("Expected Tab5Coordinator")
+            return
+        }
+
+        XCTAssertTrue(tab5.didHandleBatteryStatus, "Tab5 should have handled battery status")
     }
 }
