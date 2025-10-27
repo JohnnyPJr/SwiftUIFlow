@@ -171,6 +171,67 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertTrue(router.state.stack.isEmpty, "Modal coordinator should not push to stack")
     }
 
+    // MARK: - Replace Navigation Tests
+
+    func test_RouterReplaceWhenStackIsEmpty() {
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+
+        // Replace when stack is empty - should just push
+        router.replace(.details)
+
+        XCTAssertEqual(router.state.stack.count, 1, "Should have 1 item in stack")
+        XCTAssertEqual(router.state.currentRoute, .details, "Should be at details")
+    }
+
+    func test_RouterReplaceWhenStackHasItems() {
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+
+        // Build stack: home -> login -> details
+        router.push(.login)
+        router.push(.details)
+        XCTAssertEqual(router.state.stack.count, 2, "Should have 2 items before replace")
+
+        // Replace details with modal
+        router.replace(.modal)
+
+        XCTAssertEqual(router.state.stack.count, 2, "Should still have 2 items")
+        XCTAssertEqual(router.state.stack.last, .modal, "Last item should be modal")
+        XCTAssertEqual(router.state.currentRoute, .modal, "Should be at modal")
+        XCTAssertFalse(router.state.stack.contains(.details), "Details should be gone")
+    }
+
+    func test_CoordinatorNavigateWithReplaceType() {
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        let coordinator = TestReplaceCoordinator(router: router)
+
+        // Push login first
+        router.push(.login)
+        XCTAssertEqual(router.state.currentRoute, .login)
+
+        // Navigate to details with replace type - should replace login
+        _ = coordinator.navigate(to: MockRoute.details)
+
+        XCTAssertEqual(router.state.currentRoute, .details, "Should be at details")
+        XCTAssertEqual(router.state.stack.last, .details, "Details should be top of stack")
+        XCTAssertFalse(router.state.stack.contains(.login), "Login should be replaced")
+    }
+
+    func test_ReplaceNavigationInMultiStepFlow() {
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        let coordinator = TestReplaceCoordinator(router: router)
+
+        // Simulate multi-step flow: home -> step1 (push) -> step2 (replace) -> step3 (replace)
+        router.push(.login) // Step 1
+        XCTAssertEqual(router.state.stack, [.login])
+
+        _ = coordinator.navigate(to: MockRoute.details) // Step 2 (replace)
+        XCTAssertEqual(router.state.stack, [.details], "Should replace login with details")
+
+        _ = coordinator.navigate(to: MockRoute.modal) // Step 3 (replace)
+        XCTAssertEqual(router.state.stack, [.modal], "Should replace details with modal")
+        XCTAssertEqual(router.state.currentRoute, .modal, "Should be at modal")
+    }
+
     // MARK: - Tab Coordinator Tests
 
     func test_TabCoordinatorCanIdentifyTabForChild() {

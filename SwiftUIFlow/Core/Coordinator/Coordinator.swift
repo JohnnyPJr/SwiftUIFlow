@@ -158,9 +158,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         switch navigationType(for: route) {
         case let .tabSwitch(index):
             return router.state.selectedTab == index
-        case .push:
-            // For push navigation, already there if it's the current route
-            // (currentRoute naturally handles modal priority)
+        case .push, .replace:
             return router.state.currentRoute == route
         case .modal:
             return router.state.presented == route
@@ -172,6 +170,8 @@ open class Coordinator<R: Route>: AnyCoordinator {
         switch navigationType(for: route) {
         case .push:
             router.push(route)
+        case .replace:
+            router.replace(route)
         case .modal:
             router.present(route)
         case let .tabSwitch(index):

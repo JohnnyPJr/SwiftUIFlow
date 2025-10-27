@@ -22,6 +22,15 @@ public final class Router<R: Route>: ObservableObject {
         state.stack.append(route)
     }
 
+    public func replace(_ route: R) {
+        // Replace current screen: pop last item (if any) and push new route
+        // Useful for multi-step flows where you don't want back navigation
+        if !state.stack.isEmpty {
+            _ = state.stack.popLast()
+        }
+        state.stack.append(route)
+    }
+
     public func pop() {
         _ = state.stack.popLast()
     }

@@ -63,3 +63,16 @@ final class TestTabCoordinator: TabCoordinator<MainTabRoute> {
         return false
     }
 }
+
+final class TestReplaceCoordinator: Coordinator<MockRoute> {
+    override func navigationType(for route: any Route) -> NavigationType {
+        // Use replace for all routes (for testing replace navigation)
+        return .replace
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? MockRoute else { return false }
+        // Can handle details and modal (for multi-step flow tests)
+        return route == .details || route == .modal
+    }
+}

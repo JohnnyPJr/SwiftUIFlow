@@ -9,6 +9,7 @@ import Foundation
 
 public enum NavigationType: Equatable {
     case push
+    case replace
     case modal
     case tabSwitch(index: Int)
 }
