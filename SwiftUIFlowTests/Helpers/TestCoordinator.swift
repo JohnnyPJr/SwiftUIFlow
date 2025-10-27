@@ -9,13 +9,10 @@ import Foundation
 @testable import SwiftUIFlow
 
 class TestCoordinator: Coordinator<MockRoute> {
-    var didHandleRoute = false
-    var lastHandledRoute: MockRoute?
-
-    override func handle(route: MockRoute) -> Bool {
-        didHandleRoute = true
-        lastHandledRoute = route
-        return true
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? MockRoute else { return false }
+        // TestCoordinator can handle details routes
+        return route == .details
     }
 }
 
@@ -27,6 +24,11 @@ final class TestCoordinatorWithChild: Coordinator<MockRoute> {
         super.init(router: router)
         addChild(child)
     }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        // Parent doesn't handle anything directly
+        return false
+    }
 }
 
 final class TestCoordinatorWithChildThatCantHandleNavigation: TestCoordinator {
@@ -36,5 +38,41 @@ final class TestCoordinatorWithChildThatCantHandleNavigation: TestCoordinator {
         child = Coordinator(router: router)
         super.init(router: router)
         addChild(child)
+    }
+}
+
+final class TestModalCoordinator: Coordinator<MockRoute> {
+    override func navigationType(for route: any Route) -> NavigationType {
+        return .modal
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? MockRoute else { return false }
+        return route == .details
+    }
+}
+
+final class TestTabCoordinator: TabCoordinator<MainTabRoute> {
+    override func navigationType(for route: any Route) -> NavigationType {
+        // Simple test tab coordinator - return default tab index
+        return .tabSwitch(index: 0)
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        // TestTabCoordinator doesn't handle routes directly
+        return false
+    }
+}
+
+final class TestReplaceCoordinator: Coordinator<MockRoute> {
+    override func navigationType(for route: any Route) -> NavigationType {
+        // Use replace for all routes (for testing replace navigation)
+        return .replace
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? MockRoute else { return false }
+        // Can handle details and modal (for multi-step flow tests)
+        return route == .details || route == .modal
     }
 }
