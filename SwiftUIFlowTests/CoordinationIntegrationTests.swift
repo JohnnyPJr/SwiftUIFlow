@@ -37,7 +37,7 @@ final class CoordinationIntegrationTests: XCTestCase {
 
         // 5. Navigate (like deeplink) handled by main coordinator - should push
         _ = mainCoordinator.navigate(to: MockRoute.details)
-        XCTAssertEqual(router.state.stack.last, MockRoute.details, "Expected route to be pushed")
+        XCTAssertEqual(router.state.currentRoute, MockRoute.details, "Expected to be at details route")
     }
 
     func test_MainTabCoordinatorCanSwitchTabs() {

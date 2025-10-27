@@ -62,7 +62,7 @@ final class CoordinatorTests: XCTestCase {
         let handled = sut.coordinator.navigate(to: MockRoute.details)
 
         XCTAssertTrue(handled)
-        XCTAssertEqual(sut.router.state.stack.last, MockRoute.details, "Expected route to be pushed to stack")
+        XCTAssertEqual(sut.router.state.currentRoute, MockRoute.details, "Expected to be at details route")
     }
 
     func test_NavigateDelegatesToChildren() {
@@ -71,7 +71,7 @@ final class CoordinatorTests: XCTestCase {
         let handled = coordinator.navigate(to: MockRoute.details)
 
         XCTAssertTrue(handled)
-        XCTAssertEqual(coordinator.child.router.state.stack.last, MockRoute.details)
+        XCTAssertEqual(coordinator.child.router.state.currentRoute, MockRoute.details, "Child should be at details route")
     }
 
     func test_ChildCoordinatorBubblesUpNavigationToParent() {
@@ -80,7 +80,7 @@ final class CoordinatorTests: XCTestCase {
         let handled = coordinator.child.navigate(to: MockRoute.details)
 
         XCTAssertTrue(handled)
-        XCTAssertEqual(coordinator.router.state.stack.last, MockRoute.details)
+        XCTAssertEqual(coordinator.router.state.currentRoute, MockRoute.details, "Parent should be at details route")
     }
 
     // MARK: - Modal Handling
@@ -112,7 +112,7 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertTrue(handled)
         XCTAssertNil(sut.coordinator.modalCoordinator, "Modal should be dismissed")
         XCTAssertNil(sut.router.state.presented, "Router should have dismissed modal")
-        XCTAssertEqual(sut.router.state.stack.last, MockRoute.details, "Route should be pushed after dismissing modal")
+        XCTAssertEqual(sut.router.state.currentRoute, MockRoute.details, "Expected to be at details route after dismissing modal")
     }
 
     // MARK: - State Cleanup
@@ -140,7 +140,7 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertTrue(handled)
         XCTAssertTrue(childRouter.state.stack.isEmpty, "Child should clean stack when bubbling")
         XCTAssertNil(childRouter.state.presented, "Child should dismiss modal when bubbling")
-        XCTAssertEqual(parentRouter.state.stack.last, MockRoute.details, "Parent should handle route")
+        XCTAssertEqual(parentRouter.state.currentRoute, MockRoute.details, "Parent should be at details route")
     }
 
     // MARK: - NavigationType

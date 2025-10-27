@@ -153,14 +153,15 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return false
     }
 
-    // Check if we're already at the target route
+    // Check if we're already at the target route (idempotency check)
     private func isAlreadyAt(route: R) -> Bool {
         switch navigationType(for: route) {
         case let .tabSwitch(index):
             return router.state.selectedTab == index
         case .push:
-            // Already at this route if it's the top of the stack and no modal is presented
-            return router.state.stack.last == route && router.state.presented == nil
+            // For push navigation, already there if it's the current route
+            // (currentRoute naturally handles modal priority)
+            return router.state.currentRoute == route
         case .modal:
             return router.state.presented == route
         }
