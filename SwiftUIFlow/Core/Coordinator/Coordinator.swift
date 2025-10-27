@@ -65,6 +65,33 @@ open class Coordinator<R: Route>: AnyCoordinator {
     public func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
         print("🔍 \(Self.self): Navigating to \(route.identifier)")
 
+        if let typedRoute = route as? R {
+            // Early return: Are we already at this route?
+            if isAlreadyAt(route: typedRoute) {
+                print("✋ \(Self.self): Already at \(route.identifier), skipping navigation")
+                return true
+            }
+
+            // Smart backward navigation: Check if route is in our stack
+            if router.state.stack.firstIndex(where: { $0 == typedRoute }) != nil {
+                print("⏪ \(Self.self): Popping back to \(route.identifier)")
+                popTo(typedRoute)
+                return true
+            }
+
+            // Check if navigating to root
+            if typedRoute == router.state.root {
+                if !router.state.stack.isEmpty {
+                    print("⏪ \(Self.self): Popping to root \(route.identifier)")
+                    popToRoot()
+                    return true
+                } else {
+                    print("✋ \(Self.self): Already at root \(route.identifier)")
+                    return true
+                }
+            }
+        }
+
         // Check modal first if currently presented
         if let modal = modalCoordinator {
             var modalHandledRoute = false
@@ -126,6 +153,19 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return false
     }
 
+    // Check if we're already at the target route
+    private func isAlreadyAt(route: R) -> Bool {
+        switch navigationType(for: route) {
+        case let .tabSwitch(index):
+            return router.state.selectedTab == index
+        case .push:
+            // Already at this route if it's the top of the stack and no modal is presented
+            return router.state.stack.last == route && router.state.presented == nil
+        case .modal:
+            return router.state.presented == route
+        }
+    }
+
     // Execute the actual navigation based on NavigationType
     private func executeNavigation(for route: R) {
         switch navigationType(for: route) {
@@ -179,6 +219,32 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
         modalCoordinator = nil
         router.dismissModal()
+    }
+
+    // MARK: - Navigation Stack Control
+
+    /// Pop one screen from the navigation stack
+    public func pop() {
+        router.pop()
+    }
+
+    /// Pop all screens and return to the root of this coordinator's flow
+    public func popToRoot() {
+        router.popToRoot()
+    }
+
+    /// Pop to a specific route in the stack (if it exists)
+    public func popTo(_ route: R) {
+        // Find the route in the stack
+        guard let index = router.state.stack.firstIndex(where: { $0 == route }) else {
+            return
+        }
+
+        // Pop everything after that route
+        let popCount = router.state.stack.count - index - 1
+        for _ in 0 ..< popCount {
+            router.pop()
+        }
     }
 
     public func resetToCleanState() {

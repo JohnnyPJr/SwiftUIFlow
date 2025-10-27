@@ -21,7 +21,7 @@ enum Tab2Route: Route {
 }
 
 enum UnlockRoute: Route {
-    case enterCode, loading, success
+    case enterCode, loading, success, failure
     var identifier: String { "\(self)" }
 }
 
@@ -157,7 +157,7 @@ final class UnlockCoordinator: Coordinator<UnlockRoute> {
         guard let route = route as? UnlockRoute else { return false }
 
         switch route {
-        case .enterCode, .loading:
+        case .enterCode, .loading, .failure:
             return true
         case .success:
             // Create and present result modal
