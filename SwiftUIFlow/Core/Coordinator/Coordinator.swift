@@ -72,92 +72,119 @@ open class Coordinator<R: Route>: AnyCoordinator {
     public func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
         print("🔍 \(Self.self): Navigating to \(route.identifier)")
 
-        if let typedRoute = route as? R {
-            // Early return: Are we already at this route?
-            if isAlreadyAt(route: typedRoute) {
-                print("✋ \(Self.self): Already at \(route.identifier), skipping navigation")
-                return true
-            }
-
-            // Smart backward navigation: Check if route is in our stack
-            if router.state.stack.firstIndex(where: { $0 == typedRoute }) != nil {
-                print("⏪ \(Self.self): Popping back to \(route.identifier)")
-                popTo(typedRoute)
-                return true
-            }
-
-            // Check if navigating to root
-            if typedRoute == router.state.root {
-                if !router.state.stack.isEmpty {
-                    print("⏪ \(Self.self): Popping to root \(route.identifier)")
-                    popToRoot()
-                    return true
-                } else {
-                    print("✋ \(Self.self): Already at root \(route.identifier)")
-                    return true
-                }
-            }
+        // Try smart navigation first (idempotency, backward navigation)
+        if let typedRoute = route as? R, trySmartNavigation(to: typedRoute) {
+            return true
         }
 
-        // Check modal first if currently presented
-        if let modal = modalCoordinator {
-            var modalHandledRoute = false
-
-            // Only try to navigate if it's not the caller (prevents infinite loop)
-            if modal !== caller {
-                modalHandledRoute = modal.navigate(to: route, from: self)
-            }
-
-            // If modal handled it and is still our modal, keep it
-            if modalHandledRoute, modalCoordinator === modal {
-                print("📱 \(Self.self): Modal handled \(route.identifier)")
-                return true
-            }
-
-            // Modal is still present, and either:
-            // 1. Didn't handle the route (including when it's the caller), OR
-            // 2. Route is incompatible with modal type
-            // Then dismiss it
-            if modalCoordinator === modal {
-                if !modalHandledRoute || shouldDismissModalFor(route: route) {
-                    print("🚪 \(Self.self): Dismissing modal for \(route.identifier)")
-                    dismissModal()
-                }
-            }
+        // Handle modal coordinator if present
+        if handleModalNavigation(to: route, from: caller) {
+            return true
         }
 
-        // Try to handle directly (after cleaning up incompatible modals)
-        if let typedRoute = route as? R {
-            if canHandle(typedRoute) {
-                print("✅ \(Self.self): Executing navigation for \(route.identifier)")
-                executeNavigation(for: typedRoute)
+        // Try to handle the route directly
+        if let typedRoute = route as? R, canHandle(typedRoute) {
+            print("✅ \(Self.self): Executing navigation for \(route.identifier)")
+            executeNavigation(for: typedRoute)
+            return true
+        }
+
+        // Delegate to children
+        if delegateToChildren(route: route, caller: caller) {
+            return true
+        }
+
+        // Bubble up to parent
+        return bubbleToParent(route: route)
+    }
+
+    // MARK: - Private Navigation Helpers
+
+    /// Try smart navigation: idempotency check, backward navigation, root navigation
+    private func trySmartNavigation(to route: R) -> Bool {
+        // Early return: Are we already at this route?
+        if isAlreadyAt(route: route) {
+            print("✋ \(Self.self): Already at \(route.identifier), skipping navigation")
+            return true
+        }
+
+        // Smart backward navigation: Check if route is in our stack
+        if router.state.stack.firstIndex(where: { $0 == route }) != nil {
+            print("⏪ \(Self.self): Popping back to \(route.identifier)")
+            popTo(route)
+            return true
+        }
+
+        // Check if navigating to root
+        if route == router.state.root {
+            if !router.state.stack.isEmpty {
+                print("⏪ \(Self.self): Popping to root \(route.identifier)")
+                popToRoot()
+                return true
+            } else {
+                print("✋ \(Self.self): Already at root \(route.identifier)")
                 return true
             }
         }
 
-        // Check if any child can handle it - skip the caller (prevents infinite loop)
+        return false
+    }
+
+    /// Handle navigation through modal coordinator if present
+    private func handleModalNavigation(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+        guard let modal = modalCoordinator else { return false }
+
+        var modalHandledRoute = false
+
+        // Only try to navigate if it's not the caller (prevents infinite loop)
+        if modal !== caller {
+            modalHandledRoute = modal.navigate(to: route, from: self)
+        }
+
+        // If modal handled it and is still our modal, keep it
+        if modalHandledRoute, modalCoordinator === modal {
+            print("📱 \(Self.self): Modal handled \(route.identifier)")
+            return true
+        }
+
+        // Modal didn't handle or route is incompatible - dismiss it
+        if modalCoordinator === modal {
+            if !modalHandledRoute || shouldDismissModalFor(route: route) {
+                print("🚪 \(Self.self): Dismissing modal for \(route.identifier)")
+                dismissModal()
+            }
+        }
+
+        return false
+    }
+
+    /// Delegate navigation to child coordinators
+    private func delegateToChildren(route: any Route, caller: AnyCoordinator?) -> Bool {
         for child in children where child !== caller {
             if child.navigate(to: route, from: self) {
                 print("👶 \(Self.self): Child handled \(route.identifier)")
                 return true
             }
         }
+        return false
+    }
 
-        // Bubble up to parent
-        if let parent {
-            print("⬆️ \(Self.self): Bubbling \(route.identifier) to parent")
-
-            // Before bubbling up, should we clean our state?
-            if shouldCleanStateForBubbling(route: route) {
-                print("🧹 \(Self.self): Cleaning state before bubbling")
-                cleanStateForBubbling()
-            }
-
-            return parent.navigate(to: route, from: self)
+    /// Bubble navigation up to parent coordinator
+    private func bubbleToParent(route: any Route) -> Bool {
+        guard let parent else {
+            print("❌ \(Self.self): Could not handle \(route.identifier)")
+            return false
         }
 
-        print("❌ \(Self.self): Could not handle \(route.identifier)")
-        return false
+        print("⬆️ \(Self.self): Bubbling \(route.identifier) to parent")
+
+        // Clean state before bubbling if needed
+        if shouldCleanStateForBubbling(route: route) {
+            print("🧹 \(Self.self): Cleaning state before bubbling")
+            cleanStateForBubbling()
+        }
+
+        return parent.navigate(to: route, from: self)
     }
 
     // Check if we're already at the target route (idempotency check)

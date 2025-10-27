@@ -5,6 +5,8 @@
 //  Created by Ioannis Platsis on 2/8/25.
 //
 
+// swiftlint:disable file_length
+
 @testable import SwiftUIFlow
 import XCTest
 
