@@ -71,7 +71,8 @@ final class CoordinatorTests: XCTestCase {
         let handled = coordinator.navigate(to: MockRoute.details)
 
         XCTAssertTrue(handled)
-        XCTAssertEqual(coordinator.child.router.state.currentRoute, MockRoute.details, "Child should be at details route")
+        XCTAssertEqual(coordinator.child.router.state.currentRoute,
+                       MockRoute.details, "Child should be at details route")
     }
 
     func test_ChildCoordinatorBubblesUpNavigationToParent() {
@@ -112,7 +113,8 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertTrue(handled)
         XCTAssertNil(sut.coordinator.modalCoordinator, "Modal should be dismissed")
         XCTAssertNil(sut.router.state.presented, "Router should have dismissed modal")
-        XCTAssertEqual(sut.router.state.currentRoute, MockRoute.details, "Expected to be at details route after dismissing modal")
+        XCTAssertEqual(sut.router.state.currentRoute,
+                       MockRoute.details, "Expected to be at details route after dismissing modal")
     }
 
     // MARK: - State Cleanup

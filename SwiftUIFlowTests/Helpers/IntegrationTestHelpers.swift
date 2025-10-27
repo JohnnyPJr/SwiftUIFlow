@@ -35,6 +35,31 @@ enum Tab5Route: Route {
     var identifier: String { "\(self)" }
 }
 
+enum AppFlowRoute: Route {
+    case onboarding, login, home
+    var identifier: String { "\(self)" }
+}
+
+enum LoginRoute: Route {
+    case enterEmail, enterPassword, twoFactor
+    var identifier: String { "\(self)" }
+}
+
+enum OnboardingRoute: Route {
+    case welcome, step1, step2
+    var identifier: String { "\(self)" }
+}
+
+enum HomeRoute: Route {
+    case dashboard
+    var identifier: String { "\(self)" }
+}
+
+enum PasswordResetRoute: Route {
+    case enterCode, verifying, newPassword, success
+    var identifier: String { "\(self)" }
+}
+
 // MARK: - Factories
 
 final class DummyFactory<R: Route>: ViewFactory<R> {
@@ -196,6 +221,147 @@ final class Tab5Coordinator: Coordinator<Tab5Route> {
             return true
         }
         return false
+    }
+
+    deinit {
+        print("💀 Deinit: \(Self.self)")
+    }
+}
+
+// MARK: - Replace Navigation Test Coordinators
+
+final class PasswordResetCoordinator: Coordinator<PasswordResetRoute> {
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let route = route as? PasswordResetRoute else { return .push }
+
+        // Use replace for verifying, newPassword, and success (can't go back to previous steps)
+        switch route {
+        case .verifying, .newPassword, .success:
+            return .replace
+        case .enterCode:
+            return .push
+        }
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is PasswordResetRoute
+    }
+
+    deinit {
+        print("💀 Deinit: \(Self.self)")
+    }
+}
+
+// MARK: - SetRoot Test Coordinators
+
+final class AppFlowCoordinator: Coordinator<AppFlowRoute> {
+    private var onboardingCoordinator: OnboardingFlowCoordinator?
+    private var loginCoordinator: LoginFlowCoordinator?
+    private var homeCoordinator: HomeFlowCoordinator?
+
+    override init(router: Router<AppFlowRoute>) {
+        super.init(router: router)
+
+        // Create initial coordinator based on root
+        switch router.state.root {
+        case .onboarding:
+            onboardingCoordinator = OnboardingFlowCoordinator(router: Router(initial: .welcome,
+                                                                             factory: DummyFactory()))
+            addChild(onboardingCoordinator!)
+        case .login:
+            loginCoordinator = LoginFlowCoordinator(router: Router(initial: .enterEmail, factory: DummyFactory()))
+            addChild(loginCoordinator!)
+        case .home:
+            homeCoordinator = HomeFlowCoordinator(router: Router(initial: .dashboard, factory: DummyFactory()))
+            addChild(homeCoordinator!)
+        }
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is AppFlowRoute
+    }
+
+    // Helper: Remove all flow coordinators
+    private func removeAllFlows() {
+        if let onboarding = onboardingCoordinator {
+            removeChild(onboarding)
+            onboardingCoordinator = nil
+        }
+        if let login = loginCoordinator {
+            removeChild(login)
+            loginCoordinator = nil
+        }
+        if let home = homeCoordinator {
+            removeChild(home)
+            homeCoordinator = nil
+        }
+    }
+
+    override func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
+        guard let appRoute = route as? AppFlowRoute else {
+            return super.navigate(to: route, from: caller)
+        }
+
+        // Handle major flow transitions with setRoot
+        switch appRoute {
+        case .onboarding:
+            if onboardingCoordinator == nil {
+                removeAllFlows()
+                onboardingCoordinator = OnboardingFlowCoordinator(router: Router(initial: .welcome,
+                                                                                 factory: DummyFactory()))
+                addChild(onboardingCoordinator!)
+                router.setRoot(.onboarding)
+            }
+            return true
+
+        case .login:
+            if loginCoordinator == nil {
+                removeAllFlows()
+                loginCoordinator = LoginFlowCoordinator(router: Router(initial: .enterEmail, factory: DummyFactory()))
+                addChild(loginCoordinator!)
+                router.setRoot(.login)
+            }
+            return true
+
+        case .home:
+            if homeCoordinator == nil {
+                removeAllFlows()
+                homeCoordinator = HomeFlowCoordinator(router: Router(initial: .dashboard, factory: DummyFactory()))
+                addChild(homeCoordinator!)
+                router.setRoot(.home)
+            }
+            return true
+        }
+    }
+
+    deinit {
+        print("💀 Deinit: \(Self.self)")
+    }
+}
+
+final class LoginFlowCoordinator: Coordinator<LoginRoute> {
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is LoginRoute
+    }
+
+    deinit {
+        print("💀 Deinit: \(Self.self)")
+    }
+}
+
+final class OnboardingFlowCoordinator: Coordinator<OnboardingRoute> {
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is OnboardingRoute
+    }
+
+    deinit {
+        print("💀 Deinit: \(Self.self)")
+    }
+}
+
+final class HomeFlowCoordinator: Coordinator<HomeRoute> {
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is HomeRoute
     }
 
     deinit {

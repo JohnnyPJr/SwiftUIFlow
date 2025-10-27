@@ -9,7 +9,14 @@ import Foundation
 
 open class Coordinator<R: Route>: AnyCoordinator {
     public weak var parent: AnyCoordinator?
-    let router: Router<R>
+
+    /// The router managing navigation state.
+    ///
+    /// **For observation only** - Views should observe this for rendering.
+    /// Do NOT call mutation methods directly (push, pop, etc.).
+    /// Use `navigate(to:)` instead for all navigation.
+    public let router: Router<R>
+
     public private(set) var children: [AnyCoordinator] = []
     public private(set) var modalCoordinator: AnyCoordinator?
 
