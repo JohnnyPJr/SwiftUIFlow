@@ -109,38 +109,22 @@ final class MainTabCoordinator: TabCoordinator<MainTabRoute> {
 // MARK: - Tab2Coordinator
 
 final class Tab2Coordinator: Coordinator<Tab2Route> {
-    private var unlock: UnlockCoordinator?
+    private let unlock: UnlockCoordinator
+
+    override init(router: Router<Tab2Route>) {
+        // Create child coordinators eagerly - app knows its flow upfront
+        unlock = UnlockCoordinator(router: Router(initial: .enterCode, factory: DummyFactory()))
+
+        super.init(router: router)
+
+        // Add children to hierarchy
+        addChild(unlock)
+    }
 
     override func canHandle(_ route: any Route) -> Bool {
         // Tab2 can handle Tab2Routes directly
         guard let route = route as? Tab2Route else { return false }
         return route == .startUnlock
-    }
-
-    override func canNavigate(to route: any Route) -> Bool {
-        // Can handle directly?
-        if canHandle(route) {
-            return true
-        }
-
-        // Will create UnlockCoordinator for UnlockRoutes
-        if route is UnlockRoute {
-            return true
-        }
-
-        // Check existing children
-        return super.canNavigate(to: route)
-    }
-
-    override func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
-        // Special handling for UnlockRoute - ensure child exists
-        if route is UnlockRoute, unlock == nil {
-            unlock = UnlockCoordinator(router: Router(initial: .enterCode, factory: DummyFactory()))
-            addChild(unlock!)
-        }
-
-        // Let base class handle the rest
-        return super.navigate(to: route, from: caller)
     }
 
     deinit {
@@ -156,17 +140,26 @@ final class UnlockCoordinator: Coordinator<UnlockRoute> {
     override func canHandle(_ route: any Route) -> Bool {
         guard let route = route as? UnlockRoute else { return false }
 
+        // Pure query - no side effects
         switch route {
-        case .enterCode, .loading, .failure:
-            return true
-        case .success:
-            // Create and present result modal
-            if result == nil {
-                result = UnlockResultCoordinator(router: Router(initial: .showResult, factory: DummyFactory()))
-                presentModal(result!, presenting: .success) // Handles both coordinator and router
-            }
+        case .enterCode, .loading, .failure, .success:
             return true
         }
+    }
+
+    override func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
+        // Special handling for .success route - present modal and return early
+        if let unlockRoute = route as? UnlockRoute, unlockRoute == .success {
+            // Create and present result modal if needed
+            if result == nil {
+                result = UnlockResultCoordinator(router: Router(initial: .showResult, factory: DummyFactory()))
+                presentModal(result!, presenting: .success)
+            }
+            return true // We handled it - don't call super
+        }
+
+        // For all other routes, use base class logic
+        return super.navigate(to: route, from: caller)
     }
 
     override func shouldDismissModalFor(route: any Route) -> Bool {
