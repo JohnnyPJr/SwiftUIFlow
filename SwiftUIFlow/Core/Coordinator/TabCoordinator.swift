@@ -44,20 +44,23 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
             return super.navigate(to: route, from: caller)
         }
 
-        // Check if current tab can handle it first (avoid unnecessary tab switches)
+        // Try current tab first, but not if it's the caller (prevents infinite loop)
         let currentTabIndex = router.state.selectedTab
         if currentTabIndex < children.count {
             let currentTab = children[currentTabIndex]
-            // Use canNavigate to check recursively
-            if currentTab.canNavigate(to: route) {
-                print("📑 \(Self.self): Current tab can handle \(route.identifier)")
-                return currentTab.navigate(to: route, from: self)
+            // Skip current tab if it's the one calling us (it already tried and failed)
+            if currentTab !== caller {
+                if currentTab.navigate(to: route, from: self) {
+                    print("📑 \(Self.self): Current tab handled \(route.identifier)")
+                    return true
+                }
             }
         }
 
-        // Current tab can't handle it, check other tabs
+        // Current tab couldn't handle it - check other tabs
+        // Here we MUST use canNavigate to avoid switching to tabs that can't handle the route
         for (index, child) in children.enumerated() {
-            if index != currentTabIndex, child.canNavigate(to: route) {
+            if index != currentTabIndex, child !== caller, child.canNavigate(to: route) {
                 print("🔄 \(Self.self): Switching to tab \(index) for \(route.identifier)")
                 switchToTab(index)
                 return child.navigate(to: route, from: self)
