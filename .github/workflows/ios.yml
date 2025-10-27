@@ -12,52 +12,60 @@ jobs:
     runs-on: macos-latest
 
     steps:
+      # 1️⃣ Checkout your code
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # 2️⃣ Clear Derived Data (ensures clean builds)
       - name: Clear Derived Data
         run: rm -rf ~/Library/Developer/Xcode/DerivedData/*
 
+      # 3️⃣ Update Homebrew (optional safety)
       - name: Update Homebrew
         run: brew update
 
+      # 4️⃣ Install SwiftLint & SwiftFormat
       - name: Install SwiftLint and SwiftFormat
         run: |
           brew install swiftlint
           brew install swiftformat
 
-      - name: Run SwiftFormat (fail if unformatted)
+      # 5️⃣ Run SwiftFormat (fail if unformatted)
+      - name: Run SwiftFormat (Lint Only)
         run: |
           set -eo pipefail
           swiftformat . --lint
 
+      # 6️⃣ Run SwiftLint (uses your local config)
       - name: Run SwiftLint
         run: |
           set -eo pipefail
           swiftlint lint --config swiftlint.yml --reporter github-actions-logging
 
-      - name: Setup Xcode 16.2
+      # 7️⃣ Setup Xcode (make sure it matches your local version)
+      - name: Setup Xcode 16.4
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "16.2"
+          xcode-version: "16.4"
 
+      # 8️⃣ Install xcpretty for clean log output
       - name: Install xcpretty
         run: gem install xcpretty
 
-      - name: Clean & Build for Testing
+      # 9️⃣ Clean, Build & Run Tests directly on macOS (no simulator)
+      - name: Clean & Test on macOS
         run: |
           set -eo pipefail
           scheme="SwiftUIFlow"
-          xcodebuild clean build-for-testing \
+          xcodebuild clean test \
             -scheme "$scheme" \
             -destination "platform=macOS" \
             | xcpretty
 
-      - name: Run Tests
-        run: |
-          set -eo pipefail
-          scheme="SwiftUIFlow"
-          xcodebuild test-without-building \
-            -scheme "$scheme" \
-            -destination "platform=macOS" \
-            | xcpretty
+      # 🔟 (Optional) Archive test results (if you want to keep logs)
+      - name: Save Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcode-test-results
+          path: ~/Library/Logs/Test
