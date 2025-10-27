@@ -138,8 +138,8 @@ final class CoordinationIntegrationTests: XCTestCase {
             return
         }
 
-        // Verify enterCode was pushed to unlock's router
-        XCTAssertEqual(unlock.router.state.stack.last, .enterCode, "Expected .enterCode to be pushed")
+        // Verify we're at enterCode root (stack is empty when at root)
+        XCTAssertTrue(unlock.router.state.stack.isEmpty, "Stack should be empty - we're at the root (.enterCode)")
 
         // Step 3: Navigate to .batteryStatus from current position
         _ = mainCoordinator.navigate(to: Tab5Route.batteryStatus)
@@ -249,5 +249,74 @@ final class CoordinationIntegrationTests: XCTestCase {
         }
 
         XCTAssertTrue(tab5.didHandleBatteryStatus, "Tab5 should have handled battery status")
+    }
+
+    func test_SmartBackwardNavigationInRetryFlow() {
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        // Navigate to Tab2
+        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
+
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator")
+            return
+        }
+
+        // Navigate to loading - this will create UnlockCoordinator with enterCode as root,
+        // then push loading onto the stack
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.loading))
+
+        guard let unlock = tab2.children.first(where: { $0 is UnlockCoordinator }) as? UnlockCoordinator else {
+            XCTFail("Expected UnlockCoordinator to be created")
+            return
+        }
+
+        // Stack should have [.loading] (enterCode is root, not in stack)
+        XCTAssertEqual(unlock.router.state.stack.count, 1, "Stack should have 1 item")
+        XCTAssertEqual(unlock.router.state.stack[0], .loading)
+
+        // Navigate to failure - push onto stack
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.failure))
+
+        // Verify stack has [.loading, .failure] (enterCode is root, not in stack)
+        XCTAssertEqual(unlock.router.state.stack.count, 2, "Stack should have 2 items")
+        XCTAssertEqual(unlock.router.state.stack[0], .loading)
+        XCTAssertEqual(unlock.router.state.stack[1], .failure)
+
+        // User taps "Retry" - navigate back to loading (smart backward navigation)
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.loading))
+        XCTAssertEqual(unlock.router.state.stack.count, 1, "Stack should have 1 item after popping back to loading")
+        XCTAssertEqual(unlock.router.state.stack[0], .loading, "Should be at loading after retry")
+
+        // Navigate to failure - push onto stack
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.failure))
+
+        // User could also tap "Retry with different code" - navigate back to enterCode root
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.enterCode))
+        XCTAssertTrue(unlock.router.state.stack.isEmpty, "Stack should be empty after going to root")
+
+        // User enters new code and navigates through flow again
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.loading))
+        XCTAssertEqual(unlock.router.state.stack.count, 1, "Stack should have 1 item after navigating to loading")
+        XCTAssertEqual(unlock.router.state.stack[0], .loading)
+
+        // Navigate to failure - push onto stack
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.failure))
+
+        // User taps "Cancel" - navigate back to Tab2's root screen (.startUnlock)
+        // This exits the unlock flow and returns to the parent screen
+        XCTAssertTrue(unlock.navigate(to: Tab2Route.startUnlock))
+
+        // Verify we're now at Tab2's root screen (.startUnlock)
+        XCTAssertTrue(tab2.router.state.stack.isEmpty, "Tab2 should be at root with empty stack")
+        XCTAssertNil(tab2.router.state.presented, "Tab2 should have no modal presented")
+
+        // Verify unlock coordinator is still a child (children are permanent)
+        XCTAssertTrue(tab2.children.contains(where: { $0 is UnlockCoordinator }),
+                      "UnlockCoordinator should still be a child")
+
+        // Verify unlock's stack was cleaned when we exited the flow
+        XCTAssertTrue(unlock.router.state.stack.isEmpty, "Unlock stack should be cleaned after canceling")
     }
 }
