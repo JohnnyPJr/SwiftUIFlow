@@ -43,8 +43,12 @@ public final class Router<R: Route>: ObservableObject {
         _ = state.stack.popLast()
     }
 
-    /// Set a new root route and clear the stack.
-    /// **Internal:** Use `Coordinator.navigate(to:)` for major flow transitions instead.
+    /// **ADMIN OPERATION** - Set a new root route and clear the stack.
+    ///
+    /// This is for major app-level flow transitions (e.g., onboarding → login → home).
+    /// Use `Coordinator.transitionToNewFlow(root:)` instead of calling this directly.
+    ///
+    /// **Not part of normal navigation** - use `Coordinator.navigate(to:)` for regular navigation.
     func setRoot(_ route: R) {
         state.root = route
         state.stack.removeAll()

@@ -286,4 +286,32 @@ open class Coordinator<R: Route>: AnyCoordinator {
         router.resetToRoot()
         dismissModal()
     }
+
+    // MARK: - Admin Operations (Major Flow Transitions)
+
+    /// **ADMIN OPERATION** - Transition to a completely new flow with a new root.
+    ///
+    /// This is for major app-level transitions between distinct sections of your app.
+    /// Regular navigation should use `navigate(to:)` instead.
+    ///
+    /// **When to use this:**
+    /// - Onboarding → Login
+    /// - Login → Home
+    /// - Logout → Login
+    /// - Any major flow change that should have a separate root
+    ///
+    /// **Effect:**
+    /// - Sets new root route
+    /// - Clears entire navigation stack
+    /// - Dismisses any presented modals
+    ///
+    /// Example:
+    /// ```swift
+    /// // After successful login, transition entire app to home flow
+    /// appCoordinator.transitionToNewFlow(root: .home)
+    /// ```
+    public func transitionToNewFlow(root: R) {
+        router.setRoot(root)
+        dismissModal()
+    }
 }
