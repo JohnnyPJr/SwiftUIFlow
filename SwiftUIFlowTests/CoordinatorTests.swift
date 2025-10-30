@@ -273,6 +273,44 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertNil(sut.router.state.presented, "Modal should be dismissed after reset")
     }
 
+    // MARK: - Detour Tests
+
+    func test_PresentAndDismissDetour() {
+        let sut = makeSUT()
+        let detourRouter = Router<MockRoute>(initial: .details, factory: MockViewFactory())
+        let detourCoordinator = TestCoordinator(router: detourRouter)
+
+        sut.coordinator.presentDetour(detourCoordinator, presenting: MockRoute.details)
+
+        XCTAssertTrue(sut.coordinator.detourCoordinator === detourCoordinator, "Detour coordinator should be presented")
+        XCTAssertTrue(detourCoordinator.parent === sut.coordinator, "Parent should be set")
+        XCTAssertEqual(sut.router.state.detour?.identifier, MockRoute.details.identifier,
+                       "Detour route should be in state")
+
+        sut.coordinator.dismissDetour()
+
+        XCTAssertNil(sut.coordinator.detourCoordinator, "Detour coordinator should be dismissed")
+        XCTAssertNil(detourCoordinator.parent, "Parent should be cleared")
+        XCTAssertNil(sut.router.state.detour, "Detour route should be cleared from state")
+    }
+
+    func test_ResetToCleanStateDismissesDetour() {
+        let sut = makeSUT()
+        let detourRouter = Router<MockRoute>(initial: .details, factory: MockViewFactory())
+        let detourCoordinator = TestCoordinator(router: detourRouter)
+
+        sut.router.push(.details)
+        sut.router.present(.modal)
+        sut.coordinator.presentDetour(detourCoordinator, presenting: MockRoute.login)
+
+        sut.coordinator.resetToCleanState()
+
+        XCTAssertTrue(sut.router.state.stack.isEmpty, "Stack should be empty after reset")
+        XCTAssertNil(sut.router.state.presented, "Modal should be dismissed after reset")
+        XCTAssertNil(sut.router.state.detour, "Detour should be dismissed after reset")
+        XCTAssertNil(sut.coordinator.detourCoordinator, "Detour coordinator should be dismissed after reset")
+    }
+
     // MARK: Helpers
 
     private func makeSUT(router: Router<MockRoute>? = nil, addChild: Bool = false) -> SUT {

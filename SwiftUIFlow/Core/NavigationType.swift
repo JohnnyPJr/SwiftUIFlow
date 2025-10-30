@@ -11,5 +11,6 @@ public enum NavigationType: Equatable {
     case push
     case replace
     case modal
+    case detour
     case tabSwitch(index: Int)
 }

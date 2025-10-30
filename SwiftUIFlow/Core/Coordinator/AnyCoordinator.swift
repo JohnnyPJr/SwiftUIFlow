@@ -15,4 +15,8 @@ public protocol AnyCoordinator: AnyObject {
     func canHandle(_ route: any Route) -> Bool
     func canNavigate(to route: any Route) -> Bool
     func resetToCleanState()
+
+    /// Build a view for a given route using this coordinator's ViewFactory
+    /// Returns type-erased Any to avoid SwiftUI dependency in protocol
+    func buildView(for route: any Route) -> Any?
 }

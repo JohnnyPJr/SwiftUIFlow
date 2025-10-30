@@ -66,6 +66,18 @@ public final class Router<R: Route>: ObservableObject {
         state.presented = nil
     }
 
+    /// Present a detour route (cross-coordinator navigation with context preservation).
+    /// **Internal:** Use `Coordinator.navigate(to:)` with `.detour` NavigationType instead.
+    func presentDetour(_ route: any Route) {
+        state.detour = route
+    }
+
+    /// Dismiss the currently presented detour.
+    /// **Internal:** Use `Coordinator.dismissDetour()` instead.
+    func dismissDetour() {
+        state.detour = nil
+    }
+
     /// Switch to a specific tab index.
     /// **Internal:** Use `Coordinator.navigate(to:)` with `.tabSwitch` NavigationType instead.
     func selectTab(_ index: Int) {
@@ -82,6 +94,7 @@ public final class Router<R: Route>: ObservableObject {
     /// **Internal:** Use `Coordinator.dismissModal()` instead.
     func dismissAllModals() {
         state.presented = nil
+        state.detour = nil
     }
 
     /// Reset to root and dismiss all modals.
@@ -89,6 +102,7 @@ public final class Router<R: Route>: ObservableObject {
     func resetToRoot() {
         state.stack.removeAll()
         state.presented = nil
+        state.detour = nil
     }
 
     // MARK: - View Building

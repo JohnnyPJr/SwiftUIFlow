@@ -52,6 +52,35 @@ final class RouterTests: XCTestCase {
         XCTAssertNil(router.state.presented)
     }
 
+    // MARK: - Detour Handling
+
+    func test_PresentAndDismissDetour() {
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        router.presentDetour(MockRoute.details)
+        XCTAssertEqual(router.state.detour?.identifier, MockRoute.details.identifier)
+
+        router.dismissDetour()
+        XCTAssertNil(router.state.detour)
+    }
+
+    func test_DetourDoesNotAffectModalState() {
+        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+
+        // Present a modal
+        router.present(.modal)
+        XCTAssertEqual(router.state.presented, .modal)
+
+        // Present a detour - should not affect modal
+        router.presentDetour(MockRoute.details)
+        XCTAssertEqual(router.state.presented, .modal, "Modal should still be presented")
+        XCTAssertEqual(router.state.detour?.identifier, MockRoute.details.identifier)
+
+        // Dismiss detour - modal should remain
+        router.dismissDetour()
+        XCTAssertEqual(router.state.presented, .modal, "Modal should still be presented")
+        XCTAssertNil(router.state.detour)
+    }
+
     // MARK: - Tab Selection
 
     func test_SelectTabUpdatesState() {
@@ -87,10 +116,12 @@ final class RouterTests: XCTestCase {
     func test_DismissAllModalsClearsPresented() {
         let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
         router.present(.modal)
+        router.presentDetour(MockRoute.details)
 
         router.dismissAllModals()
 
         XCTAssertNil(router.state.presented, "Expected presented to be nil after dismissAllModals")
+        XCTAssertNil(router.state.detour, "Expected detour to be nil after dismissAllModals")
     }
 
     func test_ResetToRootClearsStackAndModals() {
@@ -98,10 +129,12 @@ final class RouterTests: XCTestCase {
         router.push(.details)
         router.push(.login)
         router.present(.modal)
+        router.presentDetour(MockRoute.details)
 
         router.resetToRoot()
 
         XCTAssertTrue(router.state.stack.isEmpty, "Expected stack to be empty after resetToRoot")
         XCTAssertNil(router.state.presented, "Expected presented to be nil after resetToRoot")
+        XCTAssertNil(router.state.detour, "Expected detour to be nil after resetToRoot")
     }
 }

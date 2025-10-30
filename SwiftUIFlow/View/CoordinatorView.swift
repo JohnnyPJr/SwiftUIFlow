@@ -55,6 +55,38 @@ public struct CoordinatorView<R: Route>: View {
                     .foregroundColor(.red)
             }
         }
+        #if os(iOS)
+        .fullScreenCover(isPresented: hasDetour, onDismiss: {
+            // Handle detour dismissal (user swiped down or dismissed)
+            coordinator.dismissDetour()
+        }) {
+            // Render detour view using the detour coordinator's ViewFactory
+            if let detourCoordinator = coordinator.detourCoordinator,
+               let detourRoute = router.state.detour,
+               let view = detourCoordinator.buildView(for: detourRoute) as? AnyView
+            {
+                view
+            } else {
+                Text("Detour view not available")
+                    .foregroundColor(.red)
+            }
+        }
+        #else
+                // macOS: fullScreenCover is not available, use sheet instead
+        .sheet(isPresented: hasDetour, onDismiss: {
+                    coordinator.dismissDetour()
+                }) {
+                    if let detourCoordinator = coordinator.detourCoordinator,
+                       let detourRoute = router.state.detour,
+                       let view = detourCoordinator.buildView(for: detourRoute) as? AnyView
+                    {
+                        view
+                    } else {
+                        Text("Detour view not available")
+                            .foregroundColor(.red)
+                    }
+                }
+        #endif
     }
 
     /// Create a binding to the navigation path that syncs with the coordinator
@@ -91,6 +123,18 @@ public struct CoordinatorView<R: Route>: View {
                         coordinator.dismissModal()
                     }
                     // Note: Presenting modals is handled by coordinator.navigate() with .modal NavigationType
+                })
+    }
+
+    /// Create a binding to track detour presentation state
+    private var hasDetour: Binding<Bool> {
+        Binding(get: {
+                    // Check if detour is present
+                    router.state.detour != nil
+                },
+                set: { _ in
+                    // This is called when fullScreenCover is dismissed by user gesture
+                    // The onDismiss closure handles the actual cleanup
                 })
     }
 }

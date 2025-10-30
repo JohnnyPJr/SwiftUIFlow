@@ -19,9 +19,17 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     public private(set) var children: [AnyCoordinator] = []
     public private(set) var modalCoordinator: AnyCoordinator?
+    public private(set) var detourCoordinator: AnyCoordinator?
 
     public init(router: Router<R>) {
         self.router = router
+    }
+
+    /// Build a view for a given route using this coordinator's ViewFactory
+    /// Returns type-erased Any to avoid SwiftUI dependency in navigation layer
+    public func buildView(for route: any Route) -> Any? {
+        guard let typedRoute = route as? R else { return nil }
+        return router.view(for: typedRoute)
     }
 
     open func navigationType(for route: any Route) -> NavigationType {
@@ -79,6 +87,11 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
         // Handle modal coordinator if present
         if handleModalNavigation(to: route, from: caller) {
+            return true
+        }
+
+        // Handle detour coordinator if present
+        if handleDetourNavigation(to: route, from: caller) {
             return true
         }
 
@@ -158,6 +171,34 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return false
     }
 
+    /// Handle navigation through detour coordinator if present
+    private func handleDetourNavigation(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+        guard let detour = detourCoordinator else { return false }
+
+        var detourHandledRoute = false
+
+        // Only try to navigate if it's not the caller (prevents infinite loop)
+        if detour !== caller {
+            detourHandledRoute = detour.navigate(to: route, from: self)
+        }
+
+        // If detour handled it and is still our detour, keep it
+        if detourHandledRoute, detourCoordinator === detour {
+            print("🚀 \(Self.self): Detour handled \(route.identifier)")
+            return true
+        }
+
+        // Detour didn't handle or route is incompatible - dismiss it
+        if detourCoordinator === detour {
+            if !detourHandledRoute || shouldDismissDetourFor(route: route) {
+                print("🔙 \(Self.self): Dismissing detour for \(route.identifier)")
+                dismissDetour()
+            }
+        }
+
+        return false
+    }
+
     /// Delegate navigation to child coordinators
     private func delegateToChildren(route: any Route, caller: AnyCoordinator?) -> Bool {
         for child in children where child !== caller {
@@ -196,6 +237,8 @@ open class Coordinator<R: Route>: AnyCoordinator {
             return router.state.currentRoute == route
         case .modal:
             return router.state.presented == route
+        case .detour:
+            return router.state.detour?.identifier == route.identifier
         }
     }
 
@@ -208,6 +251,8 @@ open class Coordinator<R: Route>: AnyCoordinator {
             router.replace(route)
         case .modal:
             router.present(route)
+        case .detour:
+            router.presentDetour(route)
         case let .tabSwitch(index):
             router.selectTab(index)
         }
@@ -219,18 +264,30 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return !(route is R)
     }
 
+    // Determine if we should dismiss detour for this route
+    open func shouldDismissDetourFor(route: any Route) -> Bool {
+        // Default: always dismiss detours when navigating elsewhere
+        // Detours are ephemeral overlays that should not persist
+        return true
+    }
+
     // Determine if we should clean state when bubbling
     open func shouldCleanStateForBubbling(route: any Route) -> Bool {
-        // Clean if we have a modal presented or if we're deep in a stack
+        // Clean if we have a detour/modal presented or if we're deep in a stack
         // Don't clean if we're a tab coordinator (they handle their own tab switching)
         if case .tabSwitch = navigationType(for: route) {
             return false
         }
-        return modalCoordinator != nil || !router.state.stack.isEmpty
+        return detourCoordinator != nil || modalCoordinator != nil || !router.state.stack.isEmpty
     }
 
     // Clean state when bubbling up
     open func cleanStateForBubbling() {
+        // Dismiss detour coordinator if present (ephemeral overlays should not persist)
+        if detourCoordinator != nil {
+            dismissDetour()
+        }
+
         // Dismiss modal coordinator if present (handles both coordinator and router state)
         if modalCoordinator != nil {
             dismissModal()
@@ -254,6 +311,20 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
         modalCoordinator = nil
         router.dismissModal()
+    }
+
+    public func presentDetour(_ coordinator: AnyCoordinator, presenting route: any Route) {
+        detourCoordinator = coordinator
+        coordinator.parent = self
+        router.presentDetour(route)
+    }
+
+    public func dismissDetour() {
+        if detourCoordinator?.parent === self {
+            detourCoordinator?.parent = nil
+        }
+        detourCoordinator = nil
+        router.dismissDetour()
     }
 
     // MARK: - Navigation Stack Control
@@ -285,6 +356,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     public func resetToCleanState() {
         router.resetToRoot()
         dismissModal()
+        dismissDetour()
     }
 
     // MARK: - Admin Operations (Major Flow Transitions)
@@ -313,5 +385,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
     public func transitionToNewFlow(root: R) {
         router.setRoot(root)
         dismissModal()
+        dismissDetour()
     }
 }
