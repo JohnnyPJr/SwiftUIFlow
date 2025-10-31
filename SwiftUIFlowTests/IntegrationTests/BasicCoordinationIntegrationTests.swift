@@ -33,9 +33,12 @@ final class BasicCoordinationIntegrationTests: XCTestCase {
 
         // 3. Navigate via modal coordinator - should present as modal with child handling it
         let handledModal = modalCoordinator.navigate(to: MockRoute.details)
-        XCTAssertTrue(handledModal, "Expected modal coordinator to handle navigation")
-        XCTAssertEqual(modalCoordinator.router.state.presented, .details, "Expected route to be presented as modal")
-        XCTAssertTrue(modalCoordinator.currentModalCoordinator === childCoordinator, "Child should be modal coordinator")
+        XCTAssertTrue(handledModal,
+                      "Expected modal coordinator to handle navigation")
+        XCTAssertEqual(modalCoordinator.router.state.presented, .details,
+                       "Expected route to be presented as modal")
+        XCTAssertTrue(modalCoordinator.currentModalCoordinator === childCoordinator,
+                      "Child should be modal coordinator")
 
         // 4. Dismiss modal
         mainCoordinator.dismissModal()
