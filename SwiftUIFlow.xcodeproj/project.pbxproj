@@ -196,13 +196,14 @@
 /* Begin PBXShellScriptBuildPhase section */
 		A20F87AA2E419B4100A94608 /* SwiftFormat */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
+				"$(SRCROOT)/SwiftFormat.input.xcfilelist",
 			);
 			inputPaths = (
-				"$(SRCROOT)",
 			);
 			name = SwiftFormat;
 			outputFileListPaths = (
@@ -220,6 +221,7 @@
 			files = (
 			);
 			inputFileListPaths = (
+				"$(SRCROOT)/SwiftLint.input.xcfilelist",
 			);
 			inputPaths = (
 				"$(SRCROOT)/swiftlint.yml",
