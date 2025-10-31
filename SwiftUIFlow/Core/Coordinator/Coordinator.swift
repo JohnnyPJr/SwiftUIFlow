@@ -18,7 +18,8 @@ open class Coordinator<R: Route>: AnyCoordinator {
     public let router: Router<R>
 
     public private(set) var children: [AnyCoordinator] = []
-    public private(set) var modalCoordinator: AnyCoordinator?
+    public private(set) var modalCoordinators: [AnyCoordinator] = []
+    public private(set) var currentModalCoordinator: AnyCoordinator?
     public private(set) var detourCoordinator: AnyCoordinator?
 
     public init(router: Router<R>) {
@@ -48,6 +49,14 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
     }
 
+    public func addModalCoordinator(_ coordinator: AnyCoordinator) {
+        modalCoordinators.append(coordinator)
+    }
+
+    public func removeModalCoordinator(_ coordinator: AnyCoordinator) {
+        modalCoordinators.removeAll { $0 === coordinator }
+    }
+
     // LOCAL ONLY - does THIS coordinator handle this route directly
     open func canHandle(_ route: any Route) -> Bool {
         return false
@@ -68,7 +77,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
 
         // Can my modal handle it (recursively)?
-        if let modal = modalCoordinator {
+        if let modal = currentModalCoordinator {
             if modal.canNavigate(to: route) {
                 return true
             }
@@ -145,7 +154,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     /// Handle navigation through modal coordinator if present
     private func handleModalNavigation(to route: any Route, from caller: AnyCoordinator?) -> Bool {
-        guard let modal = modalCoordinator else { return false }
+        guard let modal = currentModalCoordinator else { return false }
 
         var modalHandledRoute = false
 
@@ -155,13 +164,13 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
 
         // If modal handled it and is still our modal, keep it
-        if modalHandledRoute, modalCoordinator === modal {
+        if modalHandledRoute, currentModalCoordinator === modal {
             print("📱 \(Self.self): Modal handled \(route.identifier)")
             return true
         }
 
         // Modal didn't handle or route is incompatible - dismiss it
-        if modalCoordinator === modal {
+        if currentModalCoordinator === modal {
             if !modalHandledRoute || shouldDismissModalFor(route: route) {
                 print("🚪 \(Self.self): Dismissing modal for \(route.identifier)")
                 dismissModal()
@@ -250,9 +259,35 @@ open class Coordinator<R: Route>: AnyCoordinator {
         case .replace:
             router.replace(route)
         case .modal:
+            // Modal navigation requires a modal navigator to handle the route
+            // This ensures proper coordinator hierarchy and navigation flow
+
+            // First check: Can the currently presented modal handle this route?
+            if let currentModal = currentModalCoordinator, currentModal.canHandle(route) {
+                // Reuse existing modal - just navigate within it
+                router.present(route)
+                currentModal.navigate(to: route, from: self)
+                return
+            }
+
+            // Second check: Find a modal navigator that can handle this route
+            guard let modalChild = modalCoordinators.first(where: { $0.canHandle(route) }) else {
+                assertionFailure("Modal navigation requires a modal navigator that can handle route: \(route.identifier). Add appropriate coordinator to modalNavigators array.")
+                return
+            }
+
+            // Set up modal coordinator relationship
+            currentModalCoordinator = modalChild
+            modalChild.parent = self
+            // Present in router
             router.present(route)
+            // Tell modal child to navigate and build its flow
+            modalChild.navigate(to: route, from: self)
         case .detour:
-            router.presentDetour(route)
+            // Detours should always be presented explicitly via presentDetour(coordinator:presenting:)
+            // They are never part of the navigate(to:) flow
+            assertionFailure("Detours must be presented explicitly via presentDetour(), not through navigate()")
+            return
         case let .tabSwitch(index):
             router.selectTab(index)
         }
@@ -278,7 +313,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         if case .tabSwitch = navigationType(for: route) {
             return false
         }
-        return detourCoordinator != nil || modalCoordinator != nil || !router.state.stack.isEmpty
+        return detourCoordinator != nil || currentModalCoordinator != nil || !router.state.stack.isEmpty
     }
 
     // Clean state when bubbling up
@@ -289,7 +324,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
 
         // Dismiss modal coordinator if present (handles both coordinator and router state)
-        if modalCoordinator != nil {
+        if currentModalCoordinator != nil {
             dismissModal()
         }
 
@@ -300,16 +335,16 @@ open class Coordinator<R: Route>: AnyCoordinator {
     }
 
     public func presentModal(_ coordinator: AnyCoordinator, presenting route: R) {
-        modalCoordinator = coordinator
+        currentModalCoordinator = coordinator
         coordinator.parent = self
         router.present(route)
     }
 
     public func dismissModal() {
-        if modalCoordinator?.parent === self {
-            modalCoordinator?.parent = nil
+        if currentModalCoordinator?.parent === self {
+            currentModalCoordinator?.parent = nil
         }
-        modalCoordinator = nil
+        currentModalCoordinator = nil
         router.dismissModal()
     }
 

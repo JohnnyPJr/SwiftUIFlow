@@ -91,10 +91,10 @@ final class CoordinatorTests: XCTestCase {
         let modal = Coordinator(router: sut.router)
 
         sut.coordinator.presentModal(modal, presenting: .home)
-        XCTAssertTrue(sut.coordinator.modalCoordinator === modal)
+        XCTAssertTrue(sut.coordinator.currentModalCoordinator === modal)
 
         sut.coordinator.dismissModal()
-        XCTAssertNil(sut.coordinator.modalCoordinator)
+        XCTAssertNil(sut.coordinator.currentModalCoordinator)
     }
 
     func test_NavigateDismissesModalWhenModalCantHandle() {
@@ -104,14 +104,14 @@ final class CoordinatorTests: XCTestCase {
 
         // Present modal (handles both coordinator and router state)
         sut.coordinator.presentModal(modal, presenting: .modal)
-        XCTAssertNotNil(sut.coordinator.modalCoordinator)
+        XCTAssertNotNil(sut.coordinator.currentModalCoordinator)
         XCTAssertNotNil(sut.router.state.presented)
 
         // Navigate to route that modal can't handle
         let handled = sut.coordinator.navigate(to: MockRoute.details)
 
         XCTAssertTrue(handled)
-        XCTAssertNil(sut.coordinator.modalCoordinator, "Modal should be dismissed")
+        XCTAssertNil(sut.coordinator.currentModalCoordinator, "Modal should be dismissed")
         XCTAssertNil(sut.router.state.presented, "Router should have dismissed modal")
         XCTAssertEqual(sut.router.state.currentRoute,
                        MockRoute.details, "Expected to be at details route after dismissing modal")
@@ -164,13 +164,20 @@ final class CoordinatorTests: XCTestCase {
     }
 
     func test_NavigateExecutesBasedOnNavigationType() {
-        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
-        let modalCoordinator = TestModalCoordinator(router: router)
+        let parentRouter = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        let parent = TestModalCoordinator(router: parentRouter)
 
-        _ = modalCoordinator.navigate(to: MockRoute.details)
+        // Create a modal navigator that handles .details
+        let childRouter = Router<MockRoute>(initial: .details, factory: MockViewFactory())
+        let child = TestCoordinator(router: childRouter)
+        parent.addModalCoordinator(child)
 
-        XCTAssertEqual(router.state.presented, MockRoute.details, "Modal coordinator should present route")
-        XCTAssertTrue(router.state.stack.isEmpty, "Modal coordinator should not push to stack")
+        // Navigate to .details - should present modal and delegate to child
+        _ = parent.navigate(to: MockRoute.details)
+
+        XCTAssertEqual(parentRouter.state.presented, MockRoute.details, "Parent should present route as modal")
+        XCTAssertTrue(parent.currentModalCoordinator === child, "Child should be set as modal coordinator")
+        XCTAssertTrue(child.parent === parent, "Parent relationship should be set")
     }
 
     // MARK: - Replace Navigation Tests

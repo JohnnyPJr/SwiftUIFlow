@@ -19,23 +19,29 @@ final class CoordinationIntegrationTests: XCTestCase {
         let modalCoordinator = TestModalCoordinator(router: Router<MockRoute>(initial: .modal,
                                                                               factory: MockViewFactory()))
 
+        // Add a modal navigator to modal coordinator to handle .details
+        let childRouter = Router<MockRoute>(initial: .details, factory: MockViewFactory())
+        let childCoordinator = TestCoordinator(router: childRouter)
+        modalCoordinator.addModalCoordinator(childCoordinator)
+
         // 1. Switch tab
         router.selectTab(1)
         XCTAssertEqual(router.state.selectedTab, 1, "Expected tab index to change")
 
         // 2. Present modal coordinator
         mainCoordinator.presentModal(modalCoordinator, presenting: .modal)
-        XCTAssertTrue(mainCoordinator.modalCoordinator === modalCoordinator,
+        XCTAssertTrue(mainCoordinator.currentModalCoordinator === modalCoordinator,
                       "Expected modal coordinator to be presented")
 
-        // 3. Navigate via modal coordinator - should present as modal
+        // 3. Navigate via modal coordinator - should present as modal with child handling it
         let handledModal = modalCoordinator.navigate(to: MockRoute.details)
         XCTAssertTrue(handledModal, "Expected modal coordinator to handle navigation")
         XCTAssertEqual(modalCoordinator.router.state.presented, .details, "Expected route to be presented as modal")
+        XCTAssertTrue(modalCoordinator.currentModalCoordinator === childCoordinator, "Child should be modal coordinator")
 
         // 4. Dismiss modal
         mainCoordinator.dismissModal()
-        XCTAssertNil(mainCoordinator.modalCoordinator, "Expected modal to be dismissed")
+        XCTAssertNil(mainCoordinator.currentModalCoordinator, "Expected modal to be dismissed")
 
         // 5. Navigate (like deeplink) handled by main coordinator - should push
         _ = mainCoordinator.navigate(to: MockRoute.details)
@@ -96,11 +102,11 @@ final class CoordinationIntegrationTests: XCTestCase {
         }
 
         // Verify modal is presented
-        XCTAssertNotNil(unlock.modalCoordinator, "Expected result modal to be presented")
+        XCTAssertNotNil(unlock.currentModalCoordinator, "Expected result modal to be presented")
 
         // Navigate to battery status from within the modal
         // This should dismiss modal, clean state, switch tab, and navigate
-        let success = unlock.modalCoordinator!.navigate(to: Tab5Route.batteryStatus, from: nil)
+        let success = unlock.currentModalCoordinator!.navigate(to: Tab5Route.batteryStatus, from: nil)
 
         XCTAssertTrue(success, "Navigation to battery status should succeed")
         XCTAssertEqual(router.state.selectedTab, 4, "Should switch to tab 5 (index 4)")
@@ -114,7 +120,7 @@ final class CoordinationIntegrationTests: XCTestCase {
         XCTAssertTrue(tab5.didHandleBatteryStatus, "Tab5 should have handled battery status")
 
         // Modal should be auto-dismissed
-        XCTAssertNil(unlock.modalCoordinator, "Modal should be dismissed")
+        XCTAssertNil(unlock.currentModalCoordinator, "Modal should be dismissed")
     }
 
     func test_deeplinkToEnterCodeThenBatteryStatus() {
@@ -180,16 +186,16 @@ final class CoordinationIntegrationTests: XCTestCase {
         }
 
         // Verify modal is presented
-        XCTAssertNotNil(unlock.modalCoordinator, "Modal should be presented")
+        XCTAssertNotNil(unlock.currentModalCoordinator, "Modal should be presented")
         XCTAssertNotNil(unlock.router.state.presented, "Router should have modal presented")
 
         // Navigate from modal to battery status - should auto-dismiss and switch tabs
-        let modal = unlock.modalCoordinator!
+        let modal = unlock.currentModalCoordinator!
         let success = modal.navigate(to: Tab5Route.batteryStatus, from: nil)
 
         // Now these assertions should PASS with our new implementation
         XCTAssertTrue(success, "Should succeed")
-        XCTAssertNil(unlock.modalCoordinator, "Modal should be auto-dismissed during traversal")
+        XCTAssertNil(unlock.currentModalCoordinator, "Modal should be auto-dismissed during traversal")
         XCTAssertNil(unlock.router.state.presented, "Router modal state should be cleared")
         XCTAssertEqual(router.state.selectedTab, 4, "Should switch to tab 5 during traversal")
 
@@ -227,17 +233,17 @@ final class CoordinationIntegrationTests: XCTestCase {
 
         // Verify complex state exists
         XCTAssertFalse(tab2.router.state.stack.isEmpty, "Tab2 should have items in stack")
-        XCTAssertNotNil(unlock.modalCoordinator, "Unlock should have modal")
+        XCTAssertNotNil(unlock.currentModalCoordinator, "Unlock should have modal")
         XCTAssertNotNil(unlock.router.state.presented, "Unlock router should have presented state")
 
         // Navigate to battery status from deep within modal
         // This should trigger full cleanup: dismiss modal, pop stacks, switch tab
-        let success = unlock.modalCoordinator!.navigate(to: Tab5Route.batteryStatus, from: nil)
+        let success = unlock.currentModalCoordinator!.navigate(to: Tab5Route.batteryStatus, from: nil)
 
         XCTAssertTrue(success, "Navigation should succeed")
 
         // Verify cleanup happened
-        XCTAssertNil(unlock.modalCoordinator, "Modal should be dismissed")
+        XCTAssertNil(unlock.currentModalCoordinator, "Modal should be dismissed")
         XCTAssertNil(unlock.router.state.presented, "Modal state should be cleared")
         XCTAssertTrue(unlock.router.state.stack.isEmpty, "Unlock stack should be cleared")
 
@@ -600,7 +606,7 @@ final class CoordinationIntegrationTests: XCTestCase {
         }
 
         // Verify modal is presented
-        XCTAssertNotNil(unlock.modalCoordinator, "Modal should be presented")
+        XCTAssertNotNil(unlock.currentModalCoordinator, "Modal should be presented")
         XCTAssertNotNil(unlock.router.state.presented, "Router should have modal state")
 
         // Now present detour while modal is active
@@ -611,7 +617,7 @@ final class CoordinationIntegrationTests: XCTestCase {
         unlock.presentDetour(tab5, presenting: Tab5Route.batteryStatus)
 
         // Verify both modal and detour exist
-        XCTAssertNotNil(unlock.modalCoordinator, "Modal should still exist")
+        XCTAssertNotNil(unlock.currentModalCoordinator, "Modal should still exist")
         XCTAssertNotNil(unlock.router.state.presented, "Modal state should still exist")
         XCTAssertNotNil(unlock.detourCoordinator, "Detour should be presented")
         XCTAssertNotNil(unlock.router.state.detour, "Detour state should exist")
@@ -622,7 +628,7 @@ final class CoordinationIntegrationTests: XCTestCase {
         // Verify modal remains after detour dismissal
         XCTAssertNil(unlock.detourCoordinator, "Detour should be dismissed")
         XCTAssertNil(unlock.router.state.detour, "Detour state should be cleared")
-        XCTAssertNotNil(unlock.modalCoordinator, "Modal should still be present")
+        XCTAssertNotNil(unlock.currentModalCoordinator, "Modal should still be present")
         XCTAssertNotNil(unlock.router.state.presented, "Modal state should still exist")
     }
 }
