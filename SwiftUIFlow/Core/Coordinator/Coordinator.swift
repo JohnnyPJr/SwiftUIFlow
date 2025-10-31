@@ -27,7 +27,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
     }
 
     /// Build a view for a given route using this coordinator's ViewFactory
-    /// Returns type-erased Any to avoid SwiftUI dependency in navigation layer
     public func buildView(for route: any Route) -> Any? {
         guard let typedRoute = route as? R else { return nil }
         return router.view(for: typedRoute)
@@ -57,26 +56,21 @@ open class Coordinator<R: Route>: AnyCoordinator {
         modalCoordinators.removeAll { $0 === coordinator }
     }
 
-    // LOCAL ONLY - does THIS coordinator handle this route directly
     open func canHandle(_ route: any Route) -> Bool {
         return false
     }
 
-    // RECURSIVE - can this coordinator OR its descendants handle the route
     public func canNavigate(to route: any Route) -> Bool {
-        // Can I handle it directly?
         if canHandle(route) {
             return true
         }
 
-        // Can any of my children handle it (recursively)?
         for child in children {
             if child.canNavigate(to: route) {
                 return true
             }
         }
 
-        // Can my modal handle it (recursively)?
         if let modal = currentModalCoordinator {
             if modal.canNavigate(to: route) {
                 return true
@@ -89,55 +83,45 @@ open class Coordinator<R: Route>: AnyCoordinator {
     public func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
         print("🔍 \(Self.self): Navigating to \(route.identifier)")
 
-        // Try smart navigation first (idempotency, backward navigation)
         if let typedRoute = route as? R, trySmartNavigation(to: typedRoute) {
             return true
         }
 
-        // Handle modal coordinator if present
         if handleModalNavigation(to: route, from: caller) {
             return true
         }
 
-        // Handle detour coordinator if present
         if handleDetourNavigation(to: route, from: caller) {
             return true
         }
 
-        // Try to handle the route directly
         if let typedRoute = route as? R, canHandle(typedRoute) {
             print("✅ \(Self.self): Executing navigation for \(route.identifier)")
             executeNavigation(for: typedRoute)
             return true
         }
 
-        // Delegate to children
         if delegateToChildren(route: route, caller: caller) {
             return true
         }
 
-        // Bubble up to parent
         return bubbleToParent(route: route)
     }
 
     // MARK: - Private Navigation Helpers
 
-    /// Try smart navigation: idempotency check, backward navigation, root navigation
     private func trySmartNavigation(to route: R) -> Bool {
-        // Early return: Are we already at this route?
         if isAlreadyAt(route: route) {
             print("✋ \(Self.self): Already at \(route.identifier), skipping navigation")
             return true
         }
 
-        // Smart backward navigation: Check if route is in our stack
         if router.state.stack.firstIndex(where: { $0 == route }) != nil {
             print("⏪ \(Self.self): Popping back to \(route.identifier)")
             popTo(route)
             return true
         }
 
-        // Check if navigating to root
         if route == router.state.root {
             if !router.state.stack.isEmpty {
                 print("⏪ \(Self.self): Popping to root \(route.identifier)")
@@ -152,24 +136,20 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return false
     }
 
-    /// Handle navigation through modal coordinator if present
     private func handleModalNavigation(to route: any Route, from caller: AnyCoordinator?) -> Bool {
         guard let modal = currentModalCoordinator else { return false }
 
         var modalHandledRoute = false
 
-        // Only try to navigate if it's not the caller (prevents infinite loop)
         if modal !== caller {
             modalHandledRoute = modal.navigate(to: route, from: self)
         }
 
-        // If modal handled it and is still our modal, keep it
         if modalHandledRoute, currentModalCoordinator === modal {
             print("📱 \(Self.self): Modal handled \(route.identifier)")
             return true
         }
 
-        // Modal didn't handle or route is incompatible - dismiss it
         if currentModalCoordinator === modal {
             if !modalHandledRoute || shouldDismissModalFor(route: route) {
                 print("🚪 \(Self.self): Dismissing modal for \(route.identifier)")
@@ -180,24 +160,20 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return false
     }
 
-    /// Handle navigation through detour coordinator if present
     private func handleDetourNavigation(to route: any Route, from caller: AnyCoordinator?) -> Bool {
         guard let detour = detourCoordinator else { return false }
 
         var detourHandledRoute = false
 
-        // Only try to navigate if it's not the caller (prevents infinite loop)
         if detour !== caller {
             detourHandledRoute = detour.navigate(to: route, from: self)
         }
 
-        // If detour handled it and is still our detour, keep it
         if detourHandledRoute, detourCoordinator === detour {
             print("🚀 \(Self.self): Detour handled \(route.identifier)")
             return true
         }
 
-        // Detour didn't handle or route is incompatible - dismiss it
         if detourCoordinator === detour {
             if !detourHandledRoute || shouldDismissDetourFor(route: route) {
                 print("🔙 \(Self.self): Dismissing detour for \(route.identifier)")
@@ -208,7 +184,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return false
     }
 
-    /// Delegate navigation to child coordinators
     private func delegateToChildren(route: any Route, caller: AnyCoordinator?) -> Bool {
         for child in children where child !== caller {
             if child.navigate(to: route, from: self) {
@@ -219,7 +194,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return false
     }
 
-    /// Bubble navigation up to parent coordinator
     private func bubbleToParent(route: any Route) -> Bool {
         guard let parent else {
             print("❌ \(Self.self): Could not handle \(route.identifier)")
@@ -228,7 +202,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
         print("⬆️ \(Self.self): Bubbling \(route.identifier) to parent")
 
-        // Clean state before bubbling if needed
         if shouldCleanStateForBubbling(route: route) {
             print("🧹 \(Self.self): Cleaning state before bubbling")
             cleanStateForBubbling()
@@ -237,7 +210,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return parent.navigate(to: route, from: self)
     }
 
-    // Check if we're already at the target route (idempotency check)
     private func isAlreadyAt(route: R) -> Bool {
         switch navigationType(for: route) {
         case let .tabSwitch(index):
@@ -251,7 +223,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
     }
 
-    // Execute the actual navigation based on NavigationType
     private func executeNavigation(for route: R) {
         switch navigationType(for: route) {
         case .push:
@@ -259,33 +230,22 @@ open class Coordinator<R: Route>: AnyCoordinator {
         case .replace:
             router.replace(route)
         case .modal:
-            // Modal navigation requires a modal navigator to handle the route
-            // This ensures proper coordinator hierarchy and navigation flow
-
-            // First check: Can the currently presented modal handle this route?
             if let currentModal = currentModalCoordinator, currentModal.canHandle(route) {
-                // Reuse existing modal - just navigate within it
                 router.present(route)
-                currentModal.navigate(to: route, from: self)
+                _ = currentModal.navigate(to: route, from: self)
                 return
             }
 
-            // Second check: Find a modal navigator that can handle this route
             guard let modalChild = modalCoordinators.first(where: { $0.canHandle(route) }) else {
-                assertionFailure("Modal navigation requires a modal navigator that can handle route: \(route.identifier). Add appropriate coordinator to modalNavigators array.")
+                assertionFailure("Modal navigation a navigator that can handle route: \(route.identifier).")
                 return
             }
 
-            // Set up modal coordinator relationship
             currentModalCoordinator = modalChild
             modalChild.parent = self
-            // Present in router
             router.present(route)
-            // Tell modal child to navigate and build its flow
-            modalChild.navigate(to: route, from: self)
+            _ = modalChild.navigate(to: route, from: self)
         case .detour:
-            // Detours should always be presented explicitly via presentDetour(coordinator:presenting:)
-            // They are never part of the navigate(to:) flow
             assertionFailure("Detours must be presented explicitly via presentDetour(), not through navigate()")
             return
         case let .tabSwitch(index):
@@ -293,42 +253,30 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
     }
 
-    // Determine if we should dismiss modal for this route
     open func shouldDismissModalFor(route: any Route) -> Bool {
-        // Default: dismiss if the route belongs to a different coordinator type
         return !(route is R)
     }
 
-    // Determine if we should dismiss detour for this route
     open func shouldDismissDetourFor(route: any Route) -> Bool {
-        // Default: always dismiss detours when navigating elsewhere
-        // Detours are ephemeral overlays that should not persist
         return true
     }
 
-    // Determine if we should clean state when bubbling
     open func shouldCleanStateForBubbling(route: any Route) -> Bool {
-        // Clean if we have a detour/modal presented or if we're deep in a stack
-        // Don't clean if we're a tab coordinator (they handle their own tab switching)
         if case .tabSwitch = navigationType(for: route) {
             return false
         }
         return detourCoordinator != nil || currentModalCoordinator != nil || !router.state.stack.isEmpty
     }
 
-    // Clean state when bubbling up
     open func cleanStateForBubbling() {
-        // Dismiss detour coordinator if present (ephemeral overlays should not persist)
         if detourCoordinator != nil {
             dismissDetour()
         }
 
-        // Dismiss modal coordinator if present (handles both coordinator and router state)
         if currentModalCoordinator != nil {
             dismissModal()
         }
 
-        // Clean navigation stack (TabCoordinators override this to prevent cleaning)
         if !router.state.stack.isEmpty {
             router.popToRoot()
         }
@@ -376,12 +324,10 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     /// Pop to a specific route in the stack (if it exists)
     public func popTo(_ route: R) {
-        // Find the route in the stack
         guard let index = router.state.stack.firstIndex(where: { $0 == route }) else {
             return
         }
 
-        // Pop everything after that route
         let popCount = router.state.stack.count - index - 1
         for _ in 0 ..< popCount {
             router.pop()
@@ -397,26 +343,8 @@ open class Coordinator<R: Route>: AnyCoordinator {
     // MARK: - Admin Operations (Major Flow Transitions)
 
     /// **ADMIN OPERATION** - Transition to a completely new flow with a new root.
-    ///
-    /// This is for major app-level transitions between distinct sections of your app.
-    /// Regular navigation should use `navigate(to:)` instead.
-    ///
-    /// **When to use this:**
-    /// - Onboarding → Login
-    /// - Login → Home
-    /// - Logout → Login
-    /// - Any major flow change that should have a separate root
-    ///
-    /// **Effect:**
-    /// - Sets new root route
-    /// - Clears entire navigation stack
-    /// - Dismisses any presented modals
-    ///
-    /// Example:
-    /// ```swift
-    /// // After successful login, transition entire app to home flow
-    /// appCoordinator.transitionToNewFlow(root: .home)
-    /// ```
+    /// Sets new root route, clears stack, and dismisses modals/detours.
+    /// Use for major transitions like Login → Home, not for regular navigation.
     public func transitionToNewFlow(root: R) {
         router.setRoot(root)
         dismissModal()
