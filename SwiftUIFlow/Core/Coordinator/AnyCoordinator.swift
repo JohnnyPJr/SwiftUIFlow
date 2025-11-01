@@ -19,4 +19,8 @@ public protocol AnyCoordinator: AnyObject {
     /// Build a view for a given route using this coordinator's ViewFactory
     /// Returns type-erased Any to avoid SwiftUI dependency in protocol
     func buildView(for route: any Route) -> Any?
+
+    /// Get the root route for this coordinator
+    /// Useful for rendering the coordinator's initial view
+    func getRootRoute() -> any Route
 }
