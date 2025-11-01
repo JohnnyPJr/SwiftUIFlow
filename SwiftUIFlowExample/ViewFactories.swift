@@ -18,7 +18,7 @@ class AppViewFactory: ViewFactory<AppRoute> {
         case .tabRoot:
             return nil
         case .login:
-            return AnyView(LoginView(appCoordinator: appCoordinator))
+            return view(LoginView(appCoordinator: appCoordinator))
         }
     }
 }
@@ -31,11 +31,11 @@ class RedViewFactory: ViewFactory<RedRoute> {
 
         switch route {
         case .red:
-            return AnyView(RedView(appCoordinator: appCoordinator))
+            return view(RedView(appCoordinator: appCoordinator))
         case .lightRed:
-            return AnyView(LightRedView(appCoordinator: appCoordinator))
+            return view(LightRedView(appCoordinator: appCoordinator))
         case .darkRed:
-            return AnyView(DarkRedView(appCoordinator: appCoordinator))
+            return view(DarkRedView(appCoordinator: appCoordinator))
         }
     }
 }
@@ -48,11 +48,11 @@ class GreenViewFactory: ViewFactory<GreenRoute> {
 
         switch route {
         case .green:
-            return AnyView(GreenView(appCoordinator: appCoordinator))
+            return view(GreenView(appCoordinator: appCoordinator))
         case .lightGreen:
-            return AnyView(LightGreenView(appCoordinator: appCoordinator))
+            return view(LightGreenView(appCoordinator: appCoordinator))
         case .darkGreen:
-            return AnyView(DarkGreenView(appCoordinator: appCoordinator))
+            return view(DarkGreenView(appCoordinator: appCoordinator))
         }
     }
 }
@@ -65,11 +65,11 @@ class BlueViewFactory: ViewFactory<BlueRoute> {
 
         switch route {
         case .blue:
-            return AnyView(BlueView(appCoordinator: appCoordinator))
+            return view(BlueView(appCoordinator: appCoordinator))
         case .lightBlue:
-            return AnyView(LightBlueView(appCoordinator: appCoordinator))
+            return view(LightBlueView(appCoordinator: appCoordinator))
         case .darkBlue:
-            return AnyView(DarkBlueView(appCoordinator: appCoordinator))
+            return view(DarkBlueView(appCoordinator: appCoordinator))
         }
     }
 }
@@ -82,11 +82,11 @@ class YellowViewFactory: ViewFactory<YellowRoute> {
 
         switch route {
         case .yellow:
-            return AnyView(YellowView(appCoordinator: appCoordinator))
+            return view(YellowView(appCoordinator: appCoordinator))
         case .lightYellow:
-            return AnyView(LightYellowView(appCoordinator: appCoordinator))
+            return view(LightYellowView(appCoordinator: appCoordinator))
         case .darkYellow:
-            return AnyView(DarkYellowView(appCoordinator: appCoordinator))
+            return view(DarkYellowView(appCoordinator: appCoordinator))
         }
     }
 }
@@ -99,13 +99,13 @@ class PurpleViewFactory: ViewFactory<PurpleRoute> {
 
         switch route {
         case .purple:
-            return AnyView(PurpleView(appCoordinator: appCoordinator))
+            return view(PurpleView(appCoordinator: appCoordinator))
         case .lightPurple:
-            return AnyView(LightPurpleView(appCoordinator: appCoordinator))
+            return view(LightPurpleView(appCoordinator: appCoordinator))
         case .darkPurple:
-            return AnyView(DarkPurpleView(appCoordinator: appCoordinator))
+            return view(DarkPurpleView(appCoordinator: appCoordinator))
         case let .result(success):
-            return AnyView(ResultView(success: success, appCoordinator: appCoordinator))
+            return view(ResultView(success: success, appCoordinator: appCoordinator))
         }
     }
 }
