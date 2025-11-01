@@ -56,16 +56,6 @@ public struct TabCoordinatorView<R: Route>: View {
             }
     }
 
-    /// Helper to type-erase any view
-    private func eraseToAnyView(_ view: Any) -> AnyView {
-        // The view should be a SwiftUI View, so we can cast it
-        if let swiftUIView = view as? any View {
-            return AnyView(swiftUIView)
-        } else {
-            return AnyView(Text("View unavailable"))
-        }
-    }
-
     /// Create a binding to the selected tab that syncs with the coordinator
     private var selectedTabBinding: Binding<Int> {
         Binding(get: {

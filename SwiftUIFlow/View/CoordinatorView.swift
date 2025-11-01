@@ -129,16 +129,6 @@ public struct CoordinatorView<R: Route>: View {
         #endif
     }
 
-    /// Helper to type-erase any view
-    private func eraseToAnyView(_ view: Any) -> AnyView {
-        // The view should be a SwiftUI View, so we can cast it
-        if let swiftUIView = view as? any View {
-            return AnyView(swiftUIView)
-        } else {
-            return AnyView(Text("View unavailable"))
-        }
-    }
-
     /// Create a binding to the navigation path that syncs with the coordinator
     private var navigationPath: Binding<[R]> {
         Binding(get: {
