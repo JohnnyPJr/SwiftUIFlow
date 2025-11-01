@@ -32,6 +32,11 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return router.view(for: typedRoute)
     }
 
+    /// Get the root route for this coordinator
+    public func getRootRoute() -> any Route {
+        return router.state.root
+    }
+
     open func navigationType(for route: any Route) -> NavigationType {
         return .push
     }
