@@ -20,7 +20,7 @@ public protocol AnyCoordinator: AnyObject {
     /// Returns type-erased Any to avoid SwiftUI dependency in protocol
     func buildView(for route: any Route) -> Any?
 
-    /// Get the root route for this coordinator
-    /// Useful for rendering the coordinator's initial view
-    func getRootRoute() -> any Route
+    /// Build a CoordinatorView for this coordinator with full navigation support
+    /// Returns type-erased Any to avoid SwiftUI dependency in protocol
+    func buildCoordinatorView() -> Any
 }

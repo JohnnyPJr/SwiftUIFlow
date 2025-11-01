@@ -8,6 +8,11 @@
 import Foundation
 
 open class TabCoordinator<R: Route>: Coordinator<R> {
+    /// Build a TabCoordinatorView for this tab coordinator
+    override public func buildCoordinatorView() -> Any {
+        return TabCoordinatorView(coordinator: self)
+    }
+
     override open func navigationType(for route: any Route) -> NavigationType {
         // TabCoordinator subclasses MUST override this method to provide route-to-tab-index mapping
         fatalError("TabCoordinator subclass must override navigationType(for:) to provide route-to-tab-index mapping")

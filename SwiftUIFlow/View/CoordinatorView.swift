@@ -60,12 +60,33 @@ public struct CoordinatorView<R: Route>: View {
             // Handle detour dismissal (user swiped down or dismissed)
             coordinator.dismissDetour()
         }) {
-            // Render detour view using the detour coordinator's ViewFactory
+            // Render detour with its own navigation wrapper
             if let detourCoordinator = coordinator.detourCoordinator,
-               let detourRoute = router.state.detour,
-               let view = detourCoordinator.buildView(for: detourRoute) as? AnyView
+               let detourRoute = router.state.detour
             {
-                view
+                NavigationStack {
+                    // Use buildView to get just the view, then wrap it ourselves
+                    if let detourView = detourCoordinator.buildView(for: detourRoute) as? AnyView {
+                        detourView
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar {
+                                ToolbarItem(placement: .navigationBarLeading) {
+                                    Button(action: {
+                                        coordinator.dismissDetour()
+                                    }) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "chevron.left")
+                                                .font(.system(size: 17, weight: .semibold))
+                                            Text("Back")
+                                        }
+                                    }
+                                }
+                            }
+                    } else {
+                        Text("Detour view not available")
+                            .foregroundColor(.red)
+                    }
+                }
             } else {
                 Text("Detour view not available")
                     .foregroundColor(.red)
@@ -77,16 +98,45 @@ public struct CoordinatorView<R: Route>: View {
                     coordinator.dismissDetour()
                 }) {
                     if let detourCoordinator = coordinator.detourCoordinator,
-                       let detourRoute = router.state.detour,
-                       let view = detourCoordinator.buildView(for: detourRoute) as? AnyView
+                       let detourRoute = router.state.detour
                     {
-                        view
+                        NavigationStack {
+                            if let detourView = detourCoordinator.buildView(for: detourRoute) as? AnyView {
+                                detourView
+                                    .toolbar {
+                                        ToolbarItem(placement: .cancellationAction) {
+                                            Button(action: {
+                                                coordinator.dismissDetour()
+                                            }) {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "chevron.left")
+                                                        .font(.system(size: 17, weight: .semibold))
+                                                    Text("Back")
+                                                }
+                                            }
+                                        }
+                                    }
+                            } else {
+                                Text("Detour view not available")
+                                    .foregroundColor(.red)
+                            }
+                        }
                     } else {
                         Text("Detour view not available")
                             .foregroundColor(.red)
                     }
                 }
         #endif
+    }
+
+    /// Helper to type-erase any view
+    private func eraseToAnyView(_ view: Any) -> AnyView {
+        // The view should be a SwiftUI View, so we can cast it
+        if let swiftUIView = view as? any View {
+            return AnyView(swiftUIView)
+        } else {
+            return AnyView(Text("View unavailable"))
+        }
     }
 
     /// Create a binding to the navigation path that syncs with the coordinator

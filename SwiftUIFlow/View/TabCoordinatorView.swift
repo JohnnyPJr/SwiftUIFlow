@@ -43,20 +43,26 @@ public struct TabCoordinatorView<R: Route>: View {
     /// Create the content for a single tab
     @ViewBuilder
     private func tabContent(for child: AnyCoordinator, at index: Int) -> some View {
-        // Use the child's root route to render its initial view
-        if let childView = child.buildView(for: child.getRootRoute()) as? AnyView {
-            childView
-                .tabItem {
-                    // Tab coordinators should provide custom tab labels
-                    // For now, use a default label
-                    Label("Tab \(index + 1)", systemImage: "\(index + 1).circle")
-                }
+        // Each tab gets its own CoordinatorView with NavigationStack
+        // The coordinator returns a CoordinatorView which we need to type-erase
+        let coordinatorView = child.buildCoordinatorView()
+
+        // Wrap in AnyView to handle the type erasure
+        eraseToAnyView(coordinatorView)
+            .tabItem {
+                // Tab coordinators should provide custom tab labels
+                // For now, use a default label
+                Label("Tab \(index + 1)", systemImage: "\(index + 1).circle")
+            }
+    }
+
+    /// Helper to type-erase any view
+    private func eraseToAnyView(_ view: Any) -> AnyView {
+        // The view should be a SwiftUI View, so we can cast it
+        if let swiftUIView = view as? any View {
+            return AnyView(swiftUIView)
         } else {
-            // Fallback if child can't build its view
-            Text("Tab \(index + 1) unavailable")
-                .tabItem {
-                    Label("Tab \(index + 1)", systemImage: "\(index + 1).circle")
-                }
+            return AnyView(Text("View unavailable"))
         }
     }
 
