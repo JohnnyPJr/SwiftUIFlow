@@ -1,6 +1,6 @@
 # SwiftUIFlow - Development Progress
 
-**Last Updated:** October 31, 2025
+**Last Updated:** November 2, 2025
 
 ---
 
@@ -90,6 +90,13 @@ SwiftUIFlow is a coordinator-based navigation framework for SwiftUI that provide
    - Only one presented at a time via `currentModalCoordinator`
    - Modal navigation finds appropriate coordinator via `canHandle()`
    - Fixed bug: ensure `router.present()` is called before delegating to modal coordinator
+
+5. **CoordinatorView Modal Rendering Fix** ✅
+   - Fixed modal sheet rendering to use modal coordinator's buildView()
+   - Previously used parent coordinator's router/factory (incorrect)
+   - Now uses `coordinator.currentModalCoordinator.buildView(for: route)`
+   - Modal coordinators build views using their own router/factory instance, not the parent's
+   - Essential for complex modal flows with independent navigation stacks
 
 ## Key Architectural Decisions
 
@@ -275,12 +282,15 @@ mainCoordinator.navigate(to: .settings) // Uses settingsModalCoord
 - [x] Configure SwiftLint/SwiftFormat build phases with input file lists
 - [x] Trim verbose comments to meet file length requirements
 - [x] Discuss and document error handling strategy
+- [x] Build TabCoordinatorView for tab navigation
+- [x] Create example app to validate all features
+- [x] Fix CoordinatorView to use modal coordinator's buildView for modal rendering
+- [x] Refactor example app to use proper coordinator bubbling pattern
 
 ### In Progress 🔄
-- [ ] Build TabCoordinatorView for tab navigation
+- [ ] Review and document architectural decisions from example app implementation
 
 ### Pending 📋
-- [ ] Create example app to validate all features
 - [ ] Comprehensive error handling (NavigationError enum, callbacks, logging)
 - [ ] Add sheet presentation styles (detents, custom sizing)
 - [ ] Add snapshot tests for view layer (optional)
@@ -289,25 +299,15 @@ mainCoordinator.navigate(to: .settings) // Uses settingsModalCoord
 
 ## Next Steps
 
-### Immediate: Build TabCoordinatorView
+### Immediate: Review & Document Architectural Decisions
 
-Build specialized view for TabCoordinator:
-- Renders TabView bound to coordinator's selectedTab
-- Manages tab switching
-- Integrates with child coordinators per tab
-- Test cross-tab navigation
+Review the example app implementation and document key decisions:
+- Modal coordinators pattern (keep them for complex flows)
+- TransitionToNewFlow pattern (views needing root coordinator access)
+- ViewFactory pattern (shared class, separate instances)
+- View coordinator dependency injection
 
-### After TabCoordinatorView: Example App
-
-Create minimal example demonstrating:
-- Push navigation (3 screens)
-- Modal presentation
-- Tab navigation
-- Cross-flow detour navigation
-
-Validate everything works in real SwiftUI environment.
-
-### After Example App: Polish & Future Enhancements
+### After Review: Polish & Future Enhancements
 
 1. Comprehensive error handling (NavigationError enum, callbacks, optional logging)
 2. Add sheet presentation styles (detents, sizing)
@@ -378,6 +378,6 @@ None currently - proceeding with TabCoordinatorView implementation.
 
 ---
 
-**Last Task Completed:** Updated DEVELOPMENT.md with all recent architectural decisions
-**Next Task:** Build TabCoordinatorView
+**Last Task Completed:** Fixed CoordinatorView modal rendering to use modal coordinator's buildView
+**Next Task:** Review and document architectural decisions from example app
 **Branch:** Add-View-layer
