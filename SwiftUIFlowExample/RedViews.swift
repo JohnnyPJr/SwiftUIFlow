@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftUIFlow
 
 struct RedView: View {
-    let appCoordinator: AppCoordinator
+    let coordinator: RedCoordinator
 
     var body: some View {
         ZStack {
@@ -22,12 +22,12 @@ struct RedView: View {
                     .foregroundColor(.white)
 
                 Button("Lighten Up") {
-                    appCoordinator.navigate(to: RedRoute.lightRed)
+                    coordinator.navigate(to: RedRoute.lightRed)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 
                 Button("Darken Up") {
-                    appCoordinator.navigate(to: RedRoute.darkRed)
+                    coordinator.navigate(to: RedRoute.darkRed)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }
@@ -36,7 +36,7 @@ struct RedView: View {
 }
 
 struct LightRedView: View {
-    let appCoordinator: AppCoordinator
+    let coordinator: RedCoordinator
 
     var body: some View {
         ZStack {
@@ -57,7 +57,7 @@ struct LightRedView: View {
 }
 
 struct DarkRedView: View {
-    let appCoordinator: AppCoordinator
+    let coordinator: RedModalCoordinator
 
     var body: some View {
         ZStack {
@@ -76,7 +76,7 @@ struct DarkRedView: View {
                 Spacer().frame(height: 40)
 
                 Button("Jump to Dark Yellow") {
-                    appCoordinator.navigate(to: YellowRoute.darkYellow)
+                    coordinator.navigate(to: YellowRoute.darkYellow)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .yellow))
 

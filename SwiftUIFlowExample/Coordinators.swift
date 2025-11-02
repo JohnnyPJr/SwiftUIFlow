@@ -25,11 +25,11 @@ class AppCoordinator: TabCoordinator<AppRoute> {
         // Set the appCoordinator reference on the view factory
         viewFactory.appCoordinator = self
 
-        // Now create coordinators with self reference
-        redCoordinator = RedCoordinator(appCoordinator: self)
-        greenCoordinator = GreenCoordinator(appCoordinator: self)
-        blueCoordinator = BlueCoordinator(appCoordinator: self)
-        yellowCoordinator = YellowCoordinator(appCoordinator: self)
+        // Now create coordinators
+        redCoordinator = RedCoordinator()
+        greenCoordinator = GreenCoordinator()
+        blueCoordinator = BlueCoordinator()
+        yellowCoordinator = YellowCoordinator()
         purpleCoordinator = PurpleCoordinator(appCoordinator: self)
 
         addChild(redCoordinator)
@@ -47,13 +47,14 @@ class AppCoordinator: TabCoordinator<AppRoute> {
 // MARK: - Red Tab Coordinator
 
 class RedCoordinator: Coordinator<RedRoute> {
-    init(appCoordinator: AppCoordinator) {
+    init() {
         let viewFactory = RedViewFactory()
-        viewFactory.appCoordinator = appCoordinator
         let router = Router(initial: .red, factory: viewFactory)
         super.init(router: router)
 
-        let modalCoord = RedModalCoordinator(appCoordinator: appCoordinator)
+        viewFactory.coordinator = self
+
+        let modalCoord = RedModalCoordinator()
         addModalCoordinator(modalCoord)
     }
 
@@ -74,11 +75,12 @@ class RedCoordinator: Coordinator<RedRoute> {
 }
 
 class RedModalCoordinator: Coordinator<RedRoute> {
-    init(appCoordinator: AppCoordinator) {
+    init() {
         let viewFactory = RedViewFactory()
-        viewFactory.appCoordinator = appCoordinator
         let router = Router(initial: .darkRed, factory: viewFactory)
         super.init(router: router)
+
+        viewFactory.coordinator = self
     }
 
     override func canHandle(_ route: any Route) -> Bool {
@@ -90,13 +92,14 @@ class RedModalCoordinator: Coordinator<RedRoute> {
 // MARK: - Green Tab Coordinator
 
 class GreenCoordinator: Coordinator<GreenRoute> {
-    init(appCoordinator: AppCoordinator) {
+    init() {
         let viewFactory = GreenViewFactory()
-        viewFactory.appCoordinator = appCoordinator
         let router = Router(initial: .green, factory: viewFactory)
         super.init(router: router)
 
-        let modalCoord = GreenModalCoordinator(appCoordinator: appCoordinator)
+        viewFactory.coordinator = self
+
+        let modalCoord = GreenModalCoordinator()
         addModalCoordinator(modalCoord)
     }
 
@@ -117,11 +120,12 @@ class GreenCoordinator: Coordinator<GreenRoute> {
 }
 
 class GreenModalCoordinator: Coordinator<GreenRoute> {
-    init(appCoordinator: AppCoordinator) {
+    init() {
         let viewFactory = GreenViewFactory()
-        viewFactory.appCoordinator = appCoordinator
         let router = Router(initial: .darkGreen, factory: viewFactory)
         super.init(router: router)
+
+        viewFactory.coordinator = self
     }
 
     override func canHandle(_ route: any Route) -> Bool {
@@ -133,13 +137,14 @@ class GreenModalCoordinator: Coordinator<GreenRoute> {
 // MARK: - Blue Tab Coordinator
 
 class BlueCoordinator: Coordinator<BlueRoute> {
-    init(appCoordinator: AppCoordinator) {
+    init() {
         let viewFactory = BlueViewFactory()
-        viewFactory.appCoordinator = appCoordinator
         let router = Router(initial: .blue, factory: viewFactory)
         super.init(router: router)
 
-        let modalCoord = BlueModalCoordinator(appCoordinator: appCoordinator)
+        viewFactory.coordinator = self
+
+        let modalCoord = BlueModalCoordinator()
         addModalCoordinator(modalCoord)
     }
 
@@ -160,11 +165,12 @@ class BlueCoordinator: Coordinator<BlueRoute> {
 }
 
 class BlueModalCoordinator: Coordinator<BlueRoute> {
-    init(appCoordinator: AppCoordinator) {
+    init() {
         let viewFactory = BlueViewFactory()
-        viewFactory.appCoordinator = appCoordinator
         let router = Router(initial: .darkBlue, factory: viewFactory)
         super.init(router: router)
+
+        viewFactory.coordinator = self
     }
 
     override func canHandle(_ route: any Route) -> Bool {
@@ -176,13 +182,14 @@ class BlueModalCoordinator: Coordinator<BlueRoute> {
 // MARK: - Yellow Tab Coordinator
 
 class YellowCoordinator: Coordinator<YellowRoute> {
-    init(appCoordinator: AppCoordinator) {
+    init() {
         let viewFactory = YellowViewFactory()
-        viewFactory.appCoordinator = appCoordinator
         let router = Router(initial: .yellow, factory: viewFactory)
         super.init(router: router)
 
-        let modalCoord = YellowModalCoordinator(appCoordinator: appCoordinator)
+        viewFactory.coordinator = self
+
+        let modalCoord = YellowModalCoordinator()
         addModalCoordinator(modalCoord)
     }
 
@@ -203,11 +210,12 @@ class YellowCoordinator: Coordinator<YellowRoute> {
 }
 
 class YellowModalCoordinator: Coordinator<YellowRoute> {
-    init(appCoordinator: AppCoordinator) {
+    init() {
         let viewFactory = YellowViewFactory()
-        viewFactory.appCoordinator = appCoordinator
         let router = Router(initial: .darkYellow, factory: viewFactory)
         super.init(router: router)
+
+        viewFactory.coordinator = self
     }
 
     override func canHandle(_ route: any Route) -> Bool {
@@ -221,11 +229,13 @@ class YellowModalCoordinator: Coordinator<YellowRoute> {
 class PurpleCoordinator: Coordinator<PurpleRoute> {
     init(appCoordinator: AppCoordinator) {
         let viewFactory = PurpleViewFactory()
-        viewFactory.appCoordinator = appCoordinator
         let router = Router(initial: .purple, factory: viewFactory)
         super.init(router: router)
 
-        let modalCoord = PurpleModalCoordinator(appCoordinator: appCoordinator)
+        viewFactory.coordinator = self
+        viewFactory.appCoordinator = appCoordinator
+
+        let modalCoord = PurpleModalCoordinator()
         addModalCoordinator(modalCoord)
     }
 
@@ -248,11 +258,12 @@ class PurpleCoordinator: Coordinator<PurpleRoute> {
 }
 
 class PurpleModalCoordinator: Coordinator<PurpleRoute> {
-    init(appCoordinator: AppCoordinator) {
+    init() {
         let viewFactory = PurpleViewFactory()
-        viewFactory.appCoordinator = appCoordinator
         let router = Router(initial: .darkPurple, factory: viewFactory)
         super.init(router: router)
+
+        viewFactory.coordinator = self
     }
 
     override func canHandle(_ route: any Route) -> Bool {
