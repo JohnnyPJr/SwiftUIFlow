@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftUIFlow
 
 struct PurpleView: View {
+    let coordinator: PurpleCoordinator
     let appCoordinator: AppCoordinator
 
     var body: some View {
@@ -22,12 +23,12 @@ struct PurpleView: View {
                     .foregroundColor(.white)
 
                 Button("Lighten Up") {
-                    appCoordinator.navigate(to: PurpleRoute.lightPurple)
+                    coordinator.navigate(to: PurpleRoute.lightPurple)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 
                 Button("Darken Up") {
-                    appCoordinator.navigate(to: PurpleRoute.darkPurple)
+                    coordinator.navigate(to: PurpleRoute.darkPurple)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
 
@@ -54,7 +55,7 @@ struct PurpleView: View {
 }
 
 struct LightPurpleView: View {
-    let appCoordinator: AppCoordinator
+    let coordinator: PurpleCoordinator
 
     var body: some View {
         ZStack {
@@ -82,12 +83,12 @@ struct LightPurpleView: View {
 
                 HStack(spacing: 20) {
                     Button("Success ✓") {
-                        appCoordinator.navigate(to: PurpleRoute.result(success: true))
+                        coordinator.navigate(to: PurpleRoute.result(success: true))
                     }
                     .buttonStyle(NavigationButtonStyle(color: .green))
 
                     Button("Failure ✗") {
-                        appCoordinator.navigate(to: PurpleRoute.result(success: false))
+                        coordinator.navigate(to: PurpleRoute.result(success: false))
                     }
                     .buttonStyle(NavigationButtonStyle(color: .red))
                 }
@@ -97,7 +98,7 @@ struct LightPurpleView: View {
 }
 
 struct DarkPurpleView: View {
-    let appCoordinator: AppCoordinator
+    let coordinator: PurpleModalCoordinator
 
     var body: some View {
         ZStack {
@@ -119,7 +120,7 @@ struct DarkPurpleView: View {
 
 struct ResultView: View {
     let success: Bool
-    let appCoordinator: AppCoordinator
+    let coordinator: PurpleCoordinator
 
     var body: some View {
         ZStack {

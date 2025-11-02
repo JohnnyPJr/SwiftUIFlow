@@ -47,8 +47,10 @@ public struct CoordinatorView<R: Route>: View {
             }
         }
         .sheet(item: presentedRoute) { route in
-            // Render modal sheet
-            if let modalView = router.view(for: route) {
+            // Render modal sheet using the modal coordinator
+            if let modalCoordinator = coordinator.currentModalCoordinator,
+               let modalView = modalCoordinator.buildView(for: route) as? AnyView
+            {
                 modalView
             } else {
                 Text("No view for modal route: \(route.identifier)")

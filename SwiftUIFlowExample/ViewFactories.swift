@@ -24,88 +24,96 @@ class AppViewFactory: ViewFactory<AppRoute> {
 }
 
 class RedViewFactory: ViewFactory<RedRoute> {
-    weak var appCoordinator: AppCoordinator?
+    weak var coordinator: AnyCoordinator?
 
     override func buildView(for route: RedRoute) -> AnyView? {
-        guard let appCoordinator else { return nil }
-
         switch route {
         case .red:
-            return view(RedView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? RedCoordinator else { return nil }
+            return view(RedView(coordinator: coord))
         case .lightRed:
-            return view(LightRedView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? RedCoordinator else { return nil }
+            return view(LightRedView(coordinator: coord))
         case .darkRed:
-            return view(DarkRedView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? RedModalCoordinator else { return nil }
+            return view(DarkRedView(coordinator: coord))
         }
     }
 }
 
 class GreenViewFactory: ViewFactory<GreenRoute> {
-    weak var appCoordinator: AppCoordinator?
+    weak var coordinator: AnyCoordinator?
 
     override func buildView(for route: GreenRoute) -> AnyView? {
-        guard let appCoordinator else { return nil }
-
         switch route {
         case .green:
-            return view(GreenView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? GreenCoordinator else { return nil }
+            return view(GreenView(coordinator: coord))
         case .lightGreen:
-            return view(LightGreenView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? GreenCoordinator else { return nil }
+            return view(LightGreenView(coordinator: coord))
         case .darkGreen:
-            return view(DarkGreenView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? GreenModalCoordinator else { return nil }
+            return view(DarkGreenView(coordinator: coord))
         }
     }
 }
 
 class BlueViewFactory: ViewFactory<BlueRoute> {
-    weak var appCoordinator: AppCoordinator?
+    weak var coordinator: AnyCoordinator?
 
     override func buildView(for route: BlueRoute) -> AnyView? {
-        guard let appCoordinator else { return nil }
-
         switch route {
         case .blue:
-            return view(BlueView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? BlueCoordinator else { return nil }
+            return view(BlueView(coordinator: coord))
         case .lightBlue:
-            return view(LightBlueView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? BlueCoordinator else { return nil }
+            return view(LightBlueView(coordinator: coord))
         case .darkBlue:
-            return view(DarkBlueView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? BlueModalCoordinator else { return nil }
+            return view(DarkBlueView(coordinator: coord))
         }
     }
 }
 
 class YellowViewFactory: ViewFactory<YellowRoute> {
-    weak var appCoordinator: AppCoordinator?
+    weak var coordinator: AnyCoordinator?
 
     override func buildView(for route: YellowRoute) -> AnyView? {
-        guard let appCoordinator else { return nil }
-
         switch route {
         case .yellow:
-            return view(YellowView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? YellowCoordinator else { return nil }
+            return view(YellowView(coordinator: coord))
         case .lightYellow:
-            return view(LightYellowView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? YellowCoordinator else { return nil }
+            return view(LightYellowView(coordinator: coord))
         case .darkYellow:
-            return view(DarkYellowView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? YellowModalCoordinator else { return nil }
+            return view(DarkYellowView(coordinator: coord))
         }
     }
 }
 
 class PurpleViewFactory: ViewFactory<PurpleRoute> {
+    weak var coordinator: AnyCoordinator?
     weak var appCoordinator: AppCoordinator?
 
     override func buildView(for route: PurpleRoute) -> AnyView? {
-        guard let appCoordinator else { return nil }
-
         switch route {
         case .purple:
-            return view(PurpleView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? PurpleCoordinator,
+                  let appCoord = appCoordinator else { return nil }
+            return view(PurpleView(coordinator: coord, appCoordinator: appCoord))
         case .lightPurple:
-            return view(LightPurpleView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? PurpleCoordinator else { return nil }
+            return view(LightPurpleView(coordinator: coord))
         case .darkPurple:
-            return view(DarkPurpleView(appCoordinator: appCoordinator))
+            guard let coord = coordinator as? PurpleModalCoordinator else { return nil }
+            return view(DarkPurpleView(coordinator: coord))
         case let .result(success):
-            return view(ResultView(success: success, appCoordinator: appCoordinator))
+            guard let coord = coordinator as? PurpleCoordinator else { return nil }
+            return view(ResultView(success: success, coordinator: coord))
         }
     }
 }
