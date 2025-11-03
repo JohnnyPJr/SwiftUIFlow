@@ -58,6 +58,10 @@ class RedCoordinator: Coordinator<RedRoute> {
         addModalCoordinator(modalCoord)
     }
 
+    override var tabItem: (text: String, image: String)? {
+        return ("Red", "paintpalette.fill")
+    }
+
     override func canHandle(_ route: any Route) -> Bool {
         return route is RedRoute
     }
@@ -101,6 +105,10 @@ class GreenCoordinator: Coordinator<GreenRoute> {
 
         let modalCoord = GreenModalCoordinator()
         addModalCoordinator(modalCoord)
+    }
+
+    override var tabItem: (text: String, image: String)? {
+        return ("Green", "leaf.fill")
     }
 
     override func canHandle(_ route: any Route) -> Bool {
@@ -148,6 +156,10 @@ class BlueCoordinator: Coordinator<BlueRoute> {
         addModalCoordinator(modalCoord)
     }
 
+    override var tabItem: (text: String, image: String)? {
+        return ("Blue", "water.waves")
+    }
+
     override func canHandle(_ route: any Route) -> Bool {
         return route is BlueRoute
     }
@@ -191,6 +203,10 @@ class YellowCoordinator: Coordinator<YellowRoute> {
 
         let modalCoord = YellowModalCoordinator()
         addModalCoordinator(modalCoord)
+    }
+
+    override var tabItem: (text: String, image: String)? {
+        return ("Yellow", "sun.max.fill")
     }
 
     override func canHandle(_ route: any Route) -> Bool {
@@ -237,6 +253,10 @@ class PurpleCoordinator: Coordinator<PurpleRoute> {
 
         let modalCoord = PurpleModalCoordinator()
         addModalCoordinator(modalCoord)
+    }
+
+    override var tabItem: (text: String, image: String)? {
+        return ("Purple", "sparkles")
     }
 
     override func canHandle(_ route: any Route) -> Bool {

@@ -23,4 +23,8 @@ public protocol AnyCoordinator: AnyObject {
     /// Build a CoordinatorView for this coordinator with full navigation support
     /// Returns type-erased Any to avoid SwiftUI dependency in protocol
     func buildCoordinatorView() -> Any
+
+    /// Tab item configuration for coordinators used as tabs
+    /// Return nil if this coordinator is not used as a tab
+    var tabItem: (text: String, image: String)? { get }
 }

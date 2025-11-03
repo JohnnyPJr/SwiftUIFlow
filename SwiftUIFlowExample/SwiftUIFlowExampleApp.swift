@@ -45,7 +45,9 @@ struct AppRootView: View {
         // Dynamically render based on current root
         switch currentRoot {
         case .tabRoot:
-            TabCoordinatorView(coordinator: appState.appCoordinator)
+            // Use our completely custom tab bar instead of TabCoordinatorView
+            // This demonstrates that clients can build any UI they want
+            CustomTabBarView(coordinator: appState.appCoordinator)
         case .login:
             CoordinatorView(coordinator: appState.appCoordinator)
         }

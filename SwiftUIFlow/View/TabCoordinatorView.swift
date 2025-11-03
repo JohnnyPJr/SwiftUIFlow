@@ -7,18 +7,64 @@
 
 import SwiftUI
 
-/// A SwiftUI view that renders a tab-based coordinator's navigation state.
+/// **Convenience view** for rendering a tab-based coordinator using SwiftUI's native `TabView`.
 ///
-/// This view creates a TabView with each child coordinator rendered in its own tab.
-/// It observes the coordinator's router and automatically updates when tab selection changes.
+/// This view provides a quick, standard implementation of tab-based navigation by:
+/// - Creating a `TabView` with each child coordinator rendered in its own tab
+/// - Using each coordinator's `tabItem` property for tab labels and icons
+/// - Automatically syncing tab selection with the coordinator's state
 ///
-/// Usage:
+/// ## Important: This is Optional!
+///
+/// `TabCoordinatorView` is a **convenience helper**, not a requirement. You can build completely
+/// custom tab bar UIs by directly observing the `TabCoordinator`'s state:
+/// - Access tabs via `coordinator.children`
+/// - Read selected tab via `coordinator.router.state.selectedTab`
+/// - Switch tabs via `coordinator.switchToTab(index)`
+/// - Render each tab using `child.buildCoordinatorView()`
+///
+/// This allows you to create custom tab bars with any design (floating, sidebar, custom animations, etc.)
+/// while preserving all navigation capabilities (modals, detours, navigation stacks).
+///
+/// ## Basic Usage (Standard TabView):
 /// ```swift
 /// struct MyApp: View {
 ///     let tabCoordinator: MyTabCoordinator
 ///
 ///     var body: some View {
 ///         TabCoordinatorView(coordinator: tabCoordinator)
+///     }
+/// }
+/// ```
+///
+/// ## Custom Tab Bar Example:
+/// ```swift
+/// struct CustomTabBar: View {
+///     let coordinator: MyTabCoordinator
+///     @ObservedObject private var router: Router<MyRoute>
+///
+///     init(coordinator: MyTabCoordinator) {
+///         self.coordinator = coordinator
+///         self.router = coordinator.router
+///     }
+///
+///     var body: some View {
+///         VStack {
+///             // Render selected tab's content
+///             if router.state.selectedTab < coordinator.children.count {
+///                 let child = coordinator.children[router.state.selectedTab]
+///                 eraseToAnyView(child.buildCoordinatorView())
+///             }
+///
+///             // Your custom tab bar UI
+///             HStack {
+///                 ForEach(coordinator.children.indices, id: \.self) { index in
+///                     Button("Tab \(index)") {
+///                         coordinator.switchToTab(index)
+///                     }
+///                 }
+///             }
+///         }
 ///     }
 /// }
 /// ```
@@ -43,17 +89,34 @@ public struct TabCoordinatorView<R: Route>: View {
     /// Create the content for a single tab
     @ViewBuilder
     private func tabContent(for child: AnyCoordinator, at index: Int) -> some View {
-        // Each tab gets its own CoordinatorView with NavigationStack
-        // The coordinator returns a CoordinatorView which we need to type-erase
-        let coordinatorView = child.buildCoordinatorView()
+        if let item = child.tabItem {
+            // Coordinator provided tab item - render normally
+            let coordinatorView = child.buildCoordinatorView()
+            eraseToAnyView(coordinatorView)
+                .tabItem {
+                    Label(item.text, systemImage: item.image)
+                }
+        } else {
+            // Programmer error: tab coordinator didn't provide tabItem
+            VStack(spacing: 16) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(.red)
 
-        // Wrap in AnyView to handle the type erasure
-        eraseToAnyView(coordinatorView)
-            .tabItem {
-                // Tab coordinators should provide custom tab labels
-                // For now, use a default label
-                Label("Tab \(index + 1)", systemImage: "\(index + 1).circle")
+                Text("Tab Configuration Error")
+                    .font(.headline)
+                    .foregroundColor(.red)
+
+                Text("Coordinator '\(String(describing: type(of: child)))' is a tab but didn't provide a tabItem.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
             }
+            .tabItem {
+                Label("❌ No tab item", systemImage: "exclamationmark.triangle")
+            }
+        }
     }
 
     /// Create a binding to the selected tab that syncs with the coordinator
