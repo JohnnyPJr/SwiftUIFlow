@@ -37,6 +37,12 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return CoordinatorView(coordinator: self)
     }
 
+    /// Tab item configuration for coordinators used as tabs
+    /// Override this in subclasses that are used as tabs in a TabCoordinator
+    open var tabItem: (text: String, image: String)? {
+        return nil
+    }
+
     open func navigationType(for route: any Route) -> NavigationType {
         return .push
     }
