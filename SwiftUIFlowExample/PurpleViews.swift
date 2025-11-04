@@ -51,6 +51,9 @@ struct PurpleView: View {
                 }
             }
         }
+        .customNavigationBar(title: "Purple",
+                             titleColor: .white,
+                             backgroundColor: Color.purple.opacity(0.8))
     }
 }
 
@@ -94,6 +97,9 @@ struct LightPurpleView: View {
                 }
             }
         }
+        .customNavigationBar(title: "Light Purple",
+                             titleColor: .white,
+                             backgroundColor: Color.purple.opacity(0.5))
     }
 }
 
@@ -141,5 +147,8 @@ struct ResultView: View {
                     .foregroundColor(.white.opacity(0.7))
             }
         }
+        .customNavigationBar(title: success ? "Success" : "Failed",
+                             titleColor: .white,
+                             backgroundColor: success ? Color.green.opacity(0.8) : Color.red.opacity(0.8))
     }
 }

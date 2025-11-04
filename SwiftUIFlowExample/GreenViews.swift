@@ -32,6 +32,9 @@ struct GreenView: View {
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }
         }
+        .customNavigationBar(title: "Green",
+                             titleColor: .white,
+                             backgroundColor: Color.green.opacity(0.8))
     }
 }
 
@@ -60,6 +63,9 @@ struct LightGreenView: View {
                 .buttonStyle(NavigationButtonStyle(color: .yellow))
             }
         }
+        .customNavigationBar(title: "Light Green",
+                             titleColor: .white,
+                             backgroundColor: Color.green.opacity(0.5))
     }
 }
 

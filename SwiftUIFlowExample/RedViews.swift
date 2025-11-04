@@ -32,6 +32,9 @@ struct RedView: View {
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }
         }
+        .customNavigationBar(title: "Red",
+                             titleColor: .white,
+                             backgroundColor: Color.red.opacity(0.8))
     }
 }
 
@@ -53,6 +56,9 @@ struct LightRedView: View {
                     .foregroundColor(.white.opacity(0.8))
             }
         }
+        .customNavigationBar(title: "Light Red",
+                             titleColor: .white,
+                             backgroundColor: Color.red.opacity(0.5))
     }
 }
 

@@ -243,6 +243,31 @@ final class CoordinatorTests: XCTestCase {
 
     // MARK: - Tab Coordinator Tests
 
+    func test_TabCoordinatorAutomaticallySetsTabContext() {
+        let tabRouter = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let tabCoordinator = TestTabCoordinator(router: tabRouter)
+
+        let tab1Child = TestCoordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
+
+        tabCoordinator.addChild(tab1Child)
+
+        XCTAssertEqual(tab1Child.presentationContext, .tab,
+                       "TabCoordinator should automatically set .tab context for children")
+    }
+
+    func test_TabCoordinatorCanOverrideContextExplicitly() {
+        let tabRouter = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let tabCoordinator = TestTabCoordinator(router: tabRouter)
+
+        let child = TestCoordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
+
+        // Explicitly override with .pushed (unusual but should work)
+        tabCoordinator.addChild(child, context: .pushed)
+
+        XCTAssertEqual(child.presentationContext, .pushed,
+                       "TabCoordinator should respect explicit context override")
+    }
+
     func test_TabCoordinatorCanIdentifyTabForChild() {
         let tabRouter = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
         let tabCoordinator = TestTabCoordinator(router: tabRouter)
@@ -278,6 +303,79 @@ final class CoordinatorTests: XCTestCase {
 
         XCTAssertTrue(sut.router.state.stack.isEmpty, "Stack should be empty after reset")
         XCTAssertNil(sut.router.state.presented, "Modal should be dismissed after reset")
+    }
+
+    // MARK: - CoordinatorPresentationContext Tests
+
+    func test_PresentationContext_RootAndTabDoNotShowBackButton() {
+        XCTAssertFalse(CoordinatorPresentationContext.root.shouldShowBackButton,
+                       "Root context should not show back button")
+        XCTAssertFalse(CoordinatorPresentationContext.tab.shouldShowBackButton,
+                       "Tab context should not show back button")
+    }
+
+    func test_PresentationContext_PushedModalAndDetourShowBackButton() {
+        XCTAssertTrue(CoordinatorPresentationContext.pushed.shouldShowBackButton,
+                      "Pushed context should show back button")
+        XCTAssertTrue(CoordinatorPresentationContext.modal.shouldShowBackButton,
+                      "Modal context should show back button")
+        XCTAssertTrue(CoordinatorPresentationContext.detour.shouldShowBackButton,
+                      "Detour context should show back button")
+    }
+
+    func test_CoordinatorDefaultsToRootContext() {
+        let sut = makeSUT()
+
+        XCTAssertEqual(sut.coordinator.presentationContext, .root,
+                       "New coordinator should default to root context")
+    }
+
+    func test_AddChildSetsContextToPushedByDefault() {
+        let sut = makeSUT()
+        let childRouter = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        let child = TestCoordinator(router: childRouter)
+
+        sut.coordinator.addChild(child)
+
+        XCTAssertEqual(child.presentationContext, .pushed,
+                       "Child added without explicit context should be .pushed")
+    }
+
+    func test_AddChildCanExplicitlySetContext() {
+        let sut = makeSUT()
+        let childRouter = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        let child = TestCoordinator(router: childRouter)
+
+        sut.coordinator.addChild(child, context: .tab)
+
+        XCTAssertEqual(child.presentationContext, .tab,
+                       "Child should have explicitly set context")
+    }
+
+    func test_PresentModalSetsModalContext() {
+        let sut = makeSUT()
+        let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
+        let modal = TestCoordinator(router: modalRouter)
+
+        sut.coordinator.presentModal(modal, presenting: .modal)
+
+        XCTAssertEqual(modal.presentationContext, .modal,
+                       "Presented modal should have .modal context")
+        XCTAssertTrue(modal.parent === sut.coordinator,
+                      "Modal parent should be set")
+    }
+
+    func test_PresentDetourSetsDetourContext() {
+        let sut = makeSUT()
+        let detourRouter = Router<MockRoute>(initial: .details, factory: MockViewFactory())
+        let detour = TestCoordinator(router: detourRouter)
+
+        sut.coordinator.presentDetour(detour, presenting: MockRoute.details)
+
+        XCTAssertEqual(detour.presentationContext, .detour,
+                       "Presented detour should have .detour context")
+        XCTAssertTrue(detour.parent === sut.coordinator,
+                      "Detour parent should be set")
     }
 
     // MARK: - Detour Tests

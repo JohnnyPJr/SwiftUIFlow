@@ -13,6 +13,12 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
         return TabCoordinatorView(coordinator: self)
     }
 
+    /// Override addChild to automatically set .tab context for tab children
+    override public func addChild(_ coordinator: AnyCoordinator, context: CoordinatorPresentationContext = .tab) {
+        // TabCoordinator children are always tabs, so default to .tab context
+        super.addChild(coordinator, context: context)
+    }
+
     override open func navigationType(for route: any Route) -> NavigationType {
         // TabCoordinator subclasses MUST override this method to provide route-to-tab-index mapping
         fatalError("TabCoordinator subclass must override navigationType(for:) to provide route-to-tab-index mapping")

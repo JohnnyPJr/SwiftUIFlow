@@ -32,6 +32,9 @@ struct YellowView: View {
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }
         }
+        .customNavigationBar(title: "Yellow",
+                             titleColor: .black,
+                             backgroundColor: Color.yellow.opacity(0.8))
     }
 }
 
@@ -53,6 +56,9 @@ struct LightYellowView: View {
                     .foregroundColor(.black.opacity(0.7))
             }
         }
+        .customNavigationBar(title: "Light Yellow",
+                             titleColor: .black,
+                             backgroundColor: Color.yellow.opacity(0.5))
     }
 }
 

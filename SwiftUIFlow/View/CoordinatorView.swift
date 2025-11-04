@@ -36,9 +36,14 @@ public struct CoordinatorView<R: Route>: View {
             // Render root view
             if let rootView = router.view(for: router.state.root) {
                 rootView
+                    .environment(\.navigationBackAction) { coordinator.pop() }
+                    // Root view back button visibility determined by presentation context
+                    .environment(\.canNavigateBack, coordinator.presentationContext.shouldShowBackButton)
                     .navigationDestination(for: R.self) { route in
                         // Render pushed views
                         router.view(for: route)
+                            .environment(\.navigationBackAction) { coordinator.pop() }
+                            .environment(\.canNavigateBack, true) // Pushed views can go back
                     }
             } else {
                 // Fallback if view factory doesn't provide a view
@@ -52,6 +57,8 @@ public struct CoordinatorView<R: Route>: View {
                let modalView = modalCoordinator.buildView(for: route) as? AnyView
             {
                 modalView
+                    .environment(\.navigationBackAction) { coordinator.dismissModal() }
+                    .environment(\.canNavigateBack, true) // Modals always show back button
             } else {
                 Text("No view for modal route: \(route.identifier)")
                     .foregroundColor(.red)
@@ -70,6 +77,8 @@ public struct CoordinatorView<R: Route>: View {
                     // Use buildView to get just the view, then wrap it ourselves
                     if let detourView = detourCoordinator.buildView(for: detourRoute) as? AnyView {
                         detourView
+                            .environment(\.navigationBackAction) { coordinator.dismissDetour() }
+                            .environment(\.canNavigateBack, true) // Detours always show back button
                             .navigationBarTitleDisplayMode(.inline)
                             .toolbar {
                                 ToolbarItem(placement: .navigationBarLeading) {
@@ -105,6 +114,8 @@ public struct CoordinatorView<R: Route>: View {
                         NavigationStack {
                             if let detourView = detourCoordinator.buildView(for: detourRoute) as? AnyView {
                                 detourView
+                                    .environment(\.navigationBackAction) { coordinator.dismissDetour() }
+                                    .environment(\.canNavigateBack, true) // Detours always show back button
                                     .toolbar {
                                         ToolbarItem(placement: .cancellationAction) {
                                             Button(action: {

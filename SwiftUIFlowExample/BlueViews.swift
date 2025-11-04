@@ -32,6 +32,9 @@ struct BlueView: View {
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }
         }
+        .customNavigationBar(title: "Blue",
+                             titleColor: .white,
+                             backgroundColor: Color.blue.opacity(0.8))
     }
 }
 
@@ -65,6 +68,9 @@ struct LightBlueView: View {
                     .foregroundColor(.white.opacity(0.7))
             }
         }
+        .customNavigationBar(title: "Light Blue",
+                             titleColor: .white,
+                             backgroundColor: Color.blue.opacity(0.5))
     }
 }
 

@@ -17,6 +17,10 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// Use `navigate(to:)` instead for all navigation.
     public let router: Router<R>
 
+    /// How this coordinator is presented in the navigation hierarchy.
+    /// Determines whether the root view should show a back button.
+    public var presentationContext: CoordinatorPresentationContext = .root
+
     public private(set) var children: [AnyCoordinator] = []
     public private(set) var modalCoordinators: [AnyCoordinator] = []
     public private(set) var currentModalCoordinator: AnyCoordinator?
@@ -47,9 +51,10 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return .push
     }
 
-    public func addChild(_ coordinator: AnyCoordinator) {
+    public func addChild(_ coordinator: AnyCoordinator, context: CoordinatorPresentationContext = .pushed) {
         children.append(coordinator)
         coordinator.parent = self
+        coordinator.presentationContext = context
     }
 
     public func removeChild(_ coordinator: AnyCoordinator) {
@@ -254,6 +259,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
             currentModalCoordinator = modalChild
             modalChild.parent = self
+            modalChild.presentationContext = .modal
             router.present(route)
             _ = modalChild.navigate(to: route, from: self)
         case .detour:
@@ -296,6 +302,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     public func presentModal(_ coordinator: AnyCoordinator, presenting route: R) {
         currentModalCoordinator = coordinator
         coordinator.parent = self
+        coordinator.presentationContext = .modal
         router.present(route)
     }
 
@@ -310,6 +317,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     public func presentDetour(_ coordinator: AnyCoordinator, presenting route: any Route) {
         detourCoordinator = coordinator
         coordinator.parent = self
+        coordinator.presentationContext = .detour
         router.presentDetour(route)
     }
 
