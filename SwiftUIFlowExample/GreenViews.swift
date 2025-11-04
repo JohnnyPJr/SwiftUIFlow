@@ -70,23 +70,38 @@ struct LightGreenView: View {
 }
 
 struct DarkGreenView: View {
+    @Environment(\.navigationBackAction) var backAction
     let coordinator: GreenModalCoordinator
 
     var body: some View {
-        ZStack {
-            Color(red: 0, green: 0.5, blue: 0).ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                Color(red: 0, green: 0.5, blue: 0).ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                Text("Dark Green")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
+                VStack(spacing: 20) {
+                    Text("Dark Green")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
 
-                Text("Presented as Modal")
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.8))
+                    Text("Presented as Modal")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.8))
+
+                    Text("(Native Navigation Bar)")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.6))
+                }
+            }
+            .navigationTitle("Dark Green")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Close") {
+                        backAction?()
+                    }
+                }
             }
         }
-        .withCloseButton()
     }
 }
