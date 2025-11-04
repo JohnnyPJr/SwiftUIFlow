@@ -92,5 +92,6 @@ struct DarkBlueView: View {
                     .foregroundColor(.white.opacity(0.8))
             }
         }
+        .withCloseButton()
     }
 }
