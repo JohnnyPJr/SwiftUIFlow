@@ -121,6 +121,9 @@ struct DarkPurpleView: View {
                     .foregroundColor(.white.opacity(0.8))
             }
         }
+        .customNavigationBar(title: "Dark Purple",
+                             titleColor: .white,
+                             backgroundColor: Color(red: 0.3, green: 0, blue: 0.5).opacity(0.8))
     }
 }
 
