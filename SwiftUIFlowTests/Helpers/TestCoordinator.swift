@@ -76,3 +76,41 @@ final class TestReplaceCoordinator: Coordinator<MockRoute> {
         return route == .details || route == .modal
     }
 }
+
+final class TestModalThatCantHandle: Coordinator<MockRoute> {
+    override func navigationType(for route: any Route) -> NavigationType {
+        return .modal
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        // This modal can't handle any routes
+        return false
+    }
+}
+
+final class TestCoordinatorThatCleansOnBubble: TestCoordinator {
+    override func canHandle(_ route: any Route) -> Bool {
+        // This coordinator can't handle any routes - will always bubble to parent
+        return false
+    }
+
+    override func shouldCleanStateForBubbling(route: any Route) -> Bool {
+        return true // Always clean when bubbling
+    }
+}
+
+final class TestCoordinatorWithFlowChange: TestCoordinator {
+    var flowChangeWasCalled = false
+    var flowChangeRoute: (any Route)?
+    var shouldHandleFlowChange = true
+
+    override init(router: Router<MockRoute> = Router<MockRoute>(initial: .home, factory: MockViewFactory())) {
+        super.init(router: router)
+    }
+
+    override func handleFlowChange(to route: any Route) -> Bool {
+        flowChangeWasCalled = true
+        flowChangeRoute = route
+        return shouldHandleFlowChange
+    }
+}

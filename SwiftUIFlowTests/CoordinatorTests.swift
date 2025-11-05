@@ -416,6 +416,56 @@ final class CoordinatorTests: XCTestCase {
         XCTAssertNil(sut.coordinator.detourCoordinator, "Detour coordinator should be dismissed after reset")
     }
 
+    // MARK: - Flow Change Handling
+
+    func test_HandleFlowChange_IsCalledWhenRouteCannotBeHandledAtRoot() {
+        let rootCoordinator = TestCoordinatorWithFlowChange()
+
+        // Navigate to a route that can't be handled
+        let handled = rootCoordinator.navigate(to: MockRoute.login)
+
+        XCTAssertTrue(handled, "Navigation should succeed via handleFlowChange")
+        XCTAssertTrue(rootCoordinator.flowChangeWasCalled, "handleFlowChange should be called")
+        XCTAssertEqual(rootCoordinator.flowChangeRoute?.identifier, MockRoute.login.identifier,
+                       "Should receive the correct route")
+    }
+
+    func test_HandleFlowChange_IsNotCalledWhenRouteCanBeHandled() {
+        let rootCoordinator = TestCoordinatorWithFlowChange()
+
+        // Navigate to a route that CAN be handled
+        let handled = rootCoordinator.navigate(to: MockRoute.details)
+
+        XCTAssertTrue(handled, "Navigation should succeed via normal handling")
+        XCTAssertFalse(rootCoordinator.flowChangeWasCalled, "handleFlowChange should NOT be called")
+    }
+
+    func test_HandleFlowChange_IsNotCalledWhenCoordinatorHasParent() {
+        let rootCoordinator = TestCoordinatorWithFlowChange()
+        let childCoordinator = TestCoordinatorWithFlowChange()
+        rootCoordinator.addChild(childCoordinator)
+
+        // Navigate on child to a route it can't handle - should bubble to parent
+        let handled = childCoordinator.navigate(to: MockRoute.login)
+
+        XCTAssertTrue(handled, "Navigation should succeed via parent's handleFlowChange")
+        XCTAssertFalse(childCoordinator.flowChangeWasCalled,
+                       "Child's handleFlowChange should NOT be called (it has a parent)")
+        XCTAssertTrue(rootCoordinator.flowChangeWasCalled,
+                      "Root's handleFlowChange should be called")
+    }
+
+    func test_UnhandledRoute_StillFailsWhenFlowChangeReturnsFalse() {
+        let rootCoordinator = TestCoordinatorWithFlowChange()
+        rootCoordinator.shouldHandleFlowChange = false // Return false from handleFlowChange
+
+        // Navigate to a route that can't be handled
+        let handled = rootCoordinator.navigate(to: MockRoute.login)
+
+        XCTAssertFalse(handled, "Navigation should fail when handleFlowChange returns false")
+        XCTAssertTrue(rootCoordinator.flowChangeWasCalled, "handleFlowChange should still be called")
+    }
+
     // MARK: Helpers
 
     private func makeSUT(router: Router<MockRoute>? = nil, addChild: Bool = false) -> SUT {
@@ -431,29 +481,5 @@ final class CoordinatorTests: XCTestCase {
         return SUT(router: resolvedRouter,
                    coordinator: coordinator,
                    childCoordinator: child)
-    }
-}
-
-// MARK: - Test Helpers
-
-class TestModalThatCantHandle: Coordinator<MockRoute> {
-    override func navigationType(for route: any Route) -> NavigationType {
-        return .modal
-    }
-
-    override func canHandle(_ route: any Route) -> Bool {
-        // This modal can't handle any routes
-        return false
-    }
-}
-
-class TestCoordinatorThatCleansOnBubble: TestCoordinator {
-    override func canHandle(_ route: any Route) -> Bool {
-        // This coordinator can't handle any routes - will always bubble to parent
-        return false
-    }
-
-    override func shouldCleanStateForBubbling(route: any Route) -> Bool {
-        return true // Always clean when bubbling
     }
 }

@@ -11,13 +11,13 @@ import SwiftUIFlow
 /// A completely custom tab bar implementation that demonstrates how clients can
 /// replace TabCoordinatorView with their own UI by observing the TabCoordinator's state directly.
 struct CustomTabBarView: View {
-    let coordinator: AppCoordinator
+    let coordinator: MainTabCoordinator
     @ObservedObject private var router: Router<AppRoute>
 
     // Map colors to each tab
     private let tabColors: [Color] = [.red, .green, .blue, .yellow, .purple]
 
-    init(coordinator: AppCoordinator) {
+    init(coordinator: MainTabCoordinator) {
         self.coordinator = coordinator
         router = coordinator.router
     }

@@ -10,15 +10,15 @@ import SwiftUIFlow
 
 class AppViewFactory: ViewFactory<AppRoute> {
     weak var appCoordinator: AppCoordinator?
+    weak var loginCoordinator: LoginCoordinator?
 
     override func buildView(for route: AppRoute) -> AnyView? {
-        guard let appCoordinator else { return nil }
-
         switch route {
         case .tabRoot:
             return nil
         case .login:
-            return view(LoginView(appCoordinator: appCoordinator))
+            guard let loginCoord = loginCoordinator else { return nil }
+            return view(LoginView(coordinator: loginCoord))
         }
     }
 }
@@ -97,14 +97,12 @@ class YellowViewFactory: ViewFactory<YellowRoute> {
 
 class PurpleViewFactory: ViewFactory<PurpleRoute> {
     weak var coordinator: AnyCoordinator?
-    weak var appCoordinator: AppCoordinator?
 
     override func buildView(for route: PurpleRoute) -> AnyView? {
         switch route {
         case .purple:
-            guard let coord = coordinator as? PurpleCoordinator,
-                  let appCoord = appCoordinator else { return nil }
-            return view(PurpleView(coordinator: coord, appCoordinator: appCoord))
+            guard let coord = coordinator as? PurpleCoordinator else { return nil }
+            return view(PurpleView(coordinator: coord))
         case .lightPurple:
             guard let coord = coordinator as? PurpleCoordinator else { return nil }
             return view(LightPurpleView(coordinator: coord))
