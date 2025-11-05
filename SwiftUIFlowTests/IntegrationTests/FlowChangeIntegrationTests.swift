@@ -22,11 +22,12 @@ final class FlowChangeIntegrationTests: XCTestCase {
         XCTAssertTrue(appCoordinator.currentFlow is TestLoginCoordinator,
                       "Current flow should be LoginCoordinator")
 
-        // Store reference to login coordinator to verify deallocation later
-        weak var weakLoginCoordinator = appCoordinator.currentFlow
+        // Track login coordinator for memory leaks
+        let loginCoordinator = appCoordinator.loginCoordinator!
+        trackForMemoryLeaks(loginCoordinator)
 
         // Navigate to main app (simulate login button tap)
-        let success = appCoordinator.loginCoordinator!.navigate(to: TestAppRoute.mainApp)
+        let success = loginCoordinator.navigate(to: TestAppRoute.mainApp)
 
         // Verify navigation succeeded
         XCTAssertTrue(success, "Flow change should succeed")
@@ -38,10 +39,6 @@ final class FlowChangeIntegrationTests: XCTestCase {
         // Verify fresh MainTabCoordinator was created
         XCTAssertTrue(appCoordinator.currentFlow is TestMainTabCoordinator,
                       "Current flow should be MainTabCoordinator")
-
-        // Verify LoginCoordinator was deallocated
-        XCTAssertNil(weakLoginCoordinator,
-                     "LoginCoordinator should be deallocated")
     }
 
     func test_LogoutFromMainAppCreatesFreshLoginCoordinator() {
@@ -53,11 +50,12 @@ final class FlowChangeIntegrationTests: XCTestCase {
         XCTAssertNotNil(appCoordinator.currentFlow,
                         "MainTabCoordinator should exist")
 
-        // Store reference to main tab coordinator to verify deallocation
-        weak var weakMainTabCoordinator = appCoordinator.currentFlow
+        // Track main tab coordinator for memory leaks
+        let mainTabCoordinator = appCoordinator.mainTabCoordinator!
+        trackForMemoryLeaks(mainTabCoordinator)
 
         // Navigate to login (simulate logout from nested tab)
-        let success = appCoordinator.mainTabCoordinator!.navigate(to: TestAppRoute.login)
+        let success = mainTabCoordinator.navigate(to: TestAppRoute.login)
 
         // Verify navigation succeeded
         XCTAssertTrue(success, "Flow change should succeed")
@@ -69,34 +67,28 @@ final class FlowChangeIntegrationTests: XCTestCase {
         // Verify fresh LoginCoordinator was created
         XCTAssertTrue(appCoordinator.currentFlow is TestLoginCoordinator,
                       "Current flow should be LoginCoordinator")
-
-        // Verify MainTabCoordinator was deallocated
-        XCTAssertNil(weakMainTabCoordinator,
-                     "MainTabCoordinator should be deallocated")
     }
 
     func test_MultipleLoginLogoutCyclesCreateFreshCoordinators() {
         let appCoordinator = TestAppCoordinator()
 
         // Cycle 1: Login -> Logout
-        weak var loginCoord1 = appCoordinator.loginCoordinator
-        _ = appCoordinator.loginCoordinator!.navigate(to: TestAppRoute.mainApp)
-        weak var mainTabCoord1 = appCoordinator.mainTabCoordinator
-        _ = appCoordinator.mainTabCoordinator!.navigate(to: TestAppRoute.login)
+        let loginCoord1 = appCoordinator.loginCoordinator!
+        trackForMemoryLeaks(loginCoord1)
+        _ = loginCoord1.navigate(to: TestAppRoute.mainApp)
 
-        // Verify first cycle coordinators were deallocated
-        XCTAssertNil(loginCoord1, "First LoginCoordinator should be deallocated")
-        XCTAssertNil(mainTabCoord1, "First MainTabCoordinator should be deallocated")
+        let mainTabCoord1 = appCoordinator.mainTabCoordinator!
+        trackForMemoryLeaks(mainTabCoord1)
+        _ = mainTabCoord1.navigate(to: TestAppRoute.login)
 
         // Cycle 2: Login -> Logout
-        weak var loginCoord2 = appCoordinator.loginCoordinator
-        _ = appCoordinator.loginCoordinator!.navigate(to: TestAppRoute.mainApp)
-        weak var mainTabCoord2 = appCoordinator.mainTabCoordinator
-        _ = appCoordinator.mainTabCoordinator!.navigate(to: TestAppRoute.login)
+        let loginCoord2 = appCoordinator.loginCoordinator!
+        trackForMemoryLeaks(loginCoord2)
+        _ = loginCoord2.navigate(to: TestAppRoute.mainApp)
 
-        // Verify second cycle coordinators were deallocated
-        XCTAssertNil(loginCoord2, "Second LoginCoordinator should be deallocated")
-        XCTAssertNil(mainTabCoord2, "Second MainTabCoordinator should be deallocated")
+        let mainTabCoord2 = appCoordinator.mainTabCoordinator!
+        trackForMemoryLeaks(mainTabCoord2)
+        _ = mainTabCoord2.navigate(to: TestAppRoute.login)
 
         // Verify we're back at login with fresh coordinator
         XCTAssertNotNil(appCoordinator.currentFlow,
@@ -168,32 +160,21 @@ final class FlowChangeIntegrationTests: XCTestCase {
         // Navigate to main app
         _ = appCoordinator.loginCoordinator!.navigate(to: TestAppRoute.mainApp)
 
-        weak var weakMainTab: TestMainTabCoordinator?
-        weak var weakChild1: TestDeepChildCoordinator?
-        weak var weakChild2: TestDeepChildCoordinator?
+        let mainTab = appCoordinator.mainTabCoordinator!
+        trackForMemoryLeaks(mainTab)
 
-        // Scope the children so they don't hold strong references after this block
-        do {
-            // Add multiple nested child coordinators to simulate a complex flow
-            let childRouter1 = Router<TestAppRoute>(initial: .mainApp, factory: DummyFlowFactory())
-            let child1 = TestDeepChildCoordinator(router: childRouter1)
-            appCoordinator.mainTabCoordinator!.addChild(child1)
+        // Add multiple nested child coordinators to simulate a complex flow
+        let childRouter1 = Router<TestAppRoute>(initial: .mainApp, factory: DummyFlowFactory())
+        let child1 = TestDeepChildCoordinator(router: childRouter1)
+        trackForMemoryLeaks(child1)
+        mainTab.addChild(child1)
 
-            let childRouter2 = Router<TestAppRoute>(initial: .mainApp, factory: DummyFlowFactory())
-            let child2 = TestDeepChildCoordinator(router: childRouter2)
-            child1.addChild(child2)
-
-            weakMainTab = appCoordinator.mainTabCoordinator
-            weakChild1 = child1
-            weakChild2 = child2
-        }
+        let childRouter2 = Router<TestAppRoute>(initial: .mainApp, factory: DummyFlowFactory())
+        let child2 = TestDeepChildCoordinator(router: childRouter2)
+        trackForMemoryLeaks(child2)
+        child1.addChild(child2)
 
         // Logout - should deallocate entire tree
-        _ = appCoordinator.mainTabCoordinator!.navigate(to: TestAppRoute.login)
-
-        // Verify entire coordinator tree was deallocated
-        XCTAssertNil(weakMainTab, "MainTabCoordinator should be deallocated")
-        XCTAssertNil(weakChild1, "First child should be deallocated")
-        XCTAssertNil(weakChild2, "Second child should be deallocated")
+        _ = mainTab.navigate(to: TestAppRoute.login)
     }
 }

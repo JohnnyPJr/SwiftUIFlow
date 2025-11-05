@@ -28,6 +28,8 @@ final class CoordinatorBasicsTests: XCTestCase {
             return
         }
 
+        trackForMemoryLeaks(child)
+
         XCTAssertTrue(sut.coordinator.children.contains(where: { $0 === child }))
         XCTAssertTrue(child.parent === sut.coordinator)
 

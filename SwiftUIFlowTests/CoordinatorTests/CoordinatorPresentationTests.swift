@@ -14,6 +14,7 @@ final class CoordinatorPresentationTests: XCTestCase {
     func test_CanPresentAndDismissModalCoordinator() {
         let sut = makeSUT()
         let modal = Coordinator(router: sut.router)
+        trackForMemoryLeaks(modal)
 
         sut.coordinator.presentModal(modal, presenting: .home)
         XCTAssertTrue(sut.coordinator.currentModalCoordinator === modal)
@@ -26,6 +27,7 @@ final class CoordinatorPresentationTests: XCTestCase {
         let sut = makeSUT()
         let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
         let modal = TestModalThatCantHandle(router: modalRouter)
+        trackForMemoryLeaks(modal)
 
         // Present modal (handles both coordinator and router state)
         sut.coordinator.presentModal(modal, presenting: .modal)

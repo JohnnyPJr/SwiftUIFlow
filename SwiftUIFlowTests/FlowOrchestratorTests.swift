@@ -47,21 +47,22 @@ final class FlowOrchestratorTests: XCTestCase {
     func test_TransitionToFlow_DeallocatesPreviousFlow() {
         let orchestrator = TestFlowOrchestrator()
 
-        orchestrator.transitionToFlow(TestFlowCoordinator(), root: .flow1)
-        weak var firstFlow = orchestrator.currentFlow
+        let firstFlow = TestFlowCoordinator()
+        trackForMemoryLeaks(firstFlow)
 
+        orchestrator.transitionToFlow(firstFlow, root: .flow1)
         orchestrator.transitionToFlow(TestFlowCoordinator(), root: .flow2)
 
-        XCTAssertNil(firstFlow, "First flow should be deallocated")
         XCTAssertNotNil(orchestrator.currentFlow, "Should have new current flow")
     }
 
     func test_TransitionToFlow_RemovesPreviousFlowFromChildren() {
         let orchestrator = TestFlowOrchestrator()
 
-        orchestrator.transitionToFlow(TestFlowCoordinator(), root: .flow1)
-        let firstFlow = orchestrator.currentFlow
+        let firstFlow = TestFlowCoordinator()
+        trackForMemoryLeaks(firstFlow)
 
+        orchestrator.transitionToFlow(firstFlow, root: .flow1)
         orchestrator.transitionToFlow(TestFlowCoordinator(), root: .flow2)
 
         XCTAssertFalse(orchestrator.children.contains(where: { $0 === firstFlow }),
@@ -72,12 +73,13 @@ final class FlowOrchestratorTests: XCTestCase {
     func test_TransitionToFlow_ClearsPreviousFlowParentReference() {
         let orchestrator = TestFlowOrchestrator()
 
-        orchestrator.transitionToFlow(TestFlowCoordinator(), root: .flow1)
-        let firstFlow = orchestrator.currentFlow as? TestFlowCoordinator
+        let firstFlow = TestFlowCoordinator()
+        trackForMemoryLeaks(firstFlow)
 
+        orchestrator.transitionToFlow(firstFlow, root: .flow1)
         orchestrator.transitionToFlow(TestFlowCoordinator(), root: .flow2)
 
-        XCTAssertNil(firstFlow?.parent, "First flow's parent should be cleared")
+        XCTAssertNil(firstFlow.parent, "First flow's parent should be cleared")
     }
 
     // MARK: - Integration with handleFlowChange
