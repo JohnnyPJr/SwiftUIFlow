@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftUIFlow
 
 struct LoginView: View {
-    let appCoordinator: AppCoordinator
+    let coordinator: LoginCoordinator
 
     var body: some View {
         ZStack {
@@ -29,13 +29,13 @@ struct LoginView: View {
 
                 Spacer().frame(height: 60)
 
-                Button("Login (Transition to Main App)") {
-                    // Admin operation: completely replace the flow
-                    appCoordinator.transitionToNewFlow(root: .tabRoot)
+                Button("Login") {
+                    // Navigate to main app - bubbles to AppCoordinator via handleFlowChange
+                    coordinator.navigate(to: AppRoute.tabRoot)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.2)))
 
-                Text("(Uses transitionToNewFlow admin operation)")
+                Text("(Navigates via bubbling to trigger flow change)")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)

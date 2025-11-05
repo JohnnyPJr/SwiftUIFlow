@@ -49,7 +49,7 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
     override public func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
         print("📑 \(Self.self): Tab navigation to \(route.identifier)")
 
-        // First check if we can handle it directly (unlikely for tab coordinator)
+        // First check if we can handle it directly
         if let typedRoute = route as? R, canHandle(typedRoute) {
             // Let the base class handle execution
             return super.navigate(to: route, from: caller)
@@ -60,7 +60,8 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
         if currentTabIndex < children.count {
             let currentTab = children[currentTabIndex]
             // Skip current tab if it's the one calling us (it already tried and failed)
-            if currentTab !== caller {
+            // Also check canNavigate first to avoid trying tabs that can't handle it
+            if currentTab !== caller, currentTab.canNavigate(to: route) {
                 if currentTab.navigate(to: route, from: self) {
                     print("📑 \(Self.self): Current tab handled \(route.identifier)")
                     return true
@@ -78,7 +79,8 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
             }
         }
 
-        // No child can handle it - bubble up
-        return super.navigate(to: route, from: caller)
+        // No child can handle it - bubble to parent
+        // Call bubbleToParent directly instead of super.navigate which would delegate to children again
+        return bubbleToParent(route: route)
     }
 }

@@ -8,9 +8,117 @@
 import Foundation
 import SwiftUIFlow
 
-// MARK: - App Coordinator (Tab Coordinator)
+// MARK: - App Coordinator (Root Orchestrator)
 
-class AppCoordinator: TabCoordinator<AppRoute> {
+/// Root coordinator that orchestrates major app flows.
+/// Manages transitions between Login and MainTab coordinators.
+/// Never recreated - exists for the lifetime of the app.
+class AppCoordinator: Coordinator<AppRoute> {
+    private(set) var currentFlowCoordinator: AnyCoordinator?
+
+    init() {
+        let viewFactory = AppViewFactory()
+        let router = Router(initial: .login, factory: viewFactory)
+        super.init(router: router)
+
+        viewFactory.appCoordinator = self
+
+        // Start with login flow
+        showLogin()
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        // AppCoordinator doesn't directly handle routes - it delegates to child flow coordinators
+        return false
+    }
+
+    /// Handle flow changes when routes bubble to the root.
+    /// This is called when LoginCoordinator or any child coordinator navigates
+    /// to an AppRoute that they can't handle - it bubbles here for orchestration.
+    override func handleFlowChange(to route: any Route) -> Bool {
+        guard let appRoute = route as? AppRoute else {
+            return false
+        }
+
+        switch appRoute {
+        case .login:
+            showLogin()
+            return true
+        case .tabRoot:
+            showMainApp()
+            return true
+        }
+    }
+
+    /// Transition to login flow.
+    /// Deallocates MainTabCoordinator and all its children.
+    private func showLogin() {
+        // Clean up previous flow (if any)
+        if let current = currentFlowCoordinator {
+            removeChild(current)
+        }
+
+        // CREATE FRESH LoginCoordinator
+        let loginCoordinator = LoginCoordinator()
+        addChild(loginCoordinator)
+        currentFlowCoordinator = loginCoordinator
+
+        // Show login screen
+        transitionToNewFlow(root: .login)
+    }
+
+    /// Transition to main app flow.
+    /// Creates a fresh MainTabCoordinator instance with clean state.
+    private func showMainApp() {
+        // Clean up login (if any)
+        if let current = currentFlowCoordinator {
+            removeChild(current)
+        }
+
+        // CREATE FRESH MainTabCoordinator
+        let mainTab = MainTabCoordinator()
+        addChild(mainTab)
+        currentFlowCoordinator = mainTab
+
+        // TODO: This is where you'd fetch user data after login
+        // fetchUserProfile()
+        // loadDashboardData()
+
+        // Transition to tab view
+        transitionToNewFlow(root: .tabRoot)
+    }
+}
+
+// MARK: - Login Coordinator
+
+/// Login flow coordinator.
+/// Handles login, signup, forgot password flows.
+/// Created fresh on logout, deallocated after successful login.
+class LoginCoordinator: Coordinator<AppRoute> {
+    init() {
+        let viewFactory = AppViewFactory()
+        let router = Router(initial: .login, factory: viewFactory)
+        super.init(router: router)
+
+        viewFactory.loginCoordinator = self
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let appRoute = route as? AppRoute else { return false }
+        return appRoute == .login
+    }
+
+    deinit {
+        print("🗑️ LoginCoordinator deallocated")
+    }
+}
+
+// MARK: - Main Tab Coordinator
+
+/// Main tab coordinator that manages the 5 tabs.
+/// This coordinator is RECREATED each time the user logs in,
+/// ensuring fresh state and allowing service calls to run.
+class MainTabCoordinator: TabCoordinator<AppRoute> {
     var redCoordinator: RedCoordinator!
     var greenCoordinator: GreenCoordinator!
     var blueCoordinator: BlueCoordinator!
@@ -22,15 +130,12 @@ class AppCoordinator: TabCoordinator<AppRoute> {
         let router = Router(initial: .tabRoot, factory: viewFactory)
         super.init(router: router)
 
-        // Set the appCoordinator reference on the view factory
-        viewFactory.appCoordinator = self
-
-        // Now create coordinators
+        // Create fresh child coordinators
         redCoordinator = RedCoordinator()
         greenCoordinator = GreenCoordinator()
         blueCoordinator = BlueCoordinator()
         yellowCoordinator = YellowCoordinator()
-        purpleCoordinator = PurpleCoordinator(appCoordinator: self)
+        purpleCoordinator = PurpleCoordinator()
 
         addChild(redCoordinator)
         addChild(greenCoordinator)
@@ -40,7 +145,21 @@ class AppCoordinator: TabCoordinator<AppRoute> {
     }
 
     override func canHandle(_ route: any Route) -> Bool {
-        return route is AppRoute
+        // MainTabCoordinator only handles .tabRoot itself
+        // Child coordinators handle their specific routes
+        guard let appRoute = route as? AppRoute else { return false }
+        return appRoute == .tabRoot
+    }
+
+    override func navigationType(for route: any Route) -> NavigationType {
+        // MainTabCoordinator doesn't handle navigation directly - it delegates to children
+        // If a route reaches here, it should bubble to parent (AppCoordinator)
+        // We return .push as default, but this shouldn't be called since canHandle returns false for most routes
+        return .push
+    }
+
+    deinit {
+        print("🗑️ MainTabCoordinator deallocated")
     }
 }
 
@@ -243,13 +362,12 @@ class YellowModalCoordinator: Coordinator<YellowRoute> {
 // MARK: - Purple Tab Coordinator
 
 class PurpleCoordinator: Coordinator<PurpleRoute> {
-    init(appCoordinator: AppCoordinator) {
+    init() {
         let viewFactory = PurpleViewFactory()
         let router = Router(initial: .purple, factory: viewFactory)
         super.init(router: router)
 
         viewFactory.coordinator = self
-        viewFactory.appCoordinator = appCoordinator
 
         let modalCoord = PurpleModalCoordinator()
         addModalCoordinator(modalCoord)

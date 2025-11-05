@@ -10,7 +10,6 @@ import SwiftUIFlow
 
 struct PurpleView: View {
     let coordinator: PurpleCoordinator
-    let appCoordinator: AppCoordinator
 
     var body: some View {
         ZStack {
@@ -35,17 +34,17 @@ struct PurpleView: View {
                 Spacer().frame(height: 60)
 
                 VStack(spacing: 10) {
-                    Text("Admin Operation Demo")
+                    Text("Flow Change Demo")
                         .font(.headline)
                         .foregroundColor(.white)
 
-                    Button("Logout (Transition to Login)") {
-                        // Admin operation: completely replace the root flow
-                        appCoordinator.transitionToNewFlow(root: .login)
+                    Button("Logout") {
+                        // Navigate to login - bubbles to AppCoordinator via handleFlowChange
+                        coordinator.navigate(to: AppRoute.login)
                     }
                     .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.5)))
 
-                    Text("(Uses transitionToNewFlow)")
+                    Text("(Navigates via bubbling to trigger flow change)")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.7))
                 }

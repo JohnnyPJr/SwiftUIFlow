@@ -23,9 +23,9 @@ class AppState: ObservableObject {
     let appCoordinator: AppCoordinator
 
     init() {
+        // AppCoordinator now handles initialization internally
+        // It starts at login and manages flow transitions via handleFlowChange
         appCoordinator = AppCoordinator()
-        // Start with login screen
-        appCoordinator.transitionToNewFlow(root: .login)
     }
 }
 
@@ -45,11 +45,19 @@ struct AppRootView: View {
         // Dynamically render based on current root
         switch currentRoot {
         case .tabRoot:
-            // Use our completely custom tab bar instead of TabCoordinatorView
-            // This demonstrates that clients can build any UI they want
-            CustomTabBarView(coordinator: appState.appCoordinator)
+            // Use our completely custom tab bar with MainTabCoordinator
+            if let mainTabCoordinator = appState.appCoordinator.currentFlowCoordinator as? MainTabCoordinator {
+                CustomTabBarView(coordinator: mainTabCoordinator)
+            } else {
+                Text("Main app loading...")
+            }
         case .login:
-            CoordinatorView(coordinator: appState.appCoordinator)
+            // Render login coordinator
+            if let loginCoordinator = appState.appCoordinator.currentFlowCoordinator as? LoginCoordinator {
+                CoordinatorView(coordinator: loginCoordinator)
+            } else {
+                Text("Login loading...")
+            }
         }
     }
 }
