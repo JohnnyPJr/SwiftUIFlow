@@ -32,14 +32,22 @@ class DummyFlowFactory: ViewFactory<TestAppRoute> {
 
 // MARK: - Test Coordinators
 
-class TestAppCoordinator: Coordinator<TestAppRoute> {
-    var loginCoordinator: TestLoginCoordinator?
-    var mainTabCoordinator: TestMainTabCoordinator?
+class TestAppCoordinator: FlowOrchestrator<TestAppRoute> {
+    // Typed convenience properties for tests
+    var loginCoordinator: TestLoginCoordinator? {
+        currentFlow as? TestLoginCoordinator
+    }
+
+    var mainTabCoordinator: TestMainTabCoordinator? {
+        currentFlow as? TestMainTabCoordinator
+    }
 
     init() {
         let router = Router<TestAppRoute>(initial: .login, factory: DummyFlowFactory())
         super.init(router: router)
-        showLogin()
+
+        // Start with login flow
+        transitionToFlow(TestLoginCoordinator(), root: .login)
     }
 
     override func handleFlowChange(to route: any Route) -> Bool {
@@ -47,38 +55,12 @@ class TestAppCoordinator: Coordinator<TestAppRoute> {
 
         switch appRoute {
         case .login:
-            showLogin()
+            transitionToFlow(TestLoginCoordinator(), root: .login)
             return true
         case .mainApp:
-            showMainApp()
+            transitionToFlow(TestMainTabCoordinator(), root: .mainApp)
             return true
         }
-    }
-
-    func showLogin() {
-        if let current = loginCoordinator ?? mainTabCoordinator {
-            removeChild(current)
-        }
-
-        let newLoginCoordinator = TestLoginCoordinator()
-        addChild(newLoginCoordinator)
-        loginCoordinator = newLoginCoordinator
-        mainTabCoordinator = nil
-
-        transitionToNewFlow(root: .login)
-    }
-
-    func showMainApp() {
-        if let current = loginCoordinator ?? mainTabCoordinator {
-            removeChild(current)
-        }
-
-        let newMainTabCoordinator = TestMainTabCoordinator()
-        addChild(newMainTabCoordinator)
-        mainTabCoordinator = newMainTabCoordinator
-        loginCoordinator = nil
-
-        transitionToNewFlow(root: .mainApp)
     }
 }
 
@@ -131,30 +113,16 @@ class TestAppCoordinatorWithServiceCalls: TestAppCoordinator {
 
         switch appRoute {
         case .login:
-            showLogin()
+            transitionToFlow(TestLoginCoordinator(), root: .login)
             return true
         case .mainApp:
-            showMainAppWithServiceCalls()
+            transitionToFlow(TestMainTabCoordinator(), root: .mainApp)
+            // Simulate service calls after flow transition
+            fetchUserProfile()
+            loadDashboardData()
+            loginCount += 1
             return true
         }
-    }
-
-    private func showMainAppWithServiceCalls() {
-        if let current = loginCoordinator ?? mainTabCoordinator {
-            removeChild(current)
-        }
-
-        let newMainTabCoordinator = TestMainTabCoordinator()
-        addChild(newMainTabCoordinator)
-        mainTabCoordinator = newMainTabCoordinator
-        loginCoordinator = nil
-
-        // Simulate service calls
-        fetchUserProfile()
-        loadDashboardData()
-        loginCount += 1
-
-        transitionToNewFlow(root: .mainApp)
     }
 
     private func fetchUserProfile() {

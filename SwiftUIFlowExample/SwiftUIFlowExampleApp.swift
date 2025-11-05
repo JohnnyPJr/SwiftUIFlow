@@ -46,14 +46,14 @@ struct AppRootView: View {
         switch currentRoot {
         case .tabRoot:
             // Use our completely custom tab bar with MainTabCoordinator
-            if let mainTabCoordinator = appState.appCoordinator.currentFlowCoordinator as? MainTabCoordinator {
+            if let mainTabCoordinator = appState.appCoordinator.currentFlow as? MainTabCoordinator {
                 CustomTabBarView(coordinator: mainTabCoordinator)
             } else {
                 Text("Main app loading...")
             }
         case .login:
             // Render login coordinator
-            if let loginCoordinator = appState.appCoordinator.currentFlowCoordinator as? LoginCoordinator {
+            if let loginCoordinator = appState.appCoordinator.currentFlow as? LoginCoordinator {
                 CoordinatorView(coordinator: loginCoordinator)
             } else {
                 Text("Login loading...")

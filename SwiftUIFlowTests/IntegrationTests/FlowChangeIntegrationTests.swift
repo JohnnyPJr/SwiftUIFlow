@@ -19,13 +19,11 @@ final class FlowChangeIntegrationTests: XCTestCase {
         // Verify we start at login
         XCTAssertEqual(appCoordinator.router.state.root.identifier, "login",
                        "Should start at login")
-        XCTAssertNotNil(appCoordinator.loginCoordinator,
-                        "LoginCoordinator should exist")
-        XCTAssertNil(appCoordinator.mainTabCoordinator,
-                     "MainTabCoordinator should not exist yet")
+        XCTAssertTrue(appCoordinator.currentFlow is TestLoginCoordinator,
+                      "Current flow should be LoginCoordinator")
 
         // Store reference to login coordinator to verify deallocation later
-        weak var weakLoginCoordinator = appCoordinator.loginCoordinator
+        weak var weakLoginCoordinator = appCoordinator.currentFlow
 
         // Navigate to main app (simulate login button tap)
         let success = appCoordinator.loginCoordinator!.navigate(to: TestAppRoute.mainApp)
@@ -38,10 +36,8 @@ final class FlowChangeIntegrationTests: XCTestCase {
                        "Should now be at main app")
 
         // Verify fresh MainTabCoordinator was created
-        XCTAssertNotNil(appCoordinator.mainTabCoordinator,
-                        "MainTabCoordinator should now exist")
-        XCTAssertNil(appCoordinator.loginCoordinator,
-                     "LoginCoordinator should be nil")
+        XCTAssertTrue(appCoordinator.currentFlow is TestMainTabCoordinator,
+                      "Current flow should be MainTabCoordinator")
 
         // Verify LoginCoordinator was deallocated
         XCTAssertNil(weakLoginCoordinator,
@@ -54,11 +50,11 @@ final class FlowChangeIntegrationTests: XCTestCase {
         _ = appCoordinator.loginCoordinator!.navigate(to: TestAppRoute.mainApp)
 
         // Verify we're at main app
-        XCTAssertNotNil(appCoordinator.mainTabCoordinator,
+        XCTAssertNotNil(appCoordinator.currentFlow,
                         "MainTabCoordinator should exist")
 
         // Store reference to main tab coordinator to verify deallocation
-        weak var weakMainTabCoordinator = appCoordinator.mainTabCoordinator
+        weak var weakMainTabCoordinator = appCoordinator.currentFlow
 
         // Navigate to login (simulate logout from nested tab)
         let success = appCoordinator.mainTabCoordinator!.navigate(to: TestAppRoute.login)
@@ -71,10 +67,8 @@ final class FlowChangeIntegrationTests: XCTestCase {
                        "Should be back at login")
 
         // Verify fresh LoginCoordinator was created
-        XCTAssertNotNil(appCoordinator.loginCoordinator,
-                        "LoginCoordinator should exist again")
-        XCTAssertNil(appCoordinator.mainTabCoordinator,
-                     "MainTabCoordinator should be nil")
+        XCTAssertTrue(appCoordinator.currentFlow is TestLoginCoordinator,
+                      "Current flow should be LoginCoordinator")
 
         // Verify MainTabCoordinator was deallocated
         XCTAssertNil(weakMainTabCoordinator,
@@ -105,7 +99,7 @@ final class FlowChangeIntegrationTests: XCTestCase {
         XCTAssertNil(mainTabCoord2, "Second MainTabCoordinator should be deallocated")
 
         // Verify we're back at login with fresh coordinator
-        XCTAssertNotNil(appCoordinator.loginCoordinator,
+        XCTAssertNotNil(appCoordinator.currentFlow,
                         "Should have fresh LoginCoordinator")
         XCTAssertEqual(appCoordinator.router.state.root.identifier, "login",
                        "Should be at login")
