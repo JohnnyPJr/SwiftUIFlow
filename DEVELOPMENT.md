@@ -538,6 +538,189 @@ if coordinator.presentationContext == .modal {
 
 **Status:** ✅ Fully implemented with comprehensive examples
 
+### 12. Flow Change Handling - Major Flow Transitions via Bubbling ✅
+
+**Decision:** Enable major flow transitions (login ↔ main app) through route bubbling pattern, eliminating the need to pass root coordinator references throughout the app.
+
+**Problem:** Apps need to transition between major flows (e.g., Login → Main App, Logout → Login) with:
+- Complete deallocation of previous flow's coordinators
+- Fresh coordinator creation on each transition
+- Integration points for service calls (e.g., fetchUserProfile after login)
+- No coupling between view code and root coordinator
+
+**Previous Approach (Coupled):**
+```swift
+// ❌ Views needed direct access to AppCoordinator
+struct LoginView: View {
+    let appCoordinator: AppCoordinator  // Tight coupling
+
+    Button("Login") {
+        appCoordinator.transitionToNewFlow(root: .mainApp)
+    }
+}
+
+struct PurpleView: View {
+    let appCoordinator: AppCoordinator  // Tight coupling
+
+    Button("Logout") {
+        appCoordinator.transitionToNewFlow(root: .login)
+    }
+}
+```
+
+**Solution: handleFlowChange(to:) Hook**
+
+Added open method to Coordinator that's called when a route bubbles to root and cannot be handled:
+
+```swift
+/// Handle major flow transitions (e.g., Login ↔ Main App).
+///
+/// Called when a route bubbles to root and cannot be handled. Override to orchestrate
+/// flow changes: deallocate old coordinators, create fresh ones, call `transitionToNewFlow(root:)`.
+open func handleFlowChange(to route: any Route) -> Bool {
+    return false  // Default: don't handle
+}
+```
+
+**New Approach (Decoupled):**
+```swift
+// ✅ Views use standard navigation - no root coordinator reference needed
+struct LoginView: View {
+    let coordinator: LoginCoordinator  // Only knows about its coordinator
+
+    Button("Login") {
+        coordinator.navigate(to: AppRoute.mainApp)  // Bubbles to root
+    }
+}
+
+// ✅ Root coordinator orchestrates flow changes
+class AppCoordinator: Coordinator<AppRoute> {
+    private(set) var currentFlowCoordinator: AnyCoordinator?
+
+    override func handleFlowChange(to route: any Route) -> Bool {
+        guard let appRoute = route as? AppRoute else { return false }
+
+        switch appRoute {
+        case .login:
+            showLogin()   // Deallocate main app, create fresh login
+            return true
+        case .mainApp:
+            showMainApp() // Deallocate login, create fresh main app
+            return true
+        }
+    }
+
+    private func showMainApp() {
+        // 1. Deallocate old flow
+        if let current = currentFlowCoordinator {
+            removeChild(current)
+        }
+
+        // 2. Create fresh coordinators
+        let mainTab = MainTabCoordinator()
+        addChild(mainTab)
+        currentFlowCoordinator = mainTab
+
+        // 3. Integration point for service calls
+        fetchUserProfile()
+        loadDashboardData()
+
+        // 4. Transition to new root
+        transitionToNewFlow(root: .mainApp)
+    }
+}
+```
+
+**How It Works:**
+
+1. View calls `coordinator.navigate(to: AppRoute.mainApp)`
+2. LoginCoordinator can't handle `.mainApp`, bubbles to parent
+3. Route reaches AppCoordinator (root, has no parent)
+4. Before failing, AppCoordinator tries `handleFlowChange(to: .mainApp)`
+5. AppCoordinator's override returns `true` after orchestrating transition
+6. Navigation succeeds, flow transition complete
+
+**Implementation Details:**
+
+- Added to `Coordinator.bubbleToParent()` at line 249-268
+- Only called at root (when `parent == nil`)
+- Checked before navigation fails
+- Open method for subclass override
+- Returns `Bool` to indicate if handled
+- TabCoordinator can also implement for tab-level flow changes
+
+**Benefits:**
+
+✅ **Zero coupling**: Views only reference their local coordinator
+✅ **Fresh state**: New coordinators created on each transition
+✅ **Service integration**: Clear place to call APIs after login
+✅ **Complete cleanup**: Old flow deallocated (verified with weak references)
+✅ **Consistent pattern**: Uses standard `navigate()` API
+✅ **Type safety**: Route types enforce valid transitions
+✅ **Testable**: Easy to test flow change logic in isolation
+
+**Testing:**
+
+Created comprehensive test coverage in `FlowChangeIntegrationTests.swift` (7 tests):
+- Login → Main App creates fresh coordinators
+- Logout → Login deallocates main app coordinators
+- Multiple login/logout cycles work correctly
+- Deep nesting bubbles correctly
+- Service call integration points work
+- Service calls run fresh on each login
+- All child coordinators deallocated on logout
+
+Created unit tests in `CoordinatorNavigationTests.swift` (4 tests):
+- handleFlowChange called when route can't be handled at root
+- handleFlowChange NOT called when route can be handled
+- handleFlowChange NOT called when coordinator has parent
+- Navigation fails when handleFlowChange returns false
+
+**Test Helpers:**
+
+Created `FlowChangeTestHelpers.swift` with:
+- `TestAppRoute` enum (login, mainApp)
+- `TestAppCoordinator` - Demonstrates flow change pattern
+- `TestLoginCoordinator` - Handles login route
+- `TestMainTabCoordinator` - Handles mainApp route
+- `TestAppCoordinatorWithServiceCalls` - Demonstrates service integration
+
+**Code Organization:**
+
+Split large test file for maintainability:
+- Created `CoordinatorTestHelpers.swift` - SUT struct and makeSUT() function
+- Split `CoordinatorTests.swift` (485 lines, 34 tests) into 4 focused files:
+  1. `CoordinatorBasicsTests.swift` - Initialization, child management (8 tests)
+  2. `CoordinatorNavigationTests.swift` - Navigation, bubbling, flow changes (13 tests)
+  3. `CoordinatorPresentationTests.swift` - Modals, detours, contexts (11 tests)
+  4. `TabCoordinatorTests.swift` - Tab-specific tests (4 tests)
+
+**Bug Fixes:**
+
+Fixed infinite loop in TabCoordinator navigation:
+- Added `canNavigate()` check before trying tabs
+- Made `bubbleToParent()` internal instead of private
+- TabCoordinator now calls `bubbleToParent()` directly instead of duplicating logic
+- Prevented tab iteration when route can't be handled by any tab
+
+**Documentation:**
+
+- Condensed verbose documentation to meet SwiftLint requirements
+- Added concise example in `handleFlowChange()` doc comments
+- Updated all test files with proper headers and organization
+
+**Example App Integration:**
+
+Updated example app to use flow change pattern:
+- `AppCoordinator` - Root orchestrator, no longer TabCoordinator
+- `LoginCoordinator` - Fresh on each logout, has deinit verification
+- `MainTabCoordinator` - Fresh on each login, creates 5 tabs
+- Views use `navigate()` instead of direct `transitionToNewFlow()` calls
+- Removed appCoordinator coupling from ViewFactories
+- Updated `SwiftUIFlowExampleApp.swift` to handle dynamic root switching
+
+**Status:** ✅ Fully implemented, tested, and documented
+
 ---
 
 ## Current TODO List
@@ -565,10 +748,20 @@ if coordinator.presentationContext == .modal {
 - [x] Create UI Freedom patterns for detour dismissal (5 approaches)
 - [x] Add comprehensive tests for presentation context (10 tests)
 - [x] Document CoordinatorPresentationContext, Navigation Back Action, and UI Freedom patterns
+- [x] Implement handleFlowChange(to:) hook for major flow transitions
+- [x] Add comprehensive flow change tests (7 integration + 4 unit tests)
+- [x] Create FlowChangeTestHelpers.swift for flow change test coordinators
+- [x] Fix TabCoordinator infinite loop bug with canNavigate() check
+- [x] Refactor TabCoordinator to use bubbleToParent() directly (eliminate duplication)
+- [x] Split CoordinatorTests.swift into 4 focused test files (34 tests total)
+- [x] Create CoordinatorTestHelpers.swift for shared test utilities
+- [x] Update example app to use flow change pattern (AppCoordinator orchestration)
+- [x] Remove coordinator coupling from example app views and ViewFactories
+- [x] Document Flow Change Handling feature comprehensively
 
 ### In Progress 🔄
-- [ ] Polish Phase 2 implementation (review code comments, finalize documentation)
-- [ ] Final review of example app and framework integration
+- [ ] Review and polish Phase 2 implementation
+- [ ] Consider FlowOrchestrator base class to reduce boilerplate
 
 ### Pending 📋
 - [ ] Comprehensive error handling (NavigationError enum, callbacks, logging)
@@ -662,9 +855,14 @@ None currently - proceeding with TabCoordinatorView implementation.
 - Detours auto-wrapped in NavigationStack with fallback back button
 - Detour swipe-to-dismiss NOT supported (fullScreenCover doesn't have gesture)
 - Users have full UI freedom: X buttons, custom nav bars, native nav bars, or framework fallbacks
+- Flow changes use bubbling pattern via `handleFlowChange(to:)` hook at root coordinator
+- Major flow transitions create fresh coordinators and deallocate old ones
+- Service calls after login integrated in root coordinator's flow change methods
+- TabCoordinator uses `bubbleToParent()` to avoid infinite loops
+- Test organization: 4 focused test files for Coordinator tests (34 tests total)
 
 ---
 
-**Last Task Completed:** Documented CoordinatorPresentationContext, Navigation Back Action, and UI Freedom patterns
-**Next Task:** Polish Phase 2 (review code comments, finalize documentation), then comprehensive error handling
-**Branch:** Add-View-layer
+**Last Task Completed:** Implemented and documented Flow Change Handling feature with comprehensive tests
+**Next Task:** Consider FlowOrchestrator base class to reduce boilerplate, then review Phase 2
+**Branch:** Refactor-navigation-logic
