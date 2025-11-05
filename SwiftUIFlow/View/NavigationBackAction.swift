@@ -22,8 +22,12 @@ private struct CanNavigateBackKey: EnvironmentKey {
 
 public extension EnvironmentValues {
     /// The action to perform when the user taps a back button.
-    /// In a detour, this will be `dismissDetour()`.
-    /// In regular navigation, this will be `pop()`.
+    /// The framework injects the appropriate action based on context:
+    /// - Regular navigation: `coordinator.pop()`
+    /// - Modal presentation: `coordinator.dismissModal()`
+    /// - Detour presentation: `coordinator.dismissDetour()`
+    ///
+    /// Views can read this to implement custom back/close buttons.
     var navigationBackAction: (() -> Void)? {
         get { self[NavigationBackActionKey.self] }
         set { self[NavigationBackActionKey.self] = newValue }

@@ -1,6 +1,6 @@
 # SwiftUIFlow - Development Progress
 
-**Last Updated:** November 2, 2025
+**Last Updated:** November 5, 2025
 
 ---
 
@@ -97,6 +97,48 @@ SwiftUIFlow is a coordinator-based navigation framework for SwiftUI that provide
    - Now uses `coordinator.currentModalCoordinator.buildView(for: route)`
    - Modal coordinators build views using their own router/factory instance, not the parent's
    - Essential for complex modal flows with independent navigation stacks
+
+6. **CoordinatorPresentationContext System** ✅
+   - Automatic tracking of how coordinators are presented
+   - Enum with 5 cases: `.root`, `.tab`, `.pushed`, `.modal`, `.detour`
+   - Controls back button visibility without user configuration
+   - Automatically set by framework when presenting coordinators
+   - TabCoordinator defaults children to `.tab` context
+   - Views can check `coordinator.presentationContext` to adapt UI
+   - Comprehensive test coverage (7 unit tests + 3 integration tests)
+
+7. **Navigation Back Action Environment System** ✅
+   - Added `navigationBackAction` environment value for dismissal actions
+   - Added `canNavigateBack` environment value for back button visibility
+   - CoordinatorView injects appropriate actions based on context
+   - Views read from environment to implement custom navigation UI
+   - Works for modals, detours, and regular navigation
+   - Enables maximum UI flexibility for framework users
+
+8. **UI Freedom - Modal Dismissal Patterns** ✅
+   - **Pattern 1: X Button** - `.withCloseButton()` modifier (DarkRed, DarkBlue, DarkYellow)
+   - **Pattern 2: Custom Navigation Bar** - `.customNavigationBar()` (DarkPurple)
+   - **Pattern 3: Native Navigation Bar** - `NavigationStack` + `.toolbar()` (DarkGreen)
+   - **Pattern 4: Swipe Gesture** - All modals support via `presentedRoute` binding
+   - Users choose the dismissal UI that fits their design
+   - All patterns properly sync coordinator state
+   - Example app demonstrates all approaches
+
+9. **UI Freedom - Detour Dismissal Patterns** ✅
+   - **Framework Fallback** - Auto-wraps detours in NavigationStack with back button
+   - **Custom Override** - Use `.customNavigationBar()` to hide fallback (LightRed example)
+   - **Native Override** - Add own `NavigationStack` + `.toolbar()`
+   - **Custom Buttons** - Read `navigationBackAction` from environment
+   - **Context-Aware Views** - Check `coordinator.presentationContext` to adapt UI
+   - Fallback ensures users can always dismiss detours
+   - Users have full control over navigation UI appearance
+
+10. **Custom Navigation Bar Example Component** ✅
+    - Created reusable CustomNavigationBar in example app
+    - Framework-style navigation bar with back button, title, trailing button
+    - Automatically hides native navigation bar (`.navigationBarHidden(true)`)
+    - Reads `navigationBackAction` and `canNavigateBack` from environment
+    - Demonstrates how to build custom navigation UI with framework
 
 ## Key Architectural Decisions
 
@@ -265,6 +307,237 @@ mainCoordinator.navigate(to: .settings) // Uses settingsModalCoord
 
 **Reasoning:** Better to design comprehensive error handling strategy holistically rather than piecemeal solutions.
 
+### 9. CoordinatorPresentationContext - Automatic Back Button Management
+
+**Decision:** Framework automatically tracks how coordinators are presented and controls back button visibility
+
+**Problem:** Views need to know whether to show back buttons, but determining this manually is error-prone:
+- Root views shouldn't show back buttons
+- Tab root views shouldn't show back buttons
+- Pushed views should show back buttons
+- Modal views should show back buttons
+- Detour views should show back buttons
+
+**Solution:** `CoordinatorPresentationContext` enum with automatic assignment
+
+**Implementation:**
+```swift
+public enum CoordinatorPresentationContext {
+    case root      // App root coordinator - no back button
+    case tab       // Tab in TabCoordinator - no back button
+    case pushed    // Child coordinator pushed - show back button
+    case modal     // Modal presentation - show back button
+    case detour    // Detour presentation - show back button
+
+    public var shouldShowBackButton: Bool {
+        switch self {
+        case .root, .tab:
+            return false
+        case .pushed, .modal, .detour:
+            return true
+        }
+    }
+}
+```
+
+**Automatic Context Assignment:**
+- Coordinators default to `.root` context
+- `TabCoordinator.addChild()` defaults to `.tab` context
+- `Coordinator.addChild()` defaults to `.pushed` context
+- `presentModal()` automatically sets `.modal` context
+- `presentDetour()` automatically sets `.detour` context
+
+**Benefits:**
+- Zero user configuration required
+- Consistent back button behavior across app
+- Views can adapt UI based on presentation context
+- Framework handles complexity, users get simplicity
+
+**Status:** ✅ Implemented with comprehensive tests
+
+### 10. Navigation Back Action - Environment-Based Dismissal
+
+**Decision:** Use SwiftUI environment to provide dismissal actions to views
+
+**Problem:** Views need to dismiss themselves (modals, detours, navigation) but shouldn't directly call coordinator methods
+
+**Solution:** Environment values for back actions and visibility
+
+**Implementation:**
+```swift
+// Environment keys
+@Environment(\.navigationBackAction) var backAction
+@Environment(\.canNavigateBack) var canNavigateBack
+
+// Framework injects appropriate action
+.environment(\.navigationBackAction) { coordinator.pop() }          // Regular nav
+.environment(\.navigationBackAction) { coordinator.dismissModal() } // Modal
+.environment(\.navigationBackAction) { coordinator.dismissDetour() }// Detour
+```
+
+**Benefits:**
+- Views don't need direct coordinator references for dismissal
+- Same pattern works for all navigation types
+- Testable (mock environment values)
+- SwiftUI-idiomatic approach
+- Enables maximum UI flexibility
+
+**User Patterns:**
+```swift
+// Pattern 1: Custom button
+Button("Close") {
+    backAction?()
+}
+
+// Pattern 2: Conditional visibility
+if canNavigateBack {
+    BackButton()
+}
+
+// Pattern 3: Context-aware UI
+if coordinator.presentationContext == .modal {
+    CloseButton()
+} else {
+    BackButton()
+}
+```
+
+**Status:** ✅ Implemented and used throughout example app
+
+### 11. UI Freedom - Maximum Flexibility for Navigation UI
+
+**Decision:** Framework provides smart defaults but allows complete UI customization
+
+**Philosophy:** Users should have full control over navigation UI appearance while framework handles state management
+
+**Modal Dismissal - 4 Approaches:**
+
+1. **X Button (Close Button)**
+   ```swift
+   struct MyModal: View {
+       var body: some View {
+           ContentView()
+               .withCloseButton()  // Framework-provided modifier
+       }
+   }
+   ```
+
+2. **Custom Navigation Bar**
+   ```swift
+   struct MyModal: View {
+       var body: some View {
+           ContentView()
+               .customNavigationBar(title: "Settings",
+                                   titleColor: .white,
+                                   backgroundColor: .blue)
+       }
+   }
+   ```
+
+3. **Native Navigation Bar**
+   ```swift
+   struct MyModal: View {
+       @Environment(\.navigationBackAction) var backAction
+
+       var body: some View {
+           NavigationStack {
+               ContentView()
+                   .navigationTitle("Settings")
+                   .toolbar {
+                       ToolbarItem(placement: .navigationBarLeading) {
+                           Button("Close") { backAction?() }
+                       }
+                   }
+           }
+       }
+   }
+   ```
+
+4. **Swipe Gesture Only**
+   ```swift
+   struct MyModal: View {
+       var body: some View {
+           ContentView()  // No navigation UI - rely on swipe
+       }
+   }
+   ```
+
+**Detour Dismissal - 5 Approaches:**
+
+1. **Framework Fallback (Default)**
+   - Framework automatically wraps in NavigationStack with back button
+   - No user code needed
+   - Ensures users can always dismiss
+
+2. **Custom Navigation Bar**
+   ```swift
+   struct MyDetour: View {
+       var body: some View {
+           ContentView()
+               .customNavigationBar(...)  // Hides framework fallback
+       }
+   }
+   ```
+
+3. **Native Navigation Bar**
+   ```swift
+   struct MyDetour: View {
+       @Environment(\.navigationBackAction) var backAction
+
+       var body: some View {
+           NavigationStack {
+               ContentView()
+                   .toolbar {
+                       ToolbarItem(placement: .navigationBarLeading) {
+                           Button("Back") { backAction?() }
+                       }
+                   }
+           }
+       }
+   }
+   ```
+
+4. **Custom Button**
+   ```swift
+   struct MyDetour: View {
+       @Environment(\.navigationBackAction) var backAction
+
+       var body: some View {
+           VStack {
+               Button("Back") { backAction?() }
+               ContentView()
+           }
+       }
+   }
+   ```
+
+5. **Context-Aware UI**
+   ```swift
+   struct MyView: View {
+       let coordinator: MyCoordinator
+
+       var body: some View {
+           let content = ContentView()
+
+           // Different UI based on presentation
+           if coordinator.presentationContext == .detour {
+               content.withCloseButton()
+           } else {
+               content.customNavigationBar(...)
+           }
+       }
+   }
+   ```
+
+**Key Principles:**
+- Framework provides smart defaults (fallback navigation)
+- Users can override with any custom UI
+- All approaches properly sync coordinator state
+- Environment values enable any UI pattern
+- Example app demonstrates all approaches
+
+**Status:** ✅ Fully implemented with comprehensive examples
+
 ---
 
 ## Current TODO List
@@ -286,9 +559,16 @@ mainCoordinator.navigate(to: .settings) // Uses settingsModalCoord
 - [x] Create example app to validate all features
 - [x] Fix CoordinatorView to use modal coordinator's buildView for modal rendering
 - [x] Refactor example app to use proper coordinator bubbling pattern
+- [x] Implement CoordinatorPresentationContext system
+- [x] Implement Navigation Back Action environment system
+- [x] Create UI Freedom patterns for modal dismissal (4 approaches)
+- [x] Create UI Freedom patterns for detour dismissal (5 approaches)
+- [x] Add comprehensive tests for presentation context (10 tests)
+- [x] Document CoordinatorPresentationContext, Navigation Back Action, and UI Freedom patterns
 
 ### In Progress 🔄
-- [ ] Review and document architectural decisions from example app implementation
+- [ ] Polish Phase 2 implementation (review code comments, finalize documentation)
+- [ ] Final review of example app and framework integration
 
 ### Pending 📋
 - [ ] Comprehensive error handling (NavigationError enum, callbacks, logging)
@@ -375,9 +655,16 @@ None currently - proceeding with TabCoordinatorView implementation.
 - Cross-flow bubbling cleans state unless presented as detour
 - Detours must be presented explicitly via `presentDetour()`, NOT through `navigate()`
 - Error handling uses `assertionFailure()` for programmer errors (safe in production)
+- CoordinatorPresentationContext automatically set by framework (zero user configuration)
+- Views can check `coordinator.presentationContext` for context-aware UI
+- Navigation back actions injected via environment (`navigationBackAction`, `canNavigateBack`)
+- Modal dismissal synced via `presentedRoute` binding setter (not onDismiss callback)
+- Detours auto-wrapped in NavigationStack with fallback back button
+- Detour swipe-to-dismiss NOT supported (fullScreenCover doesn't have gesture)
+- Users have full UI freedom: X buttons, custom nav bars, native nav bars, or framework fallbacks
 
 ---
 
-**Last Task Completed:** Fixed CoordinatorView modal rendering to use modal coordinator's buildView
-**Next Task:** Review and document architectural decisions from example app
+**Last Task Completed:** Documented CoordinatorPresentationContext, Navigation Back Action, and UI Freedom patterns
+**Next Task:** Polish Phase 2 (review code comments, finalize documentation), then comprehensive error handling
 **Branch:** Add-View-layer
