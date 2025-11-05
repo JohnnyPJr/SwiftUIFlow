@@ -140,6 +140,16 @@ SwiftUIFlow is a coordinator-based navigation framework for SwiftUI that provide
     - Reads `navigationBackAction` and `canNavigateBack` from environment
     - Demonstrates how to build custom navigation UI with framework
 
+11. **FlowOrchestrator** ✅
+    - Base class for root coordinators that manage major app flow transitions
+    - Eliminates boilerplate code for flow changes (48-62% code reduction)
+    - Automatic coordinator lifecycle management (deallocation and creation)
+    - Public API: `transitionToFlow(_ coordinator: AnyCoordinator, root: R)`
+    - Property: `currentFlow: AnyCoordinator?` - the currently active flow coordinator
+    - Clean architecture: Dependencies via init, service calls after transition
+    - Comprehensive test coverage (8 unit tests + updated integration tests)
+    - Example app updated to use FlowOrchestrator pattern
+
 ## Key Architectural Decisions
 
 ### 1. Router vs Coordinator Observation
@@ -721,6 +731,225 @@ Updated example app to use flow change pattern:
 
 **Status:** ✅ Fully implemented, tested, and documented
 
+### 13. FlowOrchestrator - Reducing Flow Transition Boilerplate ✅
+
+**Decision:** Create specialized base class for root coordinators that manage major flow transitions
+
+**Problem:** Flow change pattern required repetitive boilerplate code in every root coordinator:
+```swift
+// Repetitive pattern for every flow transition
+private func showMainApp() {
+    // 1. Remove old flow
+    if let current = currentFlowCoordinator {
+        removeChild(current)
+    }
+
+    // 2. Create new flow
+    let mainTab = MainTabCoordinator()
+    addChild(mainTab)
+    currentFlowCoordinator = mainTab
+
+    // 3. Transition root
+    transitionToNewFlow(root: .mainApp)
+}
+
+private func showLogin() {
+    // Same boilerplate repeated...
+    if let current = currentFlowCoordinator {
+        removeChild(current)
+    }
+
+    let login = LoginCoordinator()
+    addChild(login)
+    currentFlowCoordinator = login
+    transitionToNewFlow(root: .login)
+}
+```
+
+**Boilerplate Issues:**
+- 42 lines of repetitive cleanup/setup code in AppCoordinator
+- Same pattern duplicated in test helpers (56 lines)
+- Error-prone: Easy to forget steps or get order wrong
+- Obscures the intent: What flow we're transitioning to
+
+**Solution: FlowOrchestrator Base Class**
+
+Created specialized coordinator that encapsulates flow transition logic:
+
+```swift
+open class FlowOrchestrator<R: Route>: Coordinator<R> {
+    /// The currently active flow coordinator.
+    public private(set) var currentFlow: AnyCoordinator?
+
+    /// Transition to a new application flow.
+    ///
+    /// Dependencies should be injected via the coordinator's initializer.
+    /// Service calls should happen after calling this method.
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// // Simple transition
+    /// transitionToFlow(LoginCoordinator(), root: .login)
+    ///
+    /// // With dependencies
+    /// transitionToFlow(
+    ///     MainTabCoordinator(userService: userService),
+    ///     root: .mainApp
+    /// )
+    ///
+    /// // With service calls after transition
+    /// transitionToFlow(MainTabCoordinator(), root: .mainApp)
+    /// fetchUserProfile()
+    /// loadDashboardData()
+    /// ```
+    public func transitionToFlow(_ coordinator: AnyCoordinator, root: R) {
+        // 1. Deallocate old flow
+        if let current = currentFlow {
+            removeChild(current)
+        }
+
+        // 2. Install new flow
+        addChild(coordinator)
+        currentFlow = coordinator
+
+        // 3. Transition root
+        transitionToNewFlow(root: root)
+    }
+}
+```
+
+**New Approach (Clean & Concise):**
+
+```swift
+class AppCoordinator: FlowOrchestrator<AppRoute> {
+    init() {
+        let viewFactory = AppViewFactory()
+        let router = Router(initial: .login, factory: viewFactory)
+        super.init(router: router)
+        viewFactory.appCoordinator = self
+        transitionToFlow(LoginCoordinator(), root: .login)
+    }
+
+    override func handleFlowChange(to route: any Route) -> Bool {
+        guard let appRoute = route as? AppRoute else { return false }
+        switch appRoute {
+        case .login:
+            transitionToFlow(LoginCoordinator(), root: .login)
+            return true
+        case .tabRoot:
+            transitionToFlow(MainTabCoordinator(), root: .tabRoot)
+            return true
+        }
+    }
+}
+```
+
+**Results:**
+- Example app: 42 lines → 22 lines (48% reduction)
+- Test helpers: 56 lines → 21 lines (62% reduction)
+- Clear intent: One line per flow transition
+- Automatic lifecycle: Framework handles cleanup/setup
+- Type-safe: Compile-time checking of root routes
+
+**Clean Architecture Emphasis:**
+
+The API design enforces clean separation of concerns:
+
+- **Coordinators**: Navigation only (no business logic, no service calls)
+- **ViewFactory**: View/ViewModel creation with dependency injection
+- **ViewModels**: Business logic and data fetching
+
+Service calls happen AFTER transition, not during coordinator init:
+```swift
+case .tabRoot:
+    transitionToFlow(MainTabCoordinator(), root: .tabRoot)
+    return true
+    // Service calls would happen in ViewModel.onAppear, not here
+```
+
+**API Design Evolution:**
+
+Initially considered closure-based factory pattern:
+```swift
+// ❌ Initial design (rejected)
+transitionToFlow({ MainTabCoordinator() }, root: .mainApp)
+```
+
+**Analysis revealed:**
+- ViewModels created in ViewFactory, not coordinator
+- Dependencies injected via coordinator init
+- Service calls happen in ViewModels after views appear
+- Closure provided no value, just added syntax noise
+
+**Final API (simplified):**
+```swift
+// ✅ Final design (clean)
+transitionToFlow(MainTabCoordinator(), root: .mainApp)
+```
+
+**Testing Strategy:**
+
+**Unit Tests (FlowOrchestratorTests.swift - 8 tests):**
+- Basic functionality: Creates/installs coordinator, transitions root, sets parent
+- Flow cleanup: Deallocates previous flow, removes from children, clears parent reference
+- Integration: Works with handleFlowChange hook
+- Coordinator installation: Uses provided coordinator instance
+
+**Integration Tests (FlowChangeIntegrationTests.swift - Updated):**
+- Updated existing tests to use FlowOrchestrator pattern
+- No test duplication (Option B: consolidate tests)
+- Demonstrates recommended pattern with typed convenience properties
+
+**Test Helpers Pattern:**
+
+Tests can use typed convenience properties to bridge `AnyCoordinator` protocol and concrete types:
+
+```swift
+class TestAppCoordinator: FlowOrchestrator<TestAppRoute> {
+    // Typed convenience properties for tests
+    var loginCoordinator: TestLoginCoordinator? {
+        currentFlow as? TestLoginCoordinator
+    }
+
+    var mainTabCoordinator: TestMainTabCoordinator? {
+        currentFlow as? TestMainTabCoordinator
+    }
+}
+
+// Usage in tests
+let success = appCoordinator.loginCoordinator!.navigate(to: TestAppRoute.mainApp)
+XCTAssertTrue(appCoordinator.currentFlow is TestMainTabCoordinator)
+```
+
+**Why this pattern?**
+- `AnyCoordinator` protocol doesn't have `navigate(to:)` convenience overload
+- Concrete `Coordinator<R>` has convenience method with default parameter
+- Typed properties allow method calls, `currentFlow` for type checking
+
+**File Organization:**
+
+Created proper separation of test helpers:
+- `FlowOrchestratorTests.swift` - 8 unit tests
+- `FlowOrchestratorTestHelpers.swift` - Test infrastructure (separate file)
+  - `FlowRoute` enum for testing
+  - `FlowRouteViewFactory` for view factory
+  - `TestFlowCoordinator` with specific route handling
+  - `TestFlowOrchestratorWithFlowChange` demonstrating pattern
+
+**Benefits:**
+
+✅ **Massive boilerplate reduction**: 48-62% less code
+✅ **Clear intent**: One line per flow transition
+✅ **Automatic lifecycle**: Framework handles coordinator cleanup
+✅ **Type safety**: Compile-time route checking
+✅ **Testable**: Easy to test flow transitions in isolation
+✅ **Consistent pattern**: Same API across all root coordinators
+✅ **Clean architecture**: Enforces separation (Coordinators=Navigation, ViewModels=Business Logic)
+✅ **Example app updated**: Demonstrates real-world usage
+
+**Status:** ✅ Fully implemented, tested, and documented
+
 ---
 
 ## Current TODO List
@@ -758,10 +987,15 @@ Updated example app to use flow change pattern:
 - [x] Update example app to use flow change pattern (AppCoordinator orchestration)
 - [x] Remove coordinator coupling from example app views and ViewFactories
 - [x] Document Flow Change Handling feature comprehensively
+- [x] Implement FlowOrchestrator base class to reduce boilerplate
+- [x] Create 8 unit tests for FlowOrchestrator
+- [x] Update integration tests to use FlowOrchestrator pattern
+- [x] Separate FlowOrchestrator test helpers into dedicated file
+- [x] Update example app to use FlowOrchestrator pattern
+- [x] Document FlowOrchestrator implementation comprehensively
 
 ### In Progress 🔄
 - [ ] Review and polish Phase 2 implementation
-- [ ] Consider FlowOrchestrator base class to reduce boilerplate
 
 ### Pending 📋
 - [ ] Comprehensive error handling (NavigationError enum, callbacks, logging)
@@ -860,9 +1094,12 @@ None currently - proceeding with TabCoordinatorView implementation.
 - Service calls after login integrated in root coordinator's flow change methods
 - TabCoordinator uses `bubbleToParent()` to avoid infinite loops
 - Test organization: 4 focused test files for Coordinator tests (34 tests total)
+- FlowOrchestrator eliminates 48-62% of boilerplate for major flow transitions
+- FlowOrchestrator enforces clean architecture: Coordinators=Navigation, ViewModels=Business Logic
+- Test helpers can use typed convenience properties to bridge AnyCoordinator protocol
 
 ---
 
-**Last Task Completed:** Implemented and documented Flow Change Handling feature with comprehensive tests
-**Next Task:** Consider FlowOrchestrator base class to reduce boilerplate, then review Phase 2
+**Last Task Completed:** Implemented and documented FlowOrchestrator with comprehensive tests (8 unit + updated integration tests)
+**Next Task:** Review and polish Phase 2 implementation
 **Branch:** Refactor-navigation-logic
