@@ -76,38 +76,21 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return false
     }
 
-    /// Handle major flow changes when routes bubble to the root.
+    /// Handle major flow transitions (e.g., Login ↔ Main App).
     ///
-    /// Override this in your root coordinator to handle transitions between major flows
-    /// (e.g., Login ↔ Main App). This method is called when a route bubbles all the way
-    /// up the coordinator hierarchy and cannot be handled by any coordinator.
+    /// Called when a route bubbles to root and cannot be handled. Override to orchestrate
+    /// flow changes: deallocate old coordinators, create fresh ones, call `transitionToNewFlow(root:)`.
     ///
-    /// Use this to:
-    /// - Deallocate the previous flow's coordinators
-    /// - Create fresh coordinators for the new flow
-    /// - Make service calls needed for the new flow
-    /// - Call `transitionToNewFlow(root:)` to actually change the root
-    ///
-    /// Example:
     /// ```swift
     /// override func handleFlowChange(to route: any Route) -> Bool {
     ///     guard let appRoute = route as? AppRoute else { return false }
-    ///
     ///     switch appRoute {
-    ///     case .login:
-    ///         showLogin()  // Deallocate main app, create login coordinator
-    ///         return true
-    ///     case .mainApp:
-    ///         showMainApp()  // Deallocate login, create main app coordinator
-    ///         return true
-    ///     default:
-    ///         return false
+    ///     case .login: showLogin(); return true
+    ///     case .mainApp: showMainApp(); return true
+    ///     default: return false
     ///     }
     /// }
     /// ```
-    ///
-    /// - Parameter route: The route that could not be handled and bubbled to root
-    /// - Returns: `true` if the flow change was handled, `false` otherwise
     open func handleFlowChange(to route: any Route) -> Bool {
         return false
     }
