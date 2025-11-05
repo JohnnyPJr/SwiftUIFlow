@@ -13,9 +13,7 @@ import SwiftUIFlow
 /// Root coordinator that orchestrates major app flows.
 /// Manages transitions between Login and MainTab coordinators.
 /// Never recreated - exists for the lifetime of the app.
-class AppCoordinator: Coordinator<AppRoute> {
-    private(set) var currentFlowCoordinator: AnyCoordinator?
-
+class AppCoordinator: FlowOrchestrator<AppRoute> {
     init() {
         let viewFactory = AppViewFactory()
         let router = Router(initial: .login, factory: viewFactory)
@@ -24,7 +22,7 @@ class AppCoordinator: Coordinator<AppRoute> {
         viewFactory.appCoordinator = self
 
         // Start with login flow
-        showLogin()
+        transitionToFlow(LoginCoordinator(), root: .login)
     }
 
     override func canHandle(_ route: any Route) -> Bool {
@@ -42,50 +40,12 @@ class AppCoordinator: Coordinator<AppRoute> {
 
         switch appRoute {
         case .login:
-            showLogin()
+            transitionToFlow(LoginCoordinator(), root: .login)
             return true
         case .tabRoot:
-            showMainApp()
+            transitionToFlow(MainTabCoordinator(), root: .tabRoot)
             return true
         }
-    }
-
-    /// Transition to login flow.
-    /// Deallocates MainTabCoordinator and all its children.
-    private func showLogin() {
-        // Clean up previous flow (if any)
-        if let current = currentFlowCoordinator {
-            removeChild(current)
-        }
-
-        // CREATE FRESH LoginCoordinator
-        let loginCoordinator = LoginCoordinator()
-        addChild(loginCoordinator)
-        currentFlowCoordinator = loginCoordinator
-
-        // Show login screen
-        transitionToNewFlow(root: .login)
-    }
-
-    /// Transition to main app flow.
-    /// Creates a fresh MainTabCoordinator instance with clean state.
-    private func showMainApp() {
-        // Clean up login (if any)
-        if let current = currentFlowCoordinator {
-            removeChild(current)
-        }
-
-        // CREATE FRESH MainTabCoordinator
-        let mainTab = MainTabCoordinator()
-        addChild(mainTab)
-        currentFlowCoordinator = mainTab
-
-        // TODO: This is where you'd fetch user data after login
-        // fetchUserProfile()
-        // loadDashboardData()
-
-        // Transition to tab view
-        transitionToNewFlow(root: .tabRoot)
     }
 }
 
