@@ -22,12 +22,12 @@ struct GreenView: View {
                     .foregroundColor(.white)
 
                 Button("Lighten Up") {
-                    coordinator.navigate(to: GreenRoute.lightGreen)
+                    let _ = coordinator.navigate(to: GreenRoute.lightGreen)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 
                 Button("Darken Up") {
-                    coordinator.navigate(to: GreenRoute.darkGreen)
+                    let _ = coordinator.navigate(to: GreenRoute.darkGreen)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }
@@ -58,7 +58,7 @@ struct LightGreenView: View {
                 Spacer().frame(height: 40)
 
                 Button("Jump to Yellow's Light Screen") {
-                    coordinator.navigate(to: YellowRoute.lightYellow)
+                    let _ = coordinator.navigate(to: YellowRoute.lightYellow)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .yellow))
             }

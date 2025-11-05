@@ -31,7 +31,7 @@ struct LoginView: View {
 
                 Button("Login") {
                     // Navigate to main app - bubbles to AppCoordinator via handleFlowChange
-                    coordinator.navigate(to: AppRoute.tabRoot)
+                    let _ = coordinator.navigate(to: AppRoute.tabRoot)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.2)))
 

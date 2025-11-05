@@ -22,12 +22,12 @@ struct PurpleView: View {
                     .foregroundColor(.white)
 
                 Button("Lighten Up") {
-                    coordinator.navigate(to: PurpleRoute.lightPurple)
+                    let _ = coordinator.navigate(to: PurpleRoute.lightPurple)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 
                 Button("Darken Up") {
-                    coordinator.navigate(to: PurpleRoute.darkPurple)
+                    let _ = coordinator.navigate(to: PurpleRoute.darkPurple)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
 
@@ -40,7 +40,7 @@ struct PurpleView: View {
 
                     Button("Logout") {
                         // Navigate to login - bubbles to AppCoordinator via handleFlowChange
-                        coordinator.navigate(to: AppRoute.login)
+                        let _ = coordinator.navigate(to: AppRoute.login)
                     }
                     .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.5)))
 
@@ -85,12 +85,12 @@ struct LightPurpleView: View {
 
                 HStack(spacing: 20) {
                     Button("Success ✓") {
-                        coordinator.navigate(to: PurpleRoute.result(success: true))
+                        let _ = coordinator.navigate(to: PurpleRoute.result(success: true))
                     }
                     .buttonStyle(NavigationButtonStyle(color: .green))
 
                     Button("Failure ✗") {
-                        coordinator.navigate(to: PurpleRoute.result(success: false))
+                        let _ = coordinator.navigate(to: PurpleRoute.result(success: false))
                     }
                     .buttonStyle(NavigationButtonStyle(color: .red))
                 }

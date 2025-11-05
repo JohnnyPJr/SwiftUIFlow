@@ -22,12 +22,12 @@ struct YellowView: View {
                     .foregroundColor(.black)
 
                 Button("Lighten Up") {
-                    coordinator.navigate(to: YellowRoute.lightYellow)
+                    let _ = coordinator.navigate(to: YellowRoute.lightYellow)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.5)))
 
                 Button("Darken Up") {
-                    coordinator.navigate(to: YellowRoute.darkYellow)
+                    let _ = coordinator.navigate(to: YellowRoute.darkYellow)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }

@@ -22,12 +22,12 @@ struct RedView: View {
                     .foregroundColor(.white)
 
                 Button("Lighten Up") {
-                    coordinator.navigate(to: RedRoute.lightRed)
+                    let _ = coordinator.navigate(to: RedRoute.lightRed)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 
                 Button("Darken Up") {
-                    coordinator.navigate(to: RedRoute.darkRed)
+                    let _ = coordinator.navigate(to: RedRoute.darkRed)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }
@@ -82,7 +82,7 @@ struct DarkRedView: View {
                 Spacer().frame(height: 40)
 
                 Button("Jump to Dark Yellow") {
-                    coordinator.navigate(to: YellowRoute.darkYellow)
+                    let _ = coordinator.navigate(to: YellowRoute.darkYellow)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .yellow))
 
