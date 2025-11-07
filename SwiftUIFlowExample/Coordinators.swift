@@ -100,17 +100,8 @@ class MainTabCoordinator: TabCoordinator<AppRoute> {
     }
 
     override func canHandle(_ route: any Route) -> Bool {
-        // MainTabCoordinator only handles .tabRoot itself
-        // Child coordinators handle their specific routes
-        guard let appRoute = route as? AppRoute else { return false }
-        return appRoute == .tabRoot
-    }
-
-    override func navigationType(for route: any Route) -> NavigationType {
-        // MainTabCoordinator doesn't handle navigation directly - it delegates to children
-        // If a route reaches here, it should bubble to parent (AppCoordinator)
-        // We return .push as default, but this shouldn't be called since canHandle returns false for most routes
-        return .push
+        // MainTabCoordinator only delegates to children, never handles directly
+        return false
     }
 
     deinit {

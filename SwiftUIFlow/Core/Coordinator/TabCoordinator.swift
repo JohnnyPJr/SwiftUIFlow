@@ -19,11 +19,6 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
         super.addChild(coordinator, context: context)
     }
 
-    override open func navigationType(for route: any Route) -> NavigationType {
-        // TabCoordinator subclasses MUST override this method to provide route-to-tab-index mapping
-        fatalError("TabCoordinator subclass must override navigationType(for:) to provide route-to-tab-index mapping")
-    }
-
     open func getTabIndex(for coordinator: AnyCoordinator) -> Int? {
         for (index, child) in children.enumerated() {
             if child === coordinator {
