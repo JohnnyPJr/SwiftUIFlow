@@ -10,6 +10,9 @@ import Foundation
 import SwiftUI
 
 open class ViewFactory<R: Route>: ObservableObject {
+    /// Weak reference to the coordinator that owns this factory.
+    public weak var coordinator: (any AnyCoordinator)?
+
     public init() {}
 
     open func buildView(for route: R) -> AnyView? { nil }
