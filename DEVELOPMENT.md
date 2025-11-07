@@ -1,6 +1,6 @@
 # SwiftUIFlow - Development Progress
 
-**Last Updated:** November 5, 2025
+**Last Updated:** November 7, 2025
 
 ---
 
@@ -950,6 +950,103 @@ Created proper separation of test helpers:
 
 **Status:** ✅ Fully implemented, tested, and documented
 
+### 14. Coordinator Initialization Simplification ✅
+
+**Decision:** Reduce ViewFactory coupling and coordinator initialization boilerplate
+
+**Problem:** Coordinator initialization required 4 lines of repetitive code:
+```swift
+let viewFactory = RedViewFactory()
+let router = Router(initial: .red, factory: viewFactory)
+super.init(router: router)
+viewFactory.coordinator = self
+```
+
+**Solution:** Three improvements:
+
+1. **Add coordinator property to base ViewFactory**
+   ```swift
+   open class ViewFactory<R: Route>: ObservableObject {
+       public weak var coordinator: (any AnyCoordinator)?
+       // ...
+   }
+   ```
+
+2. **Simplify to 3-line pattern**
+   ```swift
+   class RedCoordinator: Coordinator<RedRoute> {
+       init() {
+           let factory = RedViewFactory()
+           super.init(router: Router(initial: .red, factory: factory))
+           factory.coordinator = self
+       }
+   }
+   ```
+
+3. **Remove duplicate coordinator properties from ViewFactory subclasses**
+   - ViewFactory subclasses now inherit `coordinator` from base class
+   - Cast to specific coordinator type when needed: `coordinator as? RedCoordinator`
+
+**Code Organization Improvements:**
+
+1. **Extracted navigation helpers** (Coordinator.swift: 422 lines → 245 lines)
+   - Created `Coordinator+NavigationHelpers.swift` (161 lines)
+   - Extracted 7 navigation helper methods:
+     - `trySmartNavigation(to:)`
+     - `handleModalNavigation(to:from:)`
+     - `handleDetourNavigation(to:from:)`
+     - `delegateToChildren(route:caller:)`
+     - `bubbleToParent(route:)`
+     - `isAlreadyAt(route:)`
+     - `executeNavigation(for:)`
+
+2. **Changed access control for extension flexibility**
+   - Changed `public private(set)` → `public internal(set)` for:
+     - `children`, `modalCoordinators`, `currentModalCoordinator`, `detourCoordinator`
+   - Allows framework code in extensions to modify internal state
+   - Maintains external read-only API
+
+**TabCoordinator Simplification:**
+
+1. **Removed unnecessary `navigationType` override**
+   - TabCoordinator no longer overrides with `fatalError`
+   - Inherits sensible default (`.push`) from base Coordinator
+   - Subclasses can override if needed
+
+2. **Clarified MainTabCoordinator responsibilities**
+   - `canHandle()` returns `false` - only delegates to children
+   - `.tabRoot` is handled by AppCoordinator for flow transitions
+   - Cross-tab navigation uses explicit routes (`.red`, `.green`, etc.)
+
+**Rejected Approaches:**
+
+❌ **Generic ViewFactory with convenience init** - Over-engineered, required:
+   - Making ViewFactory generic over Coordinator type
+   - Adding ViewFactoryProtocol for type erasure
+   - Complex required initializer handling
+   - User feedback: "serious over-engineering for a simple problem"
+
+❌ **Convenience init pattern** - Confusing:
+   - Required subclasses to use `convenience init()`
+   - Used `self.init()` instead of `super.init()`
+   - Developer confusion: "is the fact that the client should use a convenience init a bit confusing?"
+
+**Benefits:**
+
+✅ **Reduced boilerplate**: 4 lines → 3 lines per coordinator
+✅ **Simpler**: Just add coordinator property to base class
+✅ **Clear**: Uses familiar `super.init()` pattern
+✅ **Flexible**: Subclasses can still add specific properties if needed
+✅ **Maintainable**: Better file organization (Coordinator.swift under 400 lines)
+
+**Results:**
+- All 12 coordinators in example app updated
+- ViewFactory subclasses cleaner (no duplicate properties)
+- Coordinator file length reduced by 43%
+- Navigation helpers clearly separated
+
+**Status:** ✅ Fully implemented and validated
+
 ---
 
 ## Current TODO List
@@ -995,9 +1092,16 @@ Created proper separation of test helpers:
 - [x] Document FlowOrchestrator implementation comprehensively
 - [x] Add memory leak tracking helper (trackForMemoryLeaks)
 - [x] Update 10 tests with automatic memory leak verification
+- [x] Extract navigation helpers to Coordinator+NavigationHelpers.swift (reduce file length)
+- [x] Add coordinator property to base ViewFactory class (reduce boilerplate)
+- [x] Simplify coordinator initialization to 3-line pattern
+- [x] Change access control to `public internal(set)` for coordinator properties
+- [x] Remove unnecessary `navigationType` override from TabCoordinator
+- [x] Simplify MainTabCoordinator to only delegate (canHandle returns false)
+- [x] Update all coordinators in example app to use simplified pattern
 
 ### In Progress 🔄
-- [ ] Review and polish Phase 2 implementation
+- [ ] Prepare for main branch merge
 
 ### Pending 📋
 - [ ] Comprehensive error handling (NavigationError enum, callbacks, logging)
@@ -1102,9 +1206,14 @@ None currently - proceeding with TabCoordinatorView implementation.
 - Memory leak tracking helper (`trackForMemoryLeaks`) verifies deallocation in test teardown
 - 10 tests automatically verify coordinator deallocation (FlowOrchestrator, flow changes, modals, children)
 - Framework has no memory leaks (verified with weak reference tests and deallocation tracking)
+- Coordinator initialization uses 3-line pattern with base ViewFactory coordinator property
+- Navigation helpers extracted to separate file (Coordinator+NavigationHelpers.swift)
+- Coordinator properties use `public internal(set)` for framework extension flexibility
+- TabCoordinator inherits default `.push` navigation type (no unnecessary override)
+- MainTabCoordinator only delegates to children (doesn't handle routes directly)
 
 ---
 
-**Last Task Completed:** Added memory leak tracking helper and updated 10 tests with automatic verification
-**Next Task:** Review and polish Phase 2 implementation
+**Last Task Completed:** Simplified coordinator initialization and improved code organization
+**Next Task:** Merge Add-View-layer branch to main
 **Branch:** origin/Add-View-layer
