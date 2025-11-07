@@ -116,7 +116,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     }
 
     public func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
-        print("🔍 \(Self.self): Navigating to \(route.identifier)")
+        NavigationLogger.debug("🔍 \(Self.self): Navigating to \(route.identifier)")
 
         if let typedRoute = route as? R, trySmartNavigation(to: typedRoute) {
             return true
@@ -131,7 +131,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
 
         if let typedRoute = route as? R, canHandle(typedRoute) {
-            print("✅ \(Self.self): Executing navigation for \(route.identifier)")
+            NavigationLogger.debug("✅ \(Self.self): Executing navigation for \(route.identifier)")
             executeNavigation(for: typedRoute)
             return true
         }

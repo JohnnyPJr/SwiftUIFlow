@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OSLog
 import SwiftUIFlow
 
 // MARK: - App Coordinator (Root Orchestrator)
@@ -64,7 +65,7 @@ class LoginCoordinator: Coordinator<AppRoute> {
     }
 
     deinit {
-        print("🗑️ LoginCoordinator deallocated")
+        Logger(subsystem: "com.swiftuiflow.example", category: "Lifecycle").info("🗑️ LoginCoordinator deallocated")
     }
 }
 
@@ -105,7 +106,7 @@ class MainTabCoordinator: TabCoordinator<AppRoute> {
     }
 
     deinit {
-        print("🗑️ MainTabCoordinator deallocated")
+        Logger(subsystem: "com.swiftuiflow.example", category: "Lifecycle").info("🗑️ MainTabCoordinator deallocated")
     }
 }
 

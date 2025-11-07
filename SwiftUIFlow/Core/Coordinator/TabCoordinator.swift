@@ -42,7 +42,7 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
 
     // Override navigate to handle tab switching intelligently
     override public func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
-        print("📑 \(Self.self): Tab navigation to \(route.identifier)")
+        NavigationLogger.debug("📑 \(Self.self): Tab navigation to \(route.identifier)")
 
         // First check if we can handle it directly
         if let typedRoute = route as? R, canHandle(typedRoute) {
@@ -58,7 +58,7 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
             // Also check canNavigate first to avoid trying tabs that can't handle it
             if currentTab !== caller, currentTab.canNavigate(to: route) {
                 if currentTab.navigate(to: route, from: self) {
-                    print("📑 \(Self.self): Current tab handled \(route.identifier)")
+                    NavigationLogger.debug("📑 \(Self.self): Current tab handled \(route.identifier)")
                     return true
                 }
             }
@@ -68,7 +68,7 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
         // Here we MUST use canNavigate to avoid switching to tabs that can't handle the route
         for (index, child) in children.enumerated() {
             if index != currentTabIndex, child !== caller, child.canNavigate(to: route) {
-                print("🔄 \(Self.self): Switching to tab \(index) for \(route.identifier)")
+                NavigationLogger.info("🔄 \(Self.self): Switching to tab \(index) for \(route.identifier)")
                 switchToTab(index)
                 return child.navigate(to: route, from: self)
             }
