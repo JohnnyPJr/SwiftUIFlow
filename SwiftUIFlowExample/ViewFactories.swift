@@ -9,23 +9,18 @@ import SwiftUI
 import SwiftUIFlow
 
 class AppViewFactory: ViewFactory<AppRoute> {
-    weak var appCoordinator: AppCoordinator?
-    weak var loginCoordinator: LoginCoordinator?
-
     override func buildView(for route: AppRoute) -> AnyView? {
         switch route {
         case .tabRoot:
             return nil
         case .login:
-            guard let loginCoord = loginCoordinator else { return nil }
-            return view(LoginView(coordinator: loginCoord))
+            guard let coord = coordinator as? LoginCoordinator else { return nil }
+            return view(LoginView(coordinator: coord))
         }
     }
 }
 
 class RedViewFactory: ViewFactory<RedRoute> {
-    weak var coordinator: AnyCoordinator?
-
     override func buildView(for route: RedRoute) -> AnyView? {
         switch route {
         case .red:
@@ -42,8 +37,6 @@ class RedViewFactory: ViewFactory<RedRoute> {
 }
 
 class GreenViewFactory: ViewFactory<GreenRoute> {
-    weak var coordinator: AnyCoordinator?
-
     override func buildView(for route: GreenRoute) -> AnyView? {
         switch route {
         case .green:
@@ -60,8 +53,6 @@ class GreenViewFactory: ViewFactory<GreenRoute> {
 }
 
 class BlueViewFactory: ViewFactory<BlueRoute> {
-    weak var coordinator: AnyCoordinator?
-
     override func buildView(for route: BlueRoute) -> AnyView? {
         switch route {
         case .blue:
@@ -78,8 +69,6 @@ class BlueViewFactory: ViewFactory<BlueRoute> {
 }
 
 class YellowViewFactory: ViewFactory<YellowRoute> {
-    weak var coordinator: AnyCoordinator?
-
     override func buildView(for route: YellowRoute) -> AnyView? {
         switch route {
         case .yellow:
@@ -96,8 +85,6 @@ class YellowViewFactory: ViewFactory<YellowRoute> {
 }
 
 class PurpleViewFactory: ViewFactory<PurpleRoute> {
-    weak var coordinator: AnyCoordinator?
-
     override func buildView(for route: PurpleRoute) -> AnyView? {
         switch route {
         case .purple:
