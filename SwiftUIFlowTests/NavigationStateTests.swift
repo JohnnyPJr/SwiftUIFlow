@@ -45,6 +45,30 @@ final class NavigationStateTests: XCTestCase {
         XCTAssertNil(state.presented)
     }
 
+    // MARK: - Detour Handling
+
+    func test_CanPresentAndDismissDetour() {
+        var state = NavigationState(root: MockRoute.home)
+        state.detour = MockRoute.details
+        XCTAssertEqual(state.detour?.identifier, MockRoute.details.identifier)
+
+        state.detour = nil
+        XCTAssertNil(state.detour)
+    }
+
+    func test_DetourCanHoldDifferentRouteType() {
+        var state = NavigationState(root: MockRoute.home)
+
+        // Detour is type-erased, so it can hold any Route type
+        struct OtherRoute: Route {
+            var identifier: String { "other" }
+        }
+
+        state.detour = OtherRoute()
+        XCTAssertNotNil(state.detour)
+        XCTAssertEqual(state.detour?.identifier, "other")
+    }
+
     // MARK: - Tab Selection
 
     func test_CanChangeSelectedTab() {

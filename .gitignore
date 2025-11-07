@@ -1,1 +1,10 @@
 .claude/
+
+# Xcode user-specific files
+xcuserdata/
+*.xcuserstate
+
+# Xcode build artifacts
+DerivedData/
+*.xccheckout
+*.moved-aside

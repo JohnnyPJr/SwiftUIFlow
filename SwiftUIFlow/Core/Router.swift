@@ -43,8 +43,12 @@ public final class Router<R: Route>: ObservableObject {
         _ = state.stack.popLast()
     }
 
-    /// Set a new root route and clear the stack.
-    /// **Internal:** Use `Coordinator.navigate(to:)` for major flow transitions instead.
+    /// **ADMIN OPERATION** - Set a new root route and clear the stack.
+    ///
+    /// This is for major app-level flow transitions (e.g., onboarding → login → home).
+    /// Use `Coordinator.transitionToNewFlow(root:)` instead of calling this directly.
+    ///
+    /// **Not part of normal navigation** - use `Coordinator.navigate(to:)` for regular navigation.
     func setRoot(_ route: R) {
         state.root = route
         state.stack.removeAll()
@@ -60,6 +64,18 @@ public final class Router<R: Route>: ObservableObject {
     /// **Internal:** Use `Coordinator.dismissModal()` instead.
     func dismissModal() {
         state.presented = nil
+    }
+
+    /// Present a detour route (cross-coordinator navigation with context preservation).
+    /// **Internal:** Use `Coordinator.navigate(to:)` with `.detour` NavigationType instead.
+    func presentDetour(_ route: any Route) {
+        state.detour = route
+    }
+
+    /// Dismiss the currently presented detour.
+    /// **Internal:** Use `Coordinator.dismissDetour()` instead.
+    func dismissDetour() {
+        state.detour = nil
     }
 
     /// Switch to a specific tab index.
@@ -78,6 +94,7 @@ public final class Router<R: Route>: ObservableObject {
     /// **Internal:** Use `Coordinator.dismissModal()` instead.
     func dismissAllModals() {
         state.presented = nil
+        state.detour = nil
     }
 
     /// Reset to root and dismiss all modals.
@@ -85,6 +102,7 @@ public final class Router<R: Route>: ObservableObject {
     func resetToRoot() {
         state.stack.removeAll()
         state.presented = nil
+        state.detour = nil
     }
 
     // MARK: - View Building
