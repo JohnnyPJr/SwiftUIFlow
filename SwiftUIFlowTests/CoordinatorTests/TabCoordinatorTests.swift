@@ -56,6 +56,15 @@ final class TabCoordinatorTests: XCTestCase {
         let tabRouter = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
         let tabCoordinator = TestTabCoordinator(router: tabRouter)
 
+        // Add children so we have valid tabs to switch to
+        let tab1Child = TestCoordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
+        let tab2Child = TestCoordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
+        let tab3Child = TestCoordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
+
+        tabCoordinator.addChild(tab1Child)
+        tabCoordinator.addChild(tab2Child)
+        tabCoordinator.addChild(tab3Child)
+
         tabCoordinator.switchToTab(2)
 
         XCTAssertEqual(tabRouter.state.selectedTab, 2, "Tab coordinator should switch tabs using router")

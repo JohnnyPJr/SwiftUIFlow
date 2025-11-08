@@ -26,6 +26,15 @@ open class Coordinator<R: Route>: AnyCoordinator {
     public internal(set) var currentModalCoordinator: AnyCoordinator?
     public internal(set) var detourCoordinator: AnyCoordinator?
 
+    // MARK: - Error Handling
+
+    /// Handler called when navigation or configuration errors occur.
+    /// Set this to receive error notifications and handle them appropriately
+    /// (e.g., logging, analytics, showing alerts, displaying toasts).
+    ///
+    /// If not set, errors are only logged via NavigationLogger.
+    public var errorHandler: ((SwiftUIFlowError) -> Void)?
+
     public init(router: Router<R>) {
         self.router = router
     }
@@ -52,6 +61,20 @@ open class Coordinator<R: Route>: AnyCoordinator {
     }
 
     public func addChild(_ coordinator: AnyCoordinator, context: CoordinatorPresentationContext = .pushed) {
+        // Check for circular reference
+        if coordinator === self {
+            let error = SwiftUIFlowError.circularReference(coordinator: String(describing: type(of: self)))
+            reportError(error)
+            return
+        }
+
+        // Check for duplicate child
+        if children.contains(where: { $0 === coordinator }) {
+            let error = SwiftUIFlowError.duplicateChild(coordinator: String(describing: type(of: coordinator)))
+            reportError(error)
+            return
+        }
+
         children.append(coordinator)
         coordinator.parent = self
         coordinator.presentationContext = context
@@ -132,8 +155,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
         if let typedRoute = route as? R, canHandle(typedRoute) {
             NavigationLogger.debug("✅ \(Self.self): Executing navigation for \(route.identifier)")
-            executeNavigation(for: typedRoute)
-            return true
+            return executeNavigation(for: typedRoute)
         }
 
         if delegateToChildren(route: route, caller: caller) {
@@ -241,5 +263,46 @@ open class Coordinator<R: Route>: AnyCoordinator {
         router.setRoot(root)
         dismissModal()
         dismissDetour()
+    }
+
+    // MARK: - Internal Error Reporting
+
+    /// Report an error through the error handler or default logging
+    func reportError(_ error: SwiftUIFlowError) {
+        // Call custom error handler if set
+        if let errorHandler {
+            errorHandler(error)
+        } else {
+            // Default behavior: Log the error
+            NavigationLogger.error(error.debugDescription)
+        }
+    }
+
+    /// Helper to create error with automatic coordinator/route info extraction
+    func makeError(for route: any Route, errorType: SwiftUIFlowError.ErrorType) -> SwiftUIFlowError {
+        let coordinatorName = String(describing: Self.self)
+        let routeId = route.identifier
+        let routeType = String(describing: type(of: route))
+
+        switch errorType {
+        case let .navigationFailed(context):
+            return .navigationFailed(coordinator: coordinatorName,
+                                     route: routeId,
+                                     routeType: routeType,
+                                     context: context)
+        case .modalCoordinatorNotConfigured:
+            return .modalCoordinatorNotConfigured(coordinator: coordinatorName,
+                                                  route: routeId,
+                                                  routeType: routeType)
+        case .invalidDetourNavigation:
+            return .invalidDetourNavigation(coordinator: coordinatorName,
+                                            route: routeId,
+                                            routeType: routeType)
+        case let .viewCreationFailed(viewType):
+            return .viewCreationFailed(coordinator: coordinatorName,
+                                       route: routeId,
+                                       routeType: routeType,
+                                       viewType: viewType)
+        }
     }
 }

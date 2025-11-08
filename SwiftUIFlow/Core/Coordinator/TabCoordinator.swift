@@ -29,6 +29,13 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
     }
 
     open func switchToTab(_ index: Int) {
+        // Validate tab index
+        guard index >= 0, index < children.count else {
+            let error = SwiftUIFlowError.invalidTabIndex(index: index,
+                                                         validRange: 0 ..< children.count)
+            reportError(error)
+            return
+        }
         router.selectTab(index)
     }
 

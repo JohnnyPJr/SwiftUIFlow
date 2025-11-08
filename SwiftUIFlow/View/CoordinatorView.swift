@@ -47,8 +47,11 @@ public struct CoordinatorView<R: Route>: View {
                     }
             } else {
                 // Fallback if view factory doesn't provide a view
-                Text("No view for route: \(router.state.root.identifier)")
-                    .foregroundColor(.red)
+                let error = coordinator.makeError(for: router.state.root, errorType: .viewCreationFailed(viewType: .root))
+                EmptyView()
+                    .onAppear {
+                        coordinator.reportError(error)
+                    }
             }
         }
         .sheet(item: presentedRoute) { route in
@@ -60,8 +63,11 @@ public struct CoordinatorView<R: Route>: View {
                     .environment(\.navigationBackAction) { coordinator.dismissModal() }
                     .environment(\.canNavigateBack, true) // Modals always show back button
             } else {
-                Text("No view for modal route: \(route.identifier)")
-                    .foregroundColor(.red)
+                let error = coordinator.makeError(for: route, errorType: .viewCreationFailed(viewType: .modal))
+                EmptyView()
+                    .onAppear {
+                        coordinator.reportError(error)
+                    }
             }
         }
         #if os(iOS)
@@ -94,13 +100,23 @@ public struct CoordinatorView<R: Route>: View {
                                 }
                             }
                     } else {
-                        Text("Detour view not available")
-                            .foregroundColor(.red)
+                        if let detourRoute = router.state.detour {
+                            let error = coordinator.makeError(for: detourRoute, errorType: .viewCreationFailed(viewType: .detour))
+                            EmptyView()
+                                .onAppear {
+                                    coordinator.reportError(error)
+                                }
+                        }
                     }
                 }
             } else {
-                Text("Detour view not available")
-                    .foregroundColor(.red)
+                if let detourRoute = router.state.detour {
+                    let error = coordinator.makeError(for: detourRoute, errorType: .viewCreationFailed(viewType: .detour))
+                    EmptyView()
+                        .onAppear {
+                            coordinator.reportError(error)
+                        }
+                }
             }
         }
         #else
@@ -130,13 +146,23 @@ public struct CoordinatorView<R: Route>: View {
                                         }
                                     }
                             } else {
-                                Text("Detour view not available")
-                                    .foregroundColor(.red)
+                                if let detourRoute = router.state.detour {
+                                    let error = coordinator.makeError(for: detourRoute, errorType: .viewCreationFailed(viewType: .detour))
+                                    EmptyView()
+                                        .onAppear {
+                                            coordinator.reportError(error)
+                                        }
+                                }
                             }
                         }
                     } else {
-                        Text("Detour view not available")
-                            .foregroundColor(.red)
+                        if let detourRoute = router.state.detour {
+                            let error = coordinator.makeError(for: detourRoute, errorType: .viewCreationFailed(viewType: .detour))
+                            EmptyView()
+                                .onAppear {
+                                    coordinator.reportError(error)
+                                }
+                        }
                     }
                 }
         #endif
