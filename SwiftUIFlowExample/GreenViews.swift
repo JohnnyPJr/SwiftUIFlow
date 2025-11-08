@@ -74,34 +74,62 @@ struct DarkGreenView: View {
     let coordinator: GreenModalCoordinator
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(red: 0, green: 0.5, blue: 0).ignoresSafeArea()
+        ZStack {
+            Color(red: 0, green: 0.5, blue: 0).ignoresSafeArea()
 
-                VStack(spacing: 20) {
-                    Text("Dark Green")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
+            VStack(spacing: 20) {
+                Text("Dark Green")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
 
-                    Text("Presented as Modal")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.8))
+                Text("Presented as Modal")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.8))
 
-                    Text("(Native Navigation Bar)")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.6))
+                Text("(Native Navigation Bar)")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.6))
+
+                Spacer().frame(height: 40)
+
+                Button("Go Even Darker") {
+                    let _ = coordinator.navigate(to: GreenRoute.evenDarkerGreen)
                 }
+                .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
             }
-            .navigationTitle("Dark Green")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Close") {
-                        backAction?()
-                    }
+        }
+        .navigationTitle("Dark Green")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Close") {
+                    backAction?()
                 }
             }
         }
+    }
+}
+
+struct EvenDarkerGreenView: View {
+    let coordinator: GreenModalCoordinator
+
+    var body: some View {
+        ZStack {
+            Color(red: 0, green: 0.3, blue: 0).ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Even Darker Green")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+
+                Text("Pushed from Modal")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.8))
+            }
+        }
+        .navigationTitle("Even Darker Green")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
