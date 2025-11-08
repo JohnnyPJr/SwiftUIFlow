@@ -48,6 +48,9 @@ class GreenViewFactory: ViewFactory<GreenRoute> {
         case .darkGreen:
             guard let coord = coordinator as? GreenModalCoordinator else { return nil }
             return view(DarkGreenView(coordinator: coord))
+        case .evenDarkerGreen:
+            guard let coord = coordinator as? GreenModalCoordinator else { return nil }
+            return view(EvenDarkerGreenView(coordinator: coord))
         }
     }
 }
@@ -64,6 +67,9 @@ class BlueViewFactory: ViewFactory<BlueRoute> {
         case .darkBlue:
             guard let coord = coordinator as? BlueModalCoordinator else { return nil }
             return view(DarkBlueView(coordinator: coord))
+        case .invalidView:
+            // Intentionally return nil to trigger viewCreationFailed error
+            return nil
         }
     }
 }

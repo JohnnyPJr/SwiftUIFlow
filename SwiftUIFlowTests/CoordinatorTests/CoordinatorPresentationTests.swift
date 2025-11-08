@@ -154,4 +154,110 @@ final class CoordinatorPresentationTests: XCTestCase {
         XCTAssertNil(sut.router.state.detour, "Detour should be dismissed after reset")
         XCTAssertNil(sut.coordinator.detourCoordinator, "Detour coordinator should be dismissed after reset")
     }
+
+    // MARK: - Modal Navigation Stack Tests
+
+    func test_ModalCanPushRoutes() {
+        let sut = makeSUT()
+        let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
+        let modal = TestCoordinator(router: modalRouter)
+        trackForMemoryLeaks(modal)
+
+        // Present modal
+        sut.coordinator.presentModal(modal, presenting: .modal)
+
+        // Modal should have empty stack initially
+        XCTAssertTrue(modal.router.state.stack.isEmpty, "Modal should start with empty stack")
+
+        // Push within modal
+        modal.router.push(.details)
+
+        // Verify push succeeded
+        XCTAssertEqual(modal.router.state.stack.count, 1, "Modal should have 1 item in stack")
+        XCTAssertEqual(modal.router.state.stack.first, .details, "Details should be in modal stack")
+    }
+
+    func test_ModalCanPopRoutes() {
+        let sut = makeSUT()
+        let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
+        let modal = TestCoordinator(router: modalRouter)
+        trackForMemoryLeaks(modal)
+
+        // Present modal and push a route
+        sut.coordinator.presentModal(modal, presenting: .modal)
+        modal.router.push(.details)
+
+        XCTAssertEqual(modal.router.state.stack.count, 1, "Modal should have 1 item in stack")
+
+        // Pop within modal
+        modal.pop()
+
+        // Verify pop succeeded
+        XCTAssertTrue(modal.router.state.stack.isEmpty, "Modal stack should be empty after pop")
+        XCTAssertNotNil(sut.coordinator.currentModalCoordinator, "Modal should still be presented")
+    }
+
+    func test_PopAtModalRootDismissesModal() {
+        let sut = makeSUT()
+        let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
+        let modal = TestCoordinator(router: modalRouter)
+        trackForMemoryLeaks(modal)
+
+        // Present modal
+        sut.coordinator.presentModal(modal, presenting: .modal)
+
+        XCTAssertTrue(modal.router.state.stack.isEmpty, "Modal should start with empty stack")
+        XCTAssertNotNil(sut.coordinator.currentModalCoordinator, "Modal should be presented")
+
+        // Pop at root (should dismiss modal)
+        modal.pop()
+
+        // Verify modal was dismissed
+        XCTAssertNil(sut.coordinator.currentModalCoordinator, "Modal should be dismissed after pop at root")
+        XCTAssertNil(sut.router.state.presented, "Router should have cleared presented route")
+    }
+
+    func test_PopAtDetourRootDismissesDetour() {
+        let sut = makeSUT()
+        let detourRouter = Router<MockRoute>(initial: .details, factory: MockViewFactory())
+        let detour = TestCoordinator(router: detourRouter)
+        trackForMemoryLeaks(detour)
+
+        // Present detour
+        sut.coordinator.presentDetour(detour, presenting: MockRoute.details)
+
+        XCTAssertTrue(detour.router.state.stack.isEmpty, "Detour should start with empty stack")
+        XCTAssertNotNil(sut.coordinator.detourCoordinator, "Detour should be presented")
+
+        // Pop at root (should dismiss detour)
+        detour.pop()
+
+        // Verify detour was dismissed
+        XCTAssertNil(sut.coordinator.detourCoordinator, "Detour should be dismissed after pop at root")
+        XCTAssertNil(sut.router.state.detour, "Router should have cleared detour route")
+    }
+
+    func test_DetourCanPushAndPopRoutes() {
+        let sut = makeSUT()
+        let detourRouter = Router<MockRoute>(initial: .details, factory: MockViewFactory())
+        let detour = TestCoordinator(router: detourRouter)
+        trackForMemoryLeaks(detour)
+
+        // Present detour
+        sut.coordinator.presentDetour(detour, presenting: MockRoute.details)
+
+        // Push within detour
+        detour.router.push(.modal)
+
+        // Verify push succeeded
+        XCTAssertEqual(detour.router.state.stack.count, 1, "Detour should have 1 item in stack")
+        XCTAssertEqual(detour.router.state.stack.first, .modal, "Modal should be in detour stack")
+
+        // Pop within detour
+        detour.pop()
+
+        // Verify pop succeeded
+        XCTAssertTrue(detour.router.state.stack.isEmpty, "Detour stack should be empty after pop")
+        XCTAssertNotNil(sut.coordinator.detourCoordinator, "Detour should still be presented")
+    }
 }

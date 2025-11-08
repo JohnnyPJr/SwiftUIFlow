@@ -19,6 +19,12 @@ public protocol AnyCoordinator: AnyObject {
     func canNavigate(to route: any Route) -> Bool
     func resetToCleanState()
 
+    /// Dismiss the currently presented modal
+    func dismissModal()
+
+    /// Dismiss the currently presented detour
+    func dismissDetour()
+
     /// Build a view for a given route using this coordinator's ViewFactory
     /// Returns type-erased Any to avoid SwiftUI dependency in protocol
     func buildView(for route: any Route) -> Any?
