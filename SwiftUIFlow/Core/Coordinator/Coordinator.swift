@@ -26,15 +26,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
     public internal(set) var currentModalCoordinator: AnyCoordinator?
     public internal(set) var detourCoordinator: AnyCoordinator?
 
-    // MARK: - Error Handling
-
-    /// Handler called when navigation or configuration errors occur.
-    /// Set this to receive error notifications and handle them appropriately
-    /// (e.g., logging, analytics, showing alerts, displaying toasts).
-    ///
-    /// If not set, errors are only logged via NavigationLogger.
-    public var errorHandler: ((SwiftUIFlowError) -> Void)?
-
     public init(router: Router<R>) {
         self.router = router
     }
@@ -267,15 +258,9 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     // MARK: - Internal Error Reporting
 
-    /// Report an error through the error handler or default logging
+    /// Report an error through the global error handler
     func reportError(_ error: SwiftUIFlowError) {
-        // Call custom error handler if set
-        if let errorHandler {
-            errorHandler(error)
-        } else {
-            // Default behavior: Log the error
-            NavigationLogger.error(error.debugDescription)
-        }
+        SwiftUIFlowErrorHandler.shared.report(error)
     }
 
     /// Helper to create error with automatic coordinator/route info extraction

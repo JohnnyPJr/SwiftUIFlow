@@ -9,6 +9,12 @@
 import XCTest
 
 final class ErrorHandlingIntegrationTests: XCTestCase {
+    override func tearDown() {
+        super.tearDown()
+        // Reset global error handler after each test
+        SwiftUIFlowErrorHandler.shared.reset()
+    }
+
     // MARK: - Navigation Error Tests
 
     func test_NavigationFailed_CallsErrorHandler() {
@@ -17,7 +23,7 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         let coordinator = Coordinator(router: router)
 
         var capturedError: SwiftUIFlowError?
-        coordinator.errorHandler = { error in
+        SwiftUIFlowErrorHandler.shared.setHandler { error in
             capturedError = error
         }
 
@@ -59,7 +65,7 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         let coordinator = TestModalNavigationCoordinator(router: router)
 
         var capturedError: SwiftUIFlowError?
-        coordinator.errorHandler = { error in
+        SwiftUIFlowErrorHandler.shared.setHandler { error in
             capturedError = error
         }
 
@@ -87,7 +93,7 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         coordinator.addModalCoordinator(modalCoordinator)
 
         var errorCalled = false
-        coordinator.errorHandler = { _ in
+        SwiftUIFlowErrorHandler.shared.setHandler { _ in
             errorCalled = true
         }
 
@@ -108,7 +114,7 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         let coordinator = TestDetourNavigationCoordinator(router: router)
 
         var capturedError: SwiftUIFlowError?
-        coordinator.errorHandler = { error in
+        SwiftUIFlowErrorHandler.shared.setHandler { error in
             capturedError = error
         }
 
@@ -142,7 +148,7 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         tabCoordinator.addChild(child3)
 
         var capturedError: SwiftUIFlowError?
-        tabCoordinator.errorHandler = { error in
+        SwiftUIFlowErrorHandler.shared.setHandler { error in
             capturedError = error
         }
 
@@ -178,7 +184,7 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         tabCoordinator.addChild(child3)
 
         var errorCalled = false
-        tabCoordinator.errorHandler = { _ in
+        SwiftUIFlowErrorHandler.shared.setHandler { _ in
             errorCalled = true
         }
 
@@ -199,7 +205,7 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         coordinator.addChild(child)
 
         var capturedError: SwiftUIFlowError?
-        coordinator.errorHandler = { error in
+        SwiftUIFlowErrorHandler.shared.setHandler { error in
             capturedError = error
         }
 
@@ -225,7 +231,7 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         let coordinator = TestCoordinator(router: router)
 
         var capturedError: SwiftUIFlowError?
-        coordinator.errorHandler = { error in
+        SwiftUIFlowErrorHandler.shared.setHandler { error in
             capturedError = error
         }
 
