@@ -100,7 +100,9 @@ extension Coordinator {
                 NavigationLogger.info("🔄 \(Self.self): Handled flow change to \(route.identifier)")
                 return true
             }
+            // Navigation failed - no coordinator in hierarchy can handle this route
             NavigationLogger.error("❌ \(Self.self): Could not handle \(route.identifier)")
+            reportError(makeError(for: route, errorType: .navigationFailed(context: "No coordinator in hierarchy can handle this route")))
             return false
         }
 
@@ -127,22 +129,24 @@ extension Coordinator {
         }
     }
 
-    func executeNavigation(for route: R) {
+    func executeNavigation(for route: R) -> Bool {
         switch navigationType(for: route) {
         case .push:
             router.push(route)
+            return true
         case .replace:
             router.replace(route)
+            return true
         case .modal:
             if let currentModal = currentModalCoordinator, currentModal.canHandle(route) {
                 router.present(route)
                 _ = currentModal.navigate(to: route, from: self)
-                return
+                return true
             }
 
             guard let modalChild = modalCoordinators.first(where: { $0.canHandle(route) }) else {
-                assertionFailure("Modal navigation a navigator that can handle route: \(route.identifier).")
-                return
+                reportError(makeError(for: route, errorType: .modalCoordinatorNotConfigured))
+                return false
             }
 
             currentModalCoordinator = modalChild
@@ -150,11 +154,13 @@ extension Coordinator {
             modalChild.presentationContext = .modal
             router.present(route)
             _ = modalChild.navigate(to: route, from: self)
+            return true
         case .detour:
-            assertionFailure("Detours must be presented explicitly via presentDetour(), not through navigate()")
-            return
+            reportError(makeError(for: route, errorType: .invalidDetourNavigation))
+            return false
         case let .tabSwitch(index):
             router.selectTab(index)
+            return true
         }
     }
 }
