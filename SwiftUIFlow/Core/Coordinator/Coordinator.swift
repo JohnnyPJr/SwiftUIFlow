@@ -218,7 +218,24 @@ open class Coordinator<R: Route>: AnyCoordinator {
     // MARK: - Navigation Stack Control
 
     /// Pop one screen from the navigation stack
+    /// If at root and presented as modal/detour, dismisses instead
     public func pop() {
+        // If we're at the root (no pushed screens) and presented as modal/detour,
+        // dismiss instead of attempting to pop
+        if router.state.stack.isEmpty {
+            switch presentationContext {
+            case .modal:
+                parent?.dismissModal()
+                return
+            case .detour:
+                parent?.dismissDetour()
+                return
+            default:
+                break
+            }
+        }
+
+        // Normal pop behavior
         router.pop()
     }
 
