@@ -56,13 +56,15 @@ public struct CoordinatorView<R: Route>: View {
             }
         }
         .sheet(item: presentedRoute) { route in
-            // Render modal sheet using the modal coordinator
+            // Render modal sheet with its own navigation wrapper
             if let modalCoordinator = coordinator.currentModalCoordinator,
                let modalView = modalCoordinator.buildView(for: route) as? AnyView
             {
-                modalView
-                    .environment(\.navigationBackAction) { coordinator.dismissModal() }
-                    .environment(\.canNavigateBack, true) // Modals always show back button
+                NavigationStack {
+                    modalView
+                        .environment(\.navigationBackAction) { coordinator.dismissModal() }
+                        .environment(\.canNavigateBack, true) // Modals can be dismissed
+                }
             } else {
                 ErrorReportingView(error: coordinator.makeError(for: route, errorType: .viewCreationFailed(viewType: .modal)))
             }
