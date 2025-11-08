@@ -35,7 +35,11 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         XCTAssertFalse(result, "Navigation should fail")
         XCTAssertNotNil(capturedError, "Error handler should be called")
 
-        if case let .navigationFailed(coordinator: coordName, route: routeId, routeType: _, context: _) = capturedError {
+        if case let .navigationFailed(coordinator: coordName,
+                                      route: routeId,
+                                      routeType: _,
+                                      context: _) = capturedError
+        {
             XCTAssertEqual(coordName, "Coordinator<MockRoute>")
             XCTAssertEqual(routeId, "details")
         } else {
