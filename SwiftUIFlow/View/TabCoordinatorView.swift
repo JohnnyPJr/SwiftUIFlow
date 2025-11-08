@@ -98,24 +98,14 @@ public struct TabCoordinatorView<R: Route>: View {
                 }
         } else {
             // Programmer error: tab coordinator didn't provide tabItem
-            VStack(spacing: 16) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 48))
-                    .foregroundColor(.red)
-
-                Text("Tab Configuration Error")
-                    .font(.headline)
-                    .foregroundColor(.red)
-
-                Text("Coordinator '\(String(describing: type(of: child)))' is a tab but didn't provide a tabItem.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-            .tabItem {
-                Label("❌ No tab item", systemImage: "exclamationmark.triangle")
-            }
+            let coordinatorName = String(describing: type(of: child))
+            let error = SwiftUIFlowError.configurationError(
+                message: "Tab coordinator '\(coordinatorName)' at index \(index) must override 'tabItem' property"
+            )
+            ErrorReportingView(error: error)
+                .tabItem {
+                    Label("Error", systemImage: "exclamationmark.triangle")
+                }
         }
     }
 
