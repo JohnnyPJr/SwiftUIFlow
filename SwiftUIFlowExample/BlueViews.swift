@@ -90,6 +90,19 @@ struct DarkBlueView: View {
                 Text("Presented as Modal")
                     .font(.subheadline)
                     .foregroundColor(.white.opacity(0.8))
+
+                Spacer().frame(height: 40)
+
+                Button("Push Invalid View") {
+                    // This will trigger viewCreationFailed error
+                    // The route exists but ViewFactory returns nil
+                    let _ = coordinator.navigate(to: BlueRoute.invalidView)
+                }
+                .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
+
+                Text("(ViewFactory returns nil)")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
             }
         }
         .withCloseButton()

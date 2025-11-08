@@ -54,6 +54,19 @@ struct LightRedView: View {
                 Text("Pushed from Red Tab")
                     .font(.subheadline)
                     .foregroundColor(.white.opacity(0.8))
+
+                Spacer().frame(height: 40)
+
+                Button("Navigate to Invalid Route") {
+                    // This will trigger navigationFailed error
+                    // No coordinator in the hierarchy handles UnhandledRoute
+                    let _ = coordinator.navigate(to: UnhandledRoute.invalidRoute)
+                }
+                .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
+
+                Text("(No coordinator handles this)")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
             }
         }
         .customNavigationBar(title: "Light Red",
