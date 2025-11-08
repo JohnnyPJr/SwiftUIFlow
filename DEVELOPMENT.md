@@ -1,6 +1,6 @@
 # SwiftUIFlow - Development Progress
 
-**Last Updated:** November 7, 2025
+**Last Updated:** November 8, 2025
 
 ---
 
@@ -1047,6 +1047,218 @@ viewFactory.coordinator = self
 
 **Status:** ✅ Fully implemented and validated
 
+### 15. Error Handling System ✅
+
+**Decision:** Implement comprehensive error reporting system for navigation failures and view creation errors
+
+**Problem:** Framework needs to communicate errors to client apps when:
+- Navigation fails (route can't be handled)
+- View creation fails (ViewFactory returns nil)
+- Modal/detour coordinator misconfiguration
+- Circular references or duplicate children
+
+**Solution: SwiftUIFlowError and Error Reporting System**
+
+**Components:**
+
+1. **SwiftUIFlowError enum** - Type-safe error representation
+   ```swift
+   public enum SwiftUIFlowError: Error {
+       case navigationFailed(coordinator: String, route: String, routeType: String, context: String)
+       case viewCreationFailed(coordinator: String, route: String, routeType: String, viewType: ViewType)
+       case modalCoordinatorNotConfigured(coordinator: String, route: String, routeType: String)
+       case invalidDetourNavigation(coordinator: String, route: String, routeType: String)
+       case circularReference(coordinator: String)
+       case duplicateChild(coordinator: String)
+
+       public enum ViewType: String {
+           case root, pushed, modal, detour
+       }
+   }
+   ```
+
+2. **SwiftUIFlowErrorHandler** - Global error reporting
+   ```swift
+   public class SwiftUIFlowErrorHandler {
+       public static let shared = SwiftUIFlowErrorHandler()
+       public var onError: ((SwiftUIFlowError) -> Void)?
+
+       public func report(_ error: SwiftUIFlowError) {
+           onError?(error)
+       }
+   }
+   ```
+
+3. **ErrorReportingView** - Fallback UI for view creation failures
+   - Shows in place of views that fail to create
+   - Immediately reports error through global handler
+   - Framework handles presentation, client handles response
+
+**Integration Points:**
+
+1. **Navigation failures** - Coordinator.swift:156
+   ```swift
+   let error = makeError(for: route, errorType: .navigationFailed(context: "No coordinator can handle"))
+   reportError(error)
+   return false
+   ```
+
+2. **View creation failures** - CoordinatorView.swift
+   - Root view fails: ErrorReportingView at line 57
+   - Pushed view fails: ErrorReportingView at line 50
+   - Modal view fails: ErrorReportingView at line 68
+   - Detour view fails: ErrorReportingView at line 84, 101
+
+3. **Coordinator errors** - Coordinator.swift
+   - Circular reference: line 57
+   - Duplicate child: line 64
+
+**Client Usage Pattern:**
+
+```swift
+@main
+struct MyApp: App {
+    init() {
+        SwiftUIFlowErrorHandler.shared.onError = { error in
+            // Log to analytics
+            print("Navigation error: \(error.description)")
+
+            // Show user feedback
+            showErrorToast(error)
+        }
+    }
+}
+```
+
+**Testing:**
+
+Created ErrorHandlingIntegrationTests.swift (4 tests):
+- Navigation fails when no coordinator can handle route
+- View creation failure for root view triggers error
+- View creation failure for pushed view triggers error
+- Multiple errors can be reported
+
+**Example App Integration:**
+
+1. **Error scenarios** - Demonstrate error handling
+   - UnhandledRoute enum - navigation failure
+   - BlueRoute.invalidView - view creation failure
+   - Error toast UI component
+
+2. **Error toast** - ErrorToastView.swift
+   - Shows error description at top of screen
+   - Red background with dismiss button
+   - Auto-dismisses after 2 seconds
+   - Positioned above all content
+
+**Benefits:**
+
+✅ **Type-safe errors**: Compile-time safety with enum
+✅ **Global handling**: Single point for all framework errors
+✅ **Contextual information**: Coordinator, route, and context included
+✅ **Graceful degradation**: ErrorReportingView shows instead of crashing
+✅ **Flexible response**: Clients choose how to handle (logging, UI, analytics)
+✅ **Testable**: Easy to verify error reporting in tests
+
+**Status:** ✅ Fully implemented with tests and examples
+
+### 16. Modal and Detour Navigation Stacks ✅
+
+**Decision:** Enable full navigation stack support within modal and detour presentations
+
+**Problem:** Modals and detours were limited to single views with no ability to push/pop navigation:
+- Modal coordinators couldn't push additional screens
+- Detours couldn't have their own navigation stacks
+- User flows requiring multi-step modals were impossible
+- Back buttons in modals/detours would break navigation state
+
+**Root Cause:**
+- CoordinatorView used `buildView(for:)` which returns only the single view
+- Parent coordinator doesn't know modal/detour coordinator's route type at compile time
+- Manual NavigationStack wrapping in view layer was incomplete
+
+**Solution: Use buildCoordinatorView() for Modals and Detours**
+
+**Implementation:**
+
+1. **Added dismissModal() and dismissDetour() to AnyCoordinator protocol** - AnyCoordinator.swift:22-26
+   ```swift
+   public protocol AnyCoordinator: AnyObject {
+       func dismissModal()
+       func dismissDetour()
+       // ... existing methods
+   }
+   ```
+
+2. **Made Coordinator.pop() context-aware** - Coordinator.swift:222-240
+   ```swift
+   public func pop() {
+       // If at root of modal/detour, dismiss instead of pop
+       if router.state.stack.isEmpty {
+           switch presentationContext {
+           case .modal:
+               parent?.dismissModal()
+               return
+           case .detour:
+               parent?.dismissDetour()
+               return
+           default:
+               break
+           }
+       }
+
+       // Normal pop behavior
+       router.pop()
+   }
+   ```
+
+3. **Updated CoordinatorView to use buildCoordinatorView()** - CoordinatorView.swift
+   - Modals (line 58-71): Use `buildCoordinatorView()` for full navigation support
+   - Detours iOS (line 67-89): Use `buildCoordinatorView()` with fullScreenCover
+   - Detours macOS (line 82-107): Use `buildCoordinatorView()` with sheet
+
+**Why buildCoordinatorView()?**
+- Returns full CoordinatorView with NavigationStack and navigation state management
+- Modal coordinator builds its own navigation infrastructure with correct route type
+- Parent can't build it because route type is not known at compile time
+- Type erasure via `eraseToAnyView()` bridges the gap
+
+**How It Works:**
+
+1. **Present modal** - Modal coordinator's NavigationStack wraps root view
+2. **Push in modal** - Modal coordinator's router manages stack
+3. **Pop in modal** - If stack not empty, pops normally
+4. **Pop at modal root** - Calls parent's dismissModal() instead
+5. **Modal dismissed** - Parent cleans up modal coordinator reference
+
+**Testing:**
+
+Added 5 new tests to CoordinatorPresentationTests.swift:
+- `test_ModalCanPushRoutes` - Push within modal works
+- `test_ModalCanPopRoutes` - Pop within modal works
+- `test_PopAtModalRootDismissesModal` - Pop at root dismisses
+- `test_PopAtDetourRootDismissesDetour` - Pop at detour root dismisses
+- `test_DetourCanPushAndPopRoutes` - Push/pop within detour works
+
+**Example App:**
+
+Added "even darker green" screen to demonstrate:
+- DarkGreenView (modal) has "Go Even Darker" button
+- Pushes to EvenDarkerGreenView within the modal
+- Back button pops back to DarkGreenView
+- Another back dismisses the modal
+
+**Benefits:**
+
+✅ **Multi-step modals**: Complex flows within modal presentations
+✅ **Detour navigation**: Detours can have their own navigation stacks
+✅ **Consistent behavior**: Pop() works the same everywhere, context-aware
+✅ **Clean API**: Views call coordinator.pop(), framework handles context
+✅ **Type-safe**: Modal coordinators know their own route types
+✅ **Tested**: Comprehensive test coverage for all scenarios
+
+**Status:** ✅ Fully implemented with tests and example
+
 ---
 
 ## Current TODO List
@@ -1099,12 +1311,24 @@ viewFactory.coordinator = self
 - [x] Remove unnecessary `navigationType` override from TabCoordinator
 - [x] Simplify MainTabCoordinator to only delegate (canHandle returns false)
 - [x] Update all coordinators in example app to use simplified pattern
+- [x] Implement error handling system (SwiftUIFlowError, ErrorReportingView, global handler)
+- [x] Add error handling tests (ErrorHandlingIntegrationTests.swift)
+- [x] Add error handling examples in example app (UnhandledRoute, invalidView, error toast)
+- [x] Add modal and detour navigation stack support (buildCoordinatorView)
+- [x] Make Coordinator.pop() context-aware (dismiss at modal/detour root)
+- [x] Add dismissModal() and dismissDetour() to AnyCoordinator protocol
+- [x] Add tests for modal/detour navigation stacks (5 new tests)
+- [x] Add example for multi-step modal (even darker green)
 
 ### In Progress 🔄
 - [ ] Prepare for main branch merge
 
 ### Pending 📋
-- [ ] Comprehensive error handling (NavigationError enum, callbacks, logging)
+
+**CRITICAL PRIORITY:**
+- [ ] **Fix navigation side effects issue** - Currently when navigation fails partway through bubbling, state changes (modal dismissals, pops, etc.) have already occurred, leaving the app in a broken state. Need to implement two-phase navigation: Phase 1 validates the entire path without side effects, Phase 2 only executes if validation succeeds. This requires significant architectural changes to separate validation from execution in the navigate() method.
+
+**Lower Priority:**
 - [ ] Add sheet presentation styles (detents, custom sizing)
 - [ ] Add snapshot tests for view layer (optional)
 
@@ -1211,9 +1435,16 @@ None currently - proceeding with TabCoordinatorView implementation.
 - Coordinator properties use `public internal(set)` for framework extension flexibility
 - TabCoordinator inherits default `.push` navigation type (no unnecessary override)
 - MainTabCoordinator only delegates to children (doesn't handle routes directly)
+- Error handling uses global SwiftUIFlowErrorHandler for all framework errors
+- Clients set onError callback to handle errors (logging, UI, analytics)
+- ErrorReportingView shows when view creation fails (graceful degradation)
+- Modal and detour coordinators support full navigation stacks via buildCoordinatorView()
+- Coordinator.pop() is context-aware: dismisses modals/detours when at root
+- Multi-step modals work: push/pop within modal, back at root dismisses modal
+- KNOWN ISSUE: Navigation failures can leave app in broken state due to side effects during bubbling
 
 ---
 
-**Last Task Completed:** Simplified coordinator initialization and improved code organization
-**Next Task:** Merge Add-View-layer branch to main
-**Branch:** origin/Add-View-layer
+**Last Task Completed:** Added modal and detour navigation stack support with context-aware pop()
+**Next Task:** Merge feature/Error-handling branch to main
+**Branch:** origin/feature/Error-handling

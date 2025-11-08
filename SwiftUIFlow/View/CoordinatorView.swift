@@ -41,27 +41,33 @@ public struct CoordinatorView<R: Route>: View {
                     .environment(\.canNavigateBack, coordinator.presentationContext.shouldShowBackButton)
                     .navigationDestination(for: R.self) { route in
                         // Render pushed views
-                        router.view(for: route)
-                            .environment(\.navigationBackAction) { coordinator.pop() }
-                            .environment(\.canNavigateBack, true) // Pushed views can go back
+                        if let view = router.view(for: route) {
+                            view
+                                .environment(\.navigationBackAction) { coordinator.pop() }
+                                .environment(\.canNavigateBack, true) // Pushed views can go back
+                        } else {
+                            // Report error immediately and show empty view
+                            ErrorReportingView(error: coordinator
+                                .makeError(for: route,
+                                           errorType: .viewCreationFailed(viewType: .pushed)))
+                        }
                     }
             } else {
                 // Fallback if view factory doesn't provide a view
-                Text("No view for route: \(router.state.root.identifier)")
-                    .foregroundColor(.red)
+                ErrorReportingView(error: coordinator
+                    .makeError(for: router.state.root,
+                               errorType: .viewCreationFailed(viewType: .root)))
             }
         }
         .sheet(item: presentedRoute) { route in
-            // Render modal sheet using the modal coordinator
-            if let modalCoordinator = coordinator.currentModalCoordinator,
-               let modalView = modalCoordinator.buildView(for: route) as? AnyView
-            {
-                modalView
-                    .environment(\.navigationBackAction) { coordinator.dismissModal() }
-                    .environment(\.canNavigateBack, true) // Modals always show back button
+            // Render modal sheet with full coordinator navigation support
+            if let modalCoordinator = coordinator.currentModalCoordinator {
+                let coordinatorView = modalCoordinator.buildCoordinatorView()
+                eraseToAnyView(coordinatorView)
             } else {
-                Text("No view for modal route: \(route.identifier)")
-                    .foregroundColor(.red)
+                ErrorReportingView(error: coordinator
+                    .makeError(for: route,
+                               errorType: .viewCreationFailed(viewType: .modal)))
             }
         }
         #if os(iOS)
@@ -69,38 +75,16 @@ public struct CoordinatorView<R: Route>: View {
             // Handle detour dismissal (user swiped down or dismissed)
             coordinator.dismissDetour()
         }) {
-            // Render detour with its own navigation wrapper
-            if let detourCoordinator = coordinator.detourCoordinator,
-               let detourRoute = router.state.detour
-            {
-                NavigationStack {
-                    // Use buildView to get just the view, then wrap it ourselves
-                    if let detourView = detourCoordinator.buildView(for: detourRoute) as? AnyView {
-                        detourView
-                            .environment(\.navigationBackAction) { coordinator.dismissDetour() }
-                            .environment(\.canNavigateBack, true) // Detours always show back button
-                            .navigationBarTitleDisplayMode(.inline)
-                            .toolbar {
-                                ToolbarItem(placement: .navigationBarLeading) {
-                                    Button(action: {
-                                        coordinator.dismissDetour()
-                                    }) {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "chevron.left")
-                                                .font(.system(size: 17, weight: .semibold))
-                                            Text("Back")
-                                        }
-                                    }
-                                }
-                            }
-                    } else {
-                        Text("Detour view not available")
-                            .foregroundColor(.red)
-                    }
-                }
+            // Render detour with full coordinator navigation support
+            if let detourCoordinator = coordinator.detourCoordinator {
+                let coordinatorView = detourCoordinator.buildCoordinatorView()
+                eraseToAnyView(coordinatorView)
             } else {
-                Text("Detour view not available")
-                    .foregroundColor(.red)
+                if let detourRoute = router.state.detour {
+                    ErrorReportingView(error: coordinator
+                        .makeError(for: detourRoute,
+                                   errorType: .viewCreationFailed(viewType: .detour)))
+                }
             }
         }
         #else
@@ -108,35 +92,16 @@ public struct CoordinatorView<R: Route>: View {
         .sheet(isPresented: hasDetour, onDismiss: {
                     coordinator.dismissDetour()
                 }) {
-                    if let detourCoordinator = coordinator.detourCoordinator,
-                       let detourRoute = router.state.detour
-                    {
-                        NavigationStack {
-                            if let detourView = detourCoordinator.buildView(for: detourRoute) as? AnyView {
-                                detourView
-                                    .environment(\.navigationBackAction) { coordinator.dismissDetour() }
-                                    .environment(\.canNavigateBack, true) // Detours always show back button
-                                    .toolbar {
-                                        ToolbarItem(placement: .cancellationAction) {
-                                            Button(action: {
-                                                coordinator.dismissDetour()
-                                            }) {
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: "chevron.left")
-                                                        .font(.system(size: 17, weight: .semibold))
-                                                    Text("Back")
-                                                }
-                                            }
-                                        }
-                                    }
-                            } else {
-                                Text("Detour view not available")
-                                    .foregroundColor(.red)
-                            }
-                        }
+                    // Render detour with full coordinator navigation support
+                    if let detourCoordinator = coordinator.detourCoordinator {
+                        let coordinatorView = detourCoordinator.buildCoordinatorView()
+                        eraseToAnyView(coordinatorView)
                     } else {
-                        Text("Detour view not available")
-                            .foregroundColor(.red)
+                        if let detourRoute = router.state.detour {
+                            ErrorReportingView(error: coordinator
+                                .makeError(for: detourRoute,
+                                           errorType: .viewCreationFailed(viewType: .detour)))
+                        }
                     }
                 }
         #endif

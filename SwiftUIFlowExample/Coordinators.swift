@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OSLog
 import SwiftUIFlow
 
 // MARK: - App Coordinator (Root Orchestrator)
@@ -64,7 +65,7 @@ class LoginCoordinator: Coordinator<AppRoute> {
     }
 
     deinit {
-        print("🗑️ LoginCoordinator deallocated")
+        Logger(subsystem: "com.swiftuiflow.example", category: "Lifecycle").info("🗑️ LoginCoordinator deallocated")
     }
 }
 
@@ -105,7 +106,7 @@ class MainTabCoordinator: TabCoordinator<AppRoute> {
     }
 
     deinit {
-        print("🗑️ MainTabCoordinator deallocated")
+        Logger(subsystem: "com.swiftuiflow.example", category: "Lifecycle").info("🗑️ MainTabCoordinator deallocated")
     }
 }
 
@@ -176,7 +177,7 @@ class GreenCoordinator: Coordinator<GreenRoute> {
         guard let greenRoute = route as? GreenRoute else { return .push }
 
         switch greenRoute {
-        case .green, .lightGreen:
+        case .green, .lightGreen, .evenDarkerGreen:
             return .push
         case .darkGreen:
             return .modal
@@ -193,7 +194,7 @@ class GreenModalCoordinator: Coordinator<GreenRoute> {
 
     override func canHandle(_ route: any Route) -> Bool {
         guard let greenRoute = route as? GreenRoute else { return false }
-        return greenRoute == .darkGreen
+        return greenRoute == .darkGreen || greenRoute == .evenDarkerGreen
     }
 }
 
@@ -220,7 +221,7 @@ class BlueCoordinator: Coordinator<BlueRoute> {
         guard let blueRoute = route as? BlueRoute else { return .push }
 
         switch blueRoute {
-        case .blue, .lightBlue:
+        case .blue, .lightBlue, .invalidView:
             return .push
         case .darkBlue:
             return .modal

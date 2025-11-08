@@ -21,11 +21,21 @@ struct SwiftUIFlowExampleApp: App {
 
 class AppState: ObservableObject {
     let appCoordinator: AppCoordinator
+    @Published var currentError: SwiftUIFlowError?
+    @Published var showErrorToast: Bool = false
 
     init() {
         // AppCoordinator now handles initialization internally
         // It starts at login and manages flow transitions via handleFlowChange
         appCoordinator = AppCoordinator()
+
+        // Set up global error handler to show toast
+        SwiftUIFlowErrorHandler.shared.setHandler { [weak self] error in
+            DispatchQueue.main.async {
+                self?.currentError = error
+                self?.showErrorToast = true
+            }
+        }
     }
 }
 
@@ -39,24 +49,45 @@ struct AppRootView: View {
     }
 
     var body: some View {
-        // Observe router.state.root to rebuild when it changes
-        let currentRoot = router.state.root
+        ZStack {
+            // Observe router.state.root to rebuild when it changes
+            let currentRoot = router.state.root
 
-        // Dynamically render based on current root
-        switch currentRoot {
-        case .tabRoot:
-            // Use our completely custom tab bar with MainTabCoordinator
-            if let mainTabCoordinator = appState.appCoordinator.currentFlow as? MainTabCoordinator {
-                CustomTabBarView(coordinator: mainTabCoordinator)
-            } else {
-                Text("Main app loading...")
+            // Dynamically render based on current root
+            switch currentRoot {
+            case .tabRoot:
+                // Use our completely custom tab bar with MainTabCoordinator
+                if let mainTabCoordinator = appState.appCoordinator.currentFlow as? MainTabCoordinator {
+                    CustomTabBarView(coordinator: mainTabCoordinator)
+                } else {
+                    Text("Main app loading...")
+                }
+            case .login:
+                // Render login coordinator
+                if let loginCoordinator = appState.appCoordinator.currentFlow as? LoginCoordinator {
+                    CoordinatorView(coordinator: loginCoordinator)
+                } else {
+                    Text("Login loading...")
+                }
             }
-        case .login:
-            // Render login coordinator
-            if let loginCoordinator = appState.appCoordinator.currentFlow as? LoginCoordinator {
-                CoordinatorView(coordinator: loginCoordinator)
-            } else {
-                Text("Login loading...")
+
+            // Error toast overlay (on top of everything)
+            if appState.showErrorToast, let error = appState.currentError {
+                VStack {
+                    ErrorToastView(error: error) {
+                        appState.showErrorToast = false
+                    }
+                    .padding(.top, 50)
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.spring(), value: appState.showErrorToast)
+                .onAppear {
+                    // Auto-dismiss after 2 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        appState.showErrorToast = false
+                    }
+                }
             }
         }
     }
