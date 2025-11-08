@@ -110,21 +110,21 @@ public extension SwiftUIFlowError {
     var debugDescription: String {
         switch self {
         case let .navigationFailed(coordinator, route, routeType, context):
-            return "NavigationFailed: coordinator=\(coordinator) route=\(route) routeType=\(routeType) context=\(context)"
+            "NavigationFailed: coordinator=\(coordinator) route=\(route) routeType=\(routeType) context=\(context)"
         case let .modalCoordinatorNotConfigured(coordinator, route, routeType):
-            return "ModalCoordinatorNotConfigured: coordinator=\(coordinator) route=\(route) routeType=\(routeType)"
+            "ModalCoordinatorNotConfigured: coordinator=\(coordinator) route=\(route) routeType=\(routeType)"
         case let .invalidDetourNavigation(coordinator, route, routeType):
-            return "InvalidDetourNavigation: coordinator=\(coordinator) route=\(route) routeType=\(routeType)"
+            "InvalidDetourNavigation: coordinator=\(coordinator) route=\(route) routeType=\(routeType)"
         case let .viewCreationFailed(coordinator, route, routeType, viewType):
-            return "ViewCreationFailed: coordinator=\(coordinator) route=\(route) routeType=\(routeType) viewType=\(viewType)"
+            "ViewCreationFailed: coordinator=\(coordinator) route=\(route) routeType=\(routeType) viewType=\(viewType)"
         case let .invalidTabIndex(index, validRange):
-            return "InvalidTabIndex: index=\(index) validRange=\(validRange.lowerBound)..<\(validRange.upperBound)"
+            "InvalidTabIndex: index=\(index) validRange=\(validRange.lowerBound)..<\(validRange.upperBound)"
         case let .duplicateChild(coordinator):
-            return "DuplicateChild: coordinator=\(coordinator)"
+            "DuplicateChild: coordinator=\(coordinator)"
         case let .circularReference(coordinator):
-            return "CircularReference: coordinator=\(coordinator)"
+            "CircularReference: coordinator=\(coordinator)"
         case let .configurationError(message):
-            return "ConfigurationError: \(message)"
+            "ConfigurationError: \(message)"
         }
     }
 

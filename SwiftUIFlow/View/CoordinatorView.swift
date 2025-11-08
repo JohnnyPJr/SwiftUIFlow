@@ -47,12 +47,16 @@ public struct CoordinatorView<R: Route>: View {
                                 .environment(\.canNavigateBack, true) // Pushed views can go back
                         } else {
                             // Report error immediately and show empty view
-                            ErrorReportingView(error: coordinator.makeError(for: route, errorType: .viewCreationFailed(viewType: .pushed)))
+                            ErrorReportingView(error: coordinator
+                                .makeError(for: route,
+                                           errorType: .viewCreationFailed(viewType: .pushed)))
                         }
                     }
             } else {
                 // Fallback if view factory doesn't provide a view
-                ErrorReportingView(error: coordinator.makeError(for: router.state.root, errorType: .viewCreationFailed(viewType: .root)))
+                ErrorReportingView(error: coordinator
+                    .makeError(for: router.state.root,
+                               errorType: .viewCreationFailed(viewType: .root)))
             }
         }
         .sheet(item: presentedRoute) { route in
@@ -61,7 +65,9 @@ public struct CoordinatorView<R: Route>: View {
                 let coordinatorView = modalCoordinator.buildCoordinatorView()
                 eraseToAnyView(coordinatorView)
             } else {
-                ErrorReportingView(error: coordinator.makeError(for: route, errorType: .viewCreationFailed(viewType: .modal)))
+                ErrorReportingView(error: coordinator
+                    .makeError(for: route,
+                               errorType: .viewCreationFailed(viewType: .modal)))
             }
         }
         #if os(iOS)
@@ -75,7 +81,9 @@ public struct CoordinatorView<R: Route>: View {
                 eraseToAnyView(coordinatorView)
             } else {
                 if let detourRoute = router.state.detour {
-                    ErrorReportingView(error: coordinator.makeError(for: detourRoute, errorType: .viewCreationFailed(viewType: .detour)))
+                    ErrorReportingView(error: coordinator
+                        .makeError(for: detourRoute,
+                                   errorType: .viewCreationFailed(viewType: .detour)))
                 }
             }
         }
@@ -90,7 +98,9 @@ public struct CoordinatorView<R: Route>: View {
                         eraseToAnyView(coordinatorView)
                     } else {
                         if let detourRoute = router.state.detour {
-                            ErrorReportingView(error: coordinator.makeError(for: detourRoute, errorType: .viewCreationFailed(viewType: .detour)))
+                            ErrorReportingView(error: coordinator
+                                .makeError(for: detourRoute,
+                                           errorType: .viewCreationFailed(viewType: .detour)))
                         }
                     }
                 }

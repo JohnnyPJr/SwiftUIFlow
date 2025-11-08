@@ -102,7 +102,9 @@ extension Coordinator {
             }
             // Navigation failed - no coordinator in hierarchy can handle this route
             NavigationLogger.error("❌ \(Self.self): Could not handle \(route.identifier)")
-            reportError(makeError(for: route, errorType: .navigationFailed(context: "No coordinator in hierarchy can handle this route")))
+            reportError(makeError(for: route,
+                                  errorType: .navigationFailed(context:
+                                      "No coordinator in hierarchy can handle this route")))
             return false
         }
 
