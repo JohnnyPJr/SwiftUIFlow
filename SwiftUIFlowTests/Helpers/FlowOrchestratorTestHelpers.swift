@@ -63,6 +63,11 @@ class TestFlowOrchestratorWithFlowChange: FlowOrchestrator<FlowRoute> {
         transitionToFlow(TestFlowCoordinator(), root: .flow1)
     }
 
+    override func canHandleFlowChange(to route: any Route) -> Bool {
+        guard let flowRoute = route as? FlowRoute else { return false }
+        return flowRoute == .flow1 || flowRoute == .flow2
+    }
+
     override func handleFlowChange(to route: any Route) -> Bool {
         guard let flowRoute = route as? FlowRoute else { return false }
 

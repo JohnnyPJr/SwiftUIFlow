@@ -7,7 +7,127 @@
 
 import Foundation
 
-// MARK: - Private Navigation Helpers
+// MARK: - Validation Phase (No Side Effects)
+extension Coordinator {
+    /// Base implementation of validation - called from validateNavigationPath()
+    func validateNavigationPathBase(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+        // 1. Smart navigation check (no side effects - just checking state)
+        if let typedRoute = route as? R, canValidateSmartNavigation(to: typedRoute) {
+            return true
+        }
+
+        // 2. Modal/Detour navigation check (mirrors handleModalNavigation/handleDetourNavigation)
+        if validateModalAndDetourNavigation(to: route, from: caller) {
+            return true
+        }
+
+        // 3. Direct handling check (mirrors canHandle + executeNavigation)
+        if validateDirectHandling(of: route) {
+            return true
+        }
+
+        // 4. Delegate to children (mirrors delegateToChildren)
+        if validateChildrenCanHandle(route: route, caller: caller) {
+            return true
+        }
+
+        // 5. Bubble to parent (mirrors bubbleToParent)
+        return validateBubbleToParent(route: route)
+    }
+
+    private func canValidateSmartNavigation(to route: R) -> Bool {
+        // Already at route?
+        if isAlreadyAt(route: route) {
+            return true
+        }
+
+        // Route in stack? (would pop back)
+        if router.state.stack.firstIndex(where: { $0 == route }) != nil {
+            return true
+        }
+
+        // Route is root? (would pop to root or already there)
+        if route == router.state.root {
+            return true
+        }
+
+        return false
+    }
+
+    private func validateModalAndDetourNavigation(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+        // Only check modal/detour if caller is NOT one of our children/modal/detour
+        // (If caller is a child, we already checked modal before delegating to children)
+        let callerIsOurChild = caller != nil && children.contains(where: { $0 === caller })
+        let callerIsOurModalOrDetour = (caller === currentModalCoordinator) || (caller === detourCoordinator)
+
+        // Check modal
+        if let modal = currentModalCoordinator, !callerIsOurChild, !callerIsOurModalOrDetour {
+            if modal.validateNavigationPath(to: route, from: self) {
+                return true
+            }
+            // Modal didn't handle - in execution we'd dismiss and continue
+            // So continue validation (don't return false)
+        }
+
+        // Check detour
+        if let detour = detourCoordinator, !callerIsOurChild, !callerIsOurModalOrDetour {
+            if detour.validateNavigationPath(to: route, from: self) {
+                return true
+            }
+            // Detour didn't handle - in execution we'd dismiss and continue
+            // So continue validation (don't return false)
+        }
+
+        return false
+    }
+
+    private func validateDirectHandling(of route: any Route) -> Bool {
+        guard let typedRoute = route as? R, canHandle(typedRoute) else {
+            return false
+        }
+
+        // Check if this navigation type can be executed
+        switch navigationType(for: typedRoute) {
+        case .push, .replace, .tabSwitch:
+            return true
+        case .modal:
+            // Can we execute modal navigation?
+            if let currentModal = currentModalCoordinator, currentModal.canHandle(route) {
+                return true
+            }
+            return modalCoordinators.contains(where: { $0.canHandle(route) })
+        case .detour:
+            return false // Invalid - detour through navigate() not allowed
+        }
+    }
+
+    private func validateChildrenCanHandle(route: any Route, caller: AnyCoordinator?) -> Bool {
+        for child in children where child !== caller {
+            // CRITICAL: Only delegate to children whose parent is actually us
+            // (A child might be in our children array but have its parent temporarily changed,
+            // e.g., when presented as a detour elsewhere)
+            guard child.parent === self else { continue }
+
+            if child.validateNavigationPath(to: route, from: self) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private func validateBubbleToParent(route: any Route) -> Bool {
+        guard let parent else {
+            // At root - check if flow change can be handled (without executing it)
+            return canHandleFlowChange(to: route)
+        }
+
+        // In execution we'd clean state before bubbling, but validation doesn't need to check
+        // We just validate that parent can handle the route
+        return parent.validateNavigationPath(to: route, from: self)
+    }
+}
+
+// MARK: - Execution Phase (With Side Effects)
 extension Coordinator {
     func trySmartNavigation(to route: R) -> Bool {
         if isAlreadyAt(route: route) {

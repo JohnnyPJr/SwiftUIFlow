@@ -50,6 +50,11 @@ class TestAppCoordinator: FlowOrchestrator<TestAppRoute> {
         transitionToFlow(TestLoginCoordinator(), root: .login)
     }
 
+    override func canHandleFlowChange(to route: any Route) -> Bool {
+        guard let appRoute = route as? TestAppRoute else { return false }
+        return appRoute == .login || appRoute == .mainApp
+    }
+
     override func handleFlowChange(to route: any Route) -> Bool {
         guard let appRoute = route as? TestAppRoute else { return false }
 
