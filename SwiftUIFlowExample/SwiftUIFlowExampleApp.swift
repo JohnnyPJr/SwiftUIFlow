@@ -49,11 +49,11 @@ struct AppRootView: View {
     }
 
     var body: some View {
-        ZStack {
-            // Observe router.state.root to rebuild when it changes
-            let currentRoot = router.state.root
+        // Observe router.state.root to rebuild when it changes
+        let currentRoot = router.state.root
 
-            // Dynamically render based on current root
+        // Dynamically render based on current root
+        Group {
             switch currentRoot {
             case .tabRoot:
                 // Use our completely custom tab bar with MainTabCoordinator
@@ -70,25 +70,7 @@ struct AppRootView: View {
                     Text("Login loading...")
                 }
             }
-
-            // Error toast overlay (on top of everything)
-            if appState.showErrorToast, let error = appState.currentError {
-                VStack {
-                    ErrorToastView(error: error) {
-                        appState.showErrorToast = false
-                    }
-                    .padding(.top, 50)
-                    Spacer()
-                }
-                .transition(.move(edge: .top).combined(with: .opacity))
-                .animation(.spring(), value: appState.showErrorToast)
-                .onAppear {
-                    // Auto-dismiss after 2 seconds
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        appState.showErrorToast = false
-                    }
-                }
-            }
         }
+        .errorToast(isPresented: $appState.showErrorToast, error: appState.currentError)
     }
 }
