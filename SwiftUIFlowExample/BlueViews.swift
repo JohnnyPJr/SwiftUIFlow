@@ -32,6 +32,11 @@ struct BlueView: View {
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }
         }
+        .withInfoButton {
+            coordinator.presentModal(coordinator.infoCoordinator,
+                                     presenting: .info,
+                                     detentConfiguration: ModalDetentConfiguration(detents: [.medium]))
+        }
         .customNavigationBar(title: "Blue",
                              titleColor: .white,
                              backgroundColor: Color.blue.opacity(0.8))

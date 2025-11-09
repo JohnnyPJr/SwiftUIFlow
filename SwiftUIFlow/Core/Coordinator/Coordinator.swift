@@ -217,11 +217,15 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
     }
 
-    public func presentModal(_ coordinator: AnyCoordinator, presenting route: R) {
+    public func presentModal(_ coordinator: AnyCoordinator,
+                             presenting route: R,
+                             detentConfiguration: ModalDetentConfiguration =
+                                 ModalDetentConfiguration(detents: [.large]))
+    {
         currentModalCoordinator = coordinator
         coordinator.parent = self
         coordinator.presentationContext = .modal
-        router.present(route)
+        router.present(route, detentConfiguration: detentConfiguration)
     }
 
     public func dismissModal() {

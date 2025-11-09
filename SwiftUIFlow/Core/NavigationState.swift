@@ -14,6 +14,9 @@ public struct NavigationState<R: Route>: Equatable {
     public var presented: R?
     public var detour: (any Route)?
 
+    /// Configuration for modal presentation detents
+    public var modalDetentConfiguration: ModalDetentConfiguration?
+
     /// The current route being displayed (modal if presented, otherwise top of stack, or root if stack is empty)
     public var currentRoute: R {
         return presented ?? stack.last ?? root
@@ -25,6 +28,7 @@ public struct NavigationState<R: Route>: Equatable {
         selectedTab = 0
         presented = nil
         detour = nil
+        modalDetentConfiguration = nil
     }
 
     public static func == (lhs: NavigationState<R>, rhs: NavigationState<R>) -> Bool {
@@ -32,6 +36,7 @@ public struct NavigationState<R: Route>: Equatable {
             lhs.stack == rhs.stack &&
             lhs.selectedTab == rhs.selectedTab &&
             lhs.presented == rhs.presented &&
-            lhs.detour?.identifier == rhs.detour?.identifier
+            lhs.detour?.identifier == rhs.detour?.identifier &&
+            lhs.modalDetentConfiguration == rhs.modalDetentConfiguration
     }
 }

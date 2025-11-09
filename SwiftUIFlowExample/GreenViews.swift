@@ -32,6 +32,11 @@ struct GreenView: View {
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }
         }
+        .withInfoButton {
+            coordinator.presentModal(coordinator.infoCoordinator,
+                                     presenting: .info,
+                                     detentConfiguration: ModalDetentConfiguration(detents: [.small]))
+        }
         .customNavigationBar(title: "Green",
                              titleColor: .white,
                              backgroundColor: Color.green.opacity(0.8))

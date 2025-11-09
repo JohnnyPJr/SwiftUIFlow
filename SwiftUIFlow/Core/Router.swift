@@ -56,14 +56,18 @@ public final class Router<R: Route>: ObservableObject {
 
     /// Present a route modally.
     /// **Internal:** Use `Coordinator.navigate(to:)` with `.modal` NavigationType instead.
-    func present(_ route: R) {
+    func present(_ route: R,
+                 detentConfiguration: ModalDetentConfiguration = ModalDetentConfiguration(detents: [.large]))
+    {
         state.presented = route
+        state.modalDetentConfiguration = detentConfiguration
     }
 
     /// Dismiss the currently presented modal.
     /// **Internal:** Use `Coordinator.dismissModal()` instead.
     func dismissModal() {
         state.presented = nil
+        state.modalDetentConfiguration = nil
     }
 
     /// Present a detour route (cross-coordinator navigation with context preservation).
@@ -103,6 +107,29 @@ public final class Router<R: Route>: ObservableObject {
         state.stack.removeAll()
         state.presented = nil
         state.detour = nil
+    }
+
+    // MARK: - Modal Detent Configuration
+
+    /// Update the ideal height in the modal detent configuration
+    /// **Internal:** Called by CoordinatorView when PreferenceKey changes
+    func updateModalIdealHeight(_ height: CGFloat?) {
+        guard state.modalDetentConfiguration != nil else { return }
+        state.modalDetentConfiguration?.idealHeight = height
+    }
+
+    /// Update the minimum height in the modal detent configuration
+    /// **Internal:** Called by CoordinatorView when PreferenceKey changes
+    func updateModalMinHeight(_ height: CGFloat?) {
+        guard state.modalDetentConfiguration != nil else { return }
+        state.modalDetentConfiguration?.minHeight = height
+    }
+
+    /// Update the selected detent in the modal detent configuration
+    /// **Internal:** Called by CoordinatorView when user changes detent
+    func updateModalSelectedDetent(_ detent: ModalPresentationDetent?) {
+        guard state.modalDetentConfiguration != nil else { return }
+        state.modalDetentConfiguration?.selectedDetent = detent
     }
 
     // MARK: - View Building
