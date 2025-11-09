@@ -80,10 +80,10 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         XCTAssertFalse(result, "Navigation should fail without modal coordinator")
         XCTAssertNotNil(capturedError, "Error handler should be called")
 
-        if case .modalCoordinatorNotConfigured = capturedError {
-            // Success
+        if case .navigationFailed = capturedError {
+            // Success - validation catches this before execution
         } else {
-            XCTFail("Expected modalCoordinatorNotConfigured error")
+            XCTFail("Expected navigationFailed error")
         }
     }
 
@@ -129,10 +129,10 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         XCTAssertFalse(result, "Navigation should fail")
         XCTAssertNotNil(capturedError, "Error handler should be called")
 
-        if case .invalidDetourNavigation = capturedError {
-            // Success
+        if case .navigationFailed = capturedError {
+            // Success - validation catches this before execution
         } else {
-            XCTFail("Expected invalidDetourNavigation error")
+            XCTFail("Expected navigationFailed error")
         }
     }
 
