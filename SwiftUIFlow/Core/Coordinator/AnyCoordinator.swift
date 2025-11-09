@@ -15,7 +15,7 @@ public protocol AnyCoordinator: AnyObject {
 
     func navigationType(for route: any Route) -> NavigationType
     func navigate(to route: any Route, from caller: AnyCoordinator?) -> Bool
-    func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> Bool
+    func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult
     func canHandle(_ route: any Route) -> Bool
     func canNavigate(to route: any Route) -> Bool
     func resetToCleanState()

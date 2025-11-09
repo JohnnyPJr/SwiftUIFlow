@@ -48,7 +48,7 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
     }
 
     /// Override to use TabCoordinator-specific validation logic
-    override open func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+    override open func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
         return validateNavigationPathTabImpl(to: route, from: caller)
     }
 
@@ -64,10 +64,9 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
 
         // Phase 1: if Super doesn't handle: Validation - ONLY at entry point (caller == nil)
         if caller == nil {
-            guard validateNavigationPath(to: route, from: caller) else {
+            let validationResult = validateNavigationPath(to: route, from: caller)
+            if case let .failure(error) = validationResult {
                 NavigationLogger.error("❌ \(Self.self): Navigation validation failed for \(route.identifier)")
-                let error = makeError(for: route,
-                                      errorType: .navigationFailed(context: "No coordinator can handle this route"))
                 reportError(error)
                 return false
             }
@@ -107,7 +106,7 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
 // MARK: - Validation Implementation
 extension TabCoordinator {
     /// TabCoordinator-specific validation implementation
-    func validateNavigationPathTabImpl(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+    func validateNavigationPathTabImpl(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
         // First check if we can handle it directly
         if let typedRoute = route as? R, canHandle(typedRoute) {
             // Let the base class validate
@@ -120,8 +119,9 @@ extension TabCoordinator {
             let currentTab = children[currentTabIndex]
             // Skip current tab if it's the one calling us (it already tried and failed)
             if currentTab !== caller, currentTab.canNavigate(to: route) {
-                if currentTab.validateNavigationPath(to: route, from: self) {
-                    return true
+                let currentTabResult = currentTab.validateNavigationPath(to: route, from: self)
+                if currentTabResult.isSuccess {
+                    return currentTabResult
                 }
             }
         }
@@ -130,15 +130,21 @@ extension TabCoordinator {
         for (index, child) in children.enumerated() {
             if index != currentTabIndex, child !== caller, child.canNavigate(to: route) {
                 // In execution we'd switch tabs, but in validation we just check if child can handle
-                if child.validateNavigationPath(to: route, from: self) {
-                    return true
+                let childResult = child.validateNavigationPath(to: route, from: self)
+                if childResult.isSuccess {
+                    return childResult
                 }
             }
         }
 
         // No child can handle it - bubble to parent
         guard let parent else {
-            return canHandleFlowChange(to: route)
+            if canHandleFlowChange(to: route) {
+                return .success
+            }
+            return .failure(makeError(for: route,
+                                      errorType:
+                                      .navigationFailed(context: "No coordinator in hierarchy can handle this route")))
         }
 
         return parent.validateNavigationPath(to: route, from: self)

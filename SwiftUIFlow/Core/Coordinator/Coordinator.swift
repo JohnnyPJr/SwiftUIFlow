@@ -92,7 +92,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     /// Validates navigation path without side effects - mirrors navigate() logic exactly.
     /// Override in subclasses if needed. Default implementation delegates to extension helper.
-    open func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+    open func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
         return validateNavigationPathBase(to: route, from: caller)
     }
 
@@ -153,10 +153,9 @@ open class Coordinator<R: Route>: AnyCoordinator {
     public func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
         // Phase 1: Validation - ONLY at entry point (caller == nil)
         if caller == nil {
-            guard validateNavigationPath(to: route, from: caller) else {
+            let validationResult = validateNavigationPath(to: route, from: caller)
+            if case let .failure(error) = validationResult {
                 NavigationLogger.error("❌ \(Self.self): Navigation validation failed for \(route.identifier)")
-                let error = makeError(for: route,
-                                      errorType: .navigationFailed(context: "No coordinator can handle this route"))
                 reportError(error)
                 return false
             }
