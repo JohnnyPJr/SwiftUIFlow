@@ -28,6 +28,13 @@ class AppCoordinator: FlowOrchestrator<AppRoute> {
         return false
     }
 
+    /// Check if this coordinator can handle flow changes (without executing them).
+    /// Used during navigation validation to avoid side effects.
+    override func canHandleFlowChange(to route: any Route) -> Bool {
+        guard let appRoute = route as? AppRoute else { return false }
+        return appRoute == .login || appRoute == .tabRoot
+    }
+
     /// Handle flow changes when routes bubble to the root.
     /// This is called when LoginCoordinator or any child coordinator navigates
     /// to an AppRoute that they can't handle - it bubbles here for orchestration.

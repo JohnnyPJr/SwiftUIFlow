@@ -90,6 +90,27 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return false
     }
 
+    /// Validates navigation path without side effects - mirrors navigate() logic exactly.
+    /// Override in subclasses if needed. Default implementation delegates to extension helper.
+    open func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
+        return validateNavigationPathBase(to: route, from: caller)
+    }
+
+    /// Check a FlowOrchestrator Coordinator can handle a flow change for the given route.
+    ///
+    /// Override this to return true for routes that `handleFlowChange` would handle,
+    /// WITHOUT executing the flow change. This is necessary during validation.
+    ///
+    /// ```swift
+    /// override func canHandleFlowChange(to route: any Route) -> Bool {
+    ///     guard let appRoute = route as? AppRoute else { return false }
+    ///     return appRoute == .login || appRoute == .mainApp
+    /// }
+    /// ```
+    open func canHandleFlowChange(to route: any Route) -> Bool {
+        return false
+    }
+
     /// Handle major flow transitions (e.g., Login ↔ Main App).
     ///
     /// Called when a route bubbles to root and cannot be handled. Override to orchestrate
@@ -130,6 +151,17 @@ open class Coordinator<R: Route>: AnyCoordinator {
     }
 
     public func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
+        // Phase 1: Validation - ONLY at entry point (caller == nil)
+        if caller == nil {
+            let validationResult = validateNavigationPath(to: route, from: caller)
+            if case let .failure(error) = validationResult {
+                NavigationLogger.error("❌ \(Self.self): Navigation validation failed for \(route.identifier)")
+                reportError(error)
+                return false
+            }
+        }
+
+        // Phase 2: Execution (side effects happen here)
         NavigationLogger.debug("🔍 \(Self.self): Navigating to \(route.identifier)")
 
         if let typedRoute = route as? R, trySmartNavigation(to: typedRoute) {

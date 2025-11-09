@@ -73,6 +73,26 @@ public enum ViewType: Equatable {
     case detour
 }
 
+/// Result of navigation validation
+public enum ValidationResult {
+    case success
+    case failure(SwiftUIFlowError)
+
+    var isSuccess: Bool {
+        if case .success = self {
+            return true
+        }
+        return false
+    }
+
+    var error: SwiftUIFlowError? {
+        if case let .failure(error) = self {
+            return error
+        }
+        return nil
+    }
+}
+
 extension SwiftUIFlowError {
     /// Helper enum for creating errors without repeating coordinator/route info
     enum ErrorType {
