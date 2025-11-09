@@ -108,6 +108,12 @@ final class TestCoordinatorWithFlowChange: TestCoordinator {
         super.init(router: router)
     }
 
+    override func canHandleFlowChange(to route: any Route) -> Bool {
+        guard let mockRoute = route as? MockRoute else { return false }
+        // Can handle flow changes for login route
+        return mockRoute == .login
+    }
+
     override func handleFlowChange(to route: any Route) -> Bool {
         flowChangeWasCalled = true
         flowChangeRoute = route

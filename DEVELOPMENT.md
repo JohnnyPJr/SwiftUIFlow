@@ -1,6 +1,6 @@
 # SwiftUIFlow - Development Progress
 
-**Last Updated:** November 8, 2025
+**Last Updated:** November 9, 2025
 
 ---
 
@@ -1259,6 +1259,211 @@ Added "even darker green" screen to demonstrate:
 
 **Status:** ✅ Fully implemented with tests and example
 
+### 17. Two-Phase Navigation - Atomic Navigation with Specific Error Reporting ✅
+
+**Decision:** Implement validation-before-execution pattern to prevent broken intermediate states during navigation failures
+
+**Critical Bug Fixed:** When navigation failed partway through bubbling, state changes (modal dismissals, pops, etc.) had already occurred, leaving the app in a broken intermediate state.
+
+**Problem Example:**
+```swift
+// Before fix:
+TabCoordinator (tab 2 selected)
+  ├─ Tab2Coordinator (3 screens in stack, modal open)
+  └─ Navigation to UnhandledRoute
+
+Execution flow:
+1. Tab2 dismisses modal ✓ (SIDE EFFECT)
+2. Tab2 pops to root ✓ (SIDE EFFECT)
+3. Tab2 bubbles to TabCoordinator
+4. TabCoordinator tries other tabs
+5. Navigation FAILS ❌
+6. Result: Modal gone, stack cleared, but navigation failed
+   → User stuck in broken state!
+```
+
+**Solution: Two-Phase Navigation**
+
+Separate navigation into two atomic phases:
+1. **Phase 1 - Validation**: Traverse entire hierarchy, check if navigation CAN succeed (no side effects)
+2. **Phase 2 - Execution**: Only execute if validation passed (with side effects)
+
+**Implementation:**
+
+**New Types** - `SwiftUIFlowError.swift`:
+```swift
+/// Result of navigation validation
+public enum ValidationResult {
+    case success
+    case failure(SwiftUIFlowError)
+
+    var isSuccess: Bool { ... }
+    var error: SwiftUIFlowError? { ... }
+}
+```
+
+**Validation Phase** - `Coordinator+NavigationHelpers.swift`:
+```swift
+// MARK: - Validation Phase (No Side Effects)
+extension Coordinator {
+    func validateNavigationPathBase(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
+        // 1. Smart navigation check (no side effects - just checking state)
+        if let typedRoute = route as? R, canValidateSmartNavigation(to: typedRoute) {
+            return .success
+        }
+
+        // 2. Modal/Detour navigation check
+        if let modalDetourResult = validateModalAndDetourNavigation(to: route, from: caller) {
+            return modalDetourResult
+        }
+
+        // 3. Direct handling check with specific errors
+        if let directHandlingResult = validateDirectHandling(of: route) {
+            return directHandlingResult  // Returns .modalCoordinatorNotConfigured or .invalidDetourNavigation
+        }
+
+        // 4. Delegate to children
+        if let childrenResult = validateChildrenCanHandle(route: route, caller: caller) {
+            return childrenResult
+        }
+
+        // 5. Bubble to parent
+        return validateBubbleToParent(route: route)
+    }
+
+    private func validateDirectHandling(of route: any Route) -> ValidationResult? {
+        guard let typedRoute = route as? R, canHandle(typedRoute) else {
+            return nil
+        }
+
+        switch navigationType(for: typedRoute) {
+        case .push, .replace, .tabSwitch:
+            return .success
+        case .modal:
+            if let currentModal = currentModalCoordinator, currentModal.canHandle(route) {
+                return .success
+            }
+            if modalCoordinators.contains(where: { $0.canHandle(route) }) {
+                return .success
+            }
+            // Specific error instead of generic navigationFailed
+            return .failure(makeError(for: route, errorType: .modalCoordinatorNotConfigured))
+        case .detour:
+            // Specific error instead of generic navigationFailed
+            return .failure(makeError(for: route, errorType: .invalidDetourNavigation))
+        }
+    }
+}
+```
+
+**Execution Phase** - `Coordinator.swift`:
+```swift
+public func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
+    // Phase 1: Validation - ONLY at entry point (caller == nil)
+    if caller == nil {
+        let validationResult = validateNavigationPath(to: route, from: caller)
+        if case let .failure(error) = validationResult {
+            NavigationLogger.error("❌ \(Self.self): Navigation validation failed")
+            reportError(error)  // Reports SPECIFIC error
+            return false
+        }
+    }
+
+    // Phase 2: Execution (side effects happen here)
+    // ... existing navigation logic with side effects
+}
+```
+
+**Specific Error Types:**
+
+Before fix (generic errors):
+```swift
+❌ "Navigation failed: No coordinator can handle this route"
+```
+
+After fix (specific errors):
+```swift
+✅ "Cannot present 'profile' as modal - no modal coordinator configured"
+✅ "Cannot navigate to 'settings' - detours must use presentDetour()"
+✅ "Invalid tab index 5 - valid range is 0..<3"
+✅ "Navigation failed: No coordinator in hierarchy can handle this route"
+```
+
+**Key Architectural Points:**
+
+1. **Validation mirrors execution exactly**
+   - Same logic flow (smart nav → modal → detour → direct → children → parent)
+   - Same caller tracking to prevent infinite loops
+   - Same skip logic for modal/detour when caller is our child
+
+2. **No side effects during validation**
+   - No `dismissModal()`, `popTo()`, `push()`, etc.
+   - Just checking state (isAlreadyAt, canHandle, canNavigate)
+   - Returns success/failure without mutating anything
+
+3. **Specific errors from validation**
+   - `.modalCoordinatorNotConfigured` when modal NavigationType but no coordinator
+   - `.invalidDetourNavigation` when detour returned from navigationType()
+   - `.navigationFailed` with context when route can't be handled
+
+4. **Execution phase has safety logs**
+   - Unreachable error cases now log warnings
+   - "validation should have caught this" messages
+   - Helps catch validation bugs during development
+
+**Testing:**
+
+Updated ErrorHandlingIntegrationTests.swift (7 tests):
+- `test_ModalCoordinatorNotConfigured_CallsErrorHandler` - Now expects specific error
+- `test_InvalidDetourNavigation_CallsErrorHandler` - Now expects specific error
+- All other tests verify specific errors are reported
+
+**Implementation Cost:**
+- Added ~200 lines of validation code
+- Validation helpers mirror execution helpers
+- Worth it: Prevents real user-facing bugs in production
+
+**Alternatives Considered:**
+
+1. **Deferred Execution Pattern** (Build action list, then execute)
+   - ❌ Doesn't work: Decisions depend on execution results (modal handled? → dismiss or continue)
+   - ❌ Conditional actions would require complex decision tree structure
+
+2. **Transaction/Rollback Pattern** (Execute, rollback on failure)
+   - ❌ Too complex: Need to snapshot entire hierarchy state
+   - ❌ Brittle: Rollback could fail, animations/callbacks not reversible
+
+3. **Navigate-Back-On-Failure** (Store state, navigate back if failed)
+   - ❌ UI flicker: User briefly sees broken state
+   - ❌ Partial solution: Only restores one coordinator's route, not entire hierarchy
+
+**Why ValidationResult is the Best Solution:**
+
+✅ **Zero flicker** - User never sees broken state
+✅ **Specific errors** - Detailed error information for debugging
+✅ **Atomic navigation** - Either fully succeeds or fully fails
+✅ **Well-known pattern** - Validation before execution (form validation, SQL planning, type checking)
+✅ **Testable** - Easy to verify validation logic separately
+✅ **Production-ready** - Acceptable cost (~200 lines) for production framework
+
+**Files Modified:**
+- `SwiftUIFlow/Core/SwiftUIFlowError.swift` - Added ValidationResult enum
+- `SwiftUIFlow/Core/Coordinator/AnyCoordinator.swift` - Changed return type to ValidationResult
+- `SwiftUIFlow/Core/Coordinator/Coordinator.swift` - Two-phase navigate(), validateNavigationPath()
+- `SwiftUIFlow/Core/Coordinator/Coordinator+NavigationHelpers.swift` - All validation helpers
+- `SwiftUIFlow/Core/Coordinator/TabCoordinator.swift` - Tab-specific validation
+- `SwiftUIFlowTests/IntegrationTests/ErrorHandlingIntegrationTests.swift` - Updated tests
+
+**Benefits:**
+
+✅ **Prevents broken states** - Navigation either fully succeeds or leaves state unchanged
+✅ **Better error messages** - Specific errors instead of generic failures
+✅ **Production quality** - Framework suitable for mission-critical apps
+✅ **Developer experience** - Clear error messages help fix issues faster
+✅ **Maintainable** - Validation logic cleanly separated in extension
+
+**Status:** ✅ Fully implemented, tested, and validated
+
 ---
 
 ## Current TODO List
@@ -1319,16 +1524,21 @@ Added "even darker green" screen to demonstrate:
 - [x] Add dismissModal() and dismissDetour() to AnyCoordinator protocol
 - [x] Add tests for modal/detour navigation stacks (5 new tests)
 - [x] Add example for multi-step modal (even darker green)
+- [x] Implement two-phase navigation (ValidationResult pattern)
+- [x] Add ValidationResult enum with success/failure cases
+- [x] Implement validateNavigationPath() that mirrors navigate() without side effects
+- [x] Update navigate() to validate before executing (atomic navigation)
+- [x] Add specific error types (modalCoordinatorNotConfigured, invalidDetourNavigation)
+- [x] Update ErrorHandlingIntegrationTests to verify specific errors
+- [x] Remove unreachable error reporting from execution phase
+- [x] Document two-phase navigation architecture and alternatives considered
+- [x] Clean up error toast UI (alignment improvements)
+- [x] Create reusable errorToast() view modifier (like .sheet)
 
 ### In Progress 🔄
 - [ ] Prepare for main branch merge
 
 ### Pending 📋
-
-**CRITICAL PRIORITY:**
-- [ ] **Fix navigation side effects issue** - Currently when navigation fails partway through bubbling, state changes (modal dismissals, pops, etc.) have already occurred, leaving the app in a broken state. Need to implement two-phase navigation: Phase 1 validates the entire path without side effects, Phase 2 only executes if validation succeeds. This requires significant architectural changes to separate validation from execution in the navigate() method.
-
-**Lower Priority:**
 - [ ] Add sheet presentation styles (detents, custom sizing)
 - [ ] Add snapshot tests for view layer (optional)
 
@@ -1441,10 +1651,13 @@ None currently - proceeding with TabCoordinatorView implementation.
 - Modal and detour coordinators support full navigation stacks via buildCoordinatorView()
 - Coordinator.pop() is context-aware: dismisses modals/detours when at root
 - Multi-step modals work: push/pop within modal, back at root dismisses modal
-- KNOWN ISSUE: Navigation failures can leave app in broken state due to side effects during bubbling
+- Two-phase navigation prevents broken intermediate states (validation → execution)
+- ValidationResult provides specific errors (.modalCoordinatorNotConfigured, .invalidDetourNavigation)
+- Navigation is atomic: either fully succeeds or leaves state unchanged
+- Error toast uses reusable .errorToast() modifier (SwiftUI-idiomatic pattern)
 
 ---
 
-**Last Task Completed:** Added modal and detour navigation stack support with context-aware pop()
-**Next Task:** Merge feature/Error-handling branch to main
-**Branch:** origin/feature/Error-handling
+**Last Task Completed:** Implemented two-phase navigation with ValidationResult pattern to fix critical navigation bug
+**Next Task:** Merge feature/Refactor-Navigation-Engine branch to main
+**Branch:** origin/feature/Refactor-Navigation-Engine
