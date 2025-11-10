@@ -24,12 +24,14 @@ enum RedRoute: Route {
     case red
     case lightRed
     case darkRed
+    case info
 
     var identifier: String {
         switch self {
         case .red: return "red"
         case .lightRed: return "lightRed"
         case .darkRed: return "darkRed"
+        case .info: return "info"
         }
     }
 }
@@ -39,6 +41,7 @@ enum GreenRoute: Route {
     case lightGreen
     case darkGreen
     case evenDarkerGreen
+    case info
 
     var identifier: String {
         switch self {
@@ -46,6 +49,7 @@ enum GreenRoute: Route {
         case .lightGreen: return "lightGreen"
         case .darkGreen: return "darkGreen"
         case .evenDarkerGreen: return "evenDarkerGreen"
+        case .info: return "info"
         }
     }
 }
@@ -55,6 +59,7 @@ enum BlueRoute: Route {
     case lightBlue
     case darkBlue
     case invalidView // Coordinator handles but ViewFactory returns nil
+    case info
 
     var identifier: String {
         switch self {
@@ -62,6 +67,7 @@ enum BlueRoute: Route {
         case .lightBlue: return "lightBlue"
         case .darkBlue: return "darkBlue"
         case .invalidView: return "invalidView"
+        case .info: return "info"
         }
     }
 }
@@ -70,12 +76,14 @@ enum YellowRoute: Route {
     case yellow
     case lightYellow
     case darkYellow
+    case info
 
     var identifier: String {
         switch self {
         case .yellow: return "yellow"
         case .lightYellow: return "lightYellow"
         case .darkYellow: return "darkYellow"
+        case .info: return "info"
         }
     }
 }
@@ -85,6 +93,7 @@ enum PurpleRoute: Route {
     case lightPurple
     case darkPurple
     case result(success: Bool)
+    case info
 
     var identifier: String {
         switch self {
@@ -92,6 +101,7 @@ enum PurpleRoute: Route {
         case .lightPurple: return "lightPurple"
         case .darkPurple: return "darkPurple"
         case let .result(success): return "result_\(success)"
+        case .info: return "info"
         }
     }
 }

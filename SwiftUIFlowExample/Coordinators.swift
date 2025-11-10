@@ -120,12 +120,17 @@ class MainTabCoordinator: TabCoordinator<AppRoute> {
 // MARK: - Red Tab Coordinator
 
 class RedCoordinator: Coordinator<RedRoute> {
+    var infoCoordinator: RedInfoCoordinator!
+
     init() {
         let factory = RedViewFactory()
         super.init(router: Router(initial: .red, factory: factory))
         factory.coordinator = self
         let modalCoord = RedModalCoordinator()
         addModalCoordinator(modalCoord)
+
+        infoCoordinator = RedInfoCoordinator()
+        addModalCoordinator(infoCoordinator)
     }
 
     override var tabItem: (text: String, image: String)? {
@@ -142,7 +147,7 @@ class RedCoordinator: Coordinator<RedRoute> {
         switch redRoute {
         case .red, .lightRed:
             return .push
-        case .darkRed:
+        case .darkRed, .info:
             return .modal
         }
     }
@@ -164,12 +169,17 @@ class RedModalCoordinator: Coordinator<RedRoute> {
 // MARK: - Green Tab Coordinator
 
 class GreenCoordinator: Coordinator<GreenRoute> {
+    var infoCoordinator: GreenInfoCoordinator!
+
     init() {
         let factory = GreenViewFactory()
         super.init(router: Router(initial: .green, factory: factory))
         factory.coordinator = self
         let modalCoord = GreenModalCoordinator()
         addModalCoordinator(modalCoord)
+
+        infoCoordinator = GreenInfoCoordinator()
+        addModalCoordinator(infoCoordinator)
     }
 
     override var tabItem: (text: String, image: String)? {
@@ -186,7 +196,7 @@ class GreenCoordinator: Coordinator<GreenRoute> {
         switch greenRoute {
         case .green, .lightGreen, .evenDarkerGreen:
             return .push
-        case .darkGreen:
+        case .darkGreen, .info:
             return .modal
         }
     }
@@ -208,12 +218,17 @@ class GreenModalCoordinator: Coordinator<GreenRoute> {
 // MARK: - Blue Tab Coordinator
 
 class BlueCoordinator: Coordinator<BlueRoute> {
+    var infoCoordinator: BlueInfoCoordinator!
+
     init() {
         let factory = BlueViewFactory()
         super.init(router: Router(initial: .blue, factory: factory))
         factory.coordinator = self
         let modalCoord = BlueModalCoordinator()
         addModalCoordinator(modalCoord)
+
+        infoCoordinator = BlueInfoCoordinator()
+        addModalCoordinator(infoCoordinator)
     }
 
     override var tabItem: (text: String, image: String)? {
@@ -230,7 +245,7 @@ class BlueCoordinator: Coordinator<BlueRoute> {
         switch blueRoute {
         case .blue, .lightBlue, .invalidView:
             return .push
-        case .darkBlue:
+        case .darkBlue, .info:
             return .modal
         }
     }
@@ -252,12 +267,17 @@ class BlueModalCoordinator: Coordinator<BlueRoute> {
 // MARK: - Yellow Tab Coordinator
 
 class YellowCoordinator: Coordinator<YellowRoute> {
+    var infoCoordinator: YellowInfoCoordinator!
+
     init() {
         let factory = YellowViewFactory()
         super.init(router: Router(initial: .yellow, factory: factory))
         factory.coordinator = self
         let modalCoord = YellowModalCoordinator()
         addModalCoordinator(modalCoord)
+
+        infoCoordinator = YellowInfoCoordinator()
+        addModalCoordinator(infoCoordinator)
     }
 
     override var tabItem: (text: String, image: String)? {
@@ -274,7 +294,7 @@ class YellowCoordinator: Coordinator<YellowRoute> {
         switch yellowRoute {
         case .yellow, .lightYellow:
             return .push
-        case .darkYellow:
+        case .darkYellow, .info:
             return .modal
         }
     }
@@ -296,12 +316,17 @@ class YellowModalCoordinator: Coordinator<YellowRoute> {
 // MARK: - Purple Tab Coordinator
 
 class PurpleCoordinator: Coordinator<PurpleRoute> {
+    var infoCoordinator: PurpleInfoCoordinator!
+
     init() {
         let factory = PurpleViewFactory()
         super.init(router: Router(initial: .purple, factory: factory))
         factory.coordinator = self
         let modalCoord = PurpleModalCoordinator()
         addModalCoordinator(modalCoord)
+
+        infoCoordinator = PurpleInfoCoordinator()
+        addModalCoordinator(infoCoordinator)
     }
 
     override var tabItem: (text: String, image: String)? {
@@ -318,7 +343,7 @@ class PurpleCoordinator: Coordinator<PurpleRoute> {
         switch purpleRoute {
         case .purple, .lightPurple:
             return .push
-        case .darkPurple:
+        case .darkPurple, .info:
             return .modal
         case .result:
             return .replace
@@ -336,5 +361,72 @@ class PurpleModalCoordinator: Coordinator<PurpleRoute> {
     override func canHandle(_ route: any Route) -> Bool {
         guard let purpleRoute = route as? PurpleRoute else { return false }
         return purpleRoute == .darkPurple
+    }
+}
+
+// MARK: - Info Modal Coordinators
+
+class RedInfoCoordinator: Coordinator<RedRoute> {
+    init() {
+        let factory = RedViewFactory()
+        super.init(router: Router(initial: .info, factory: factory))
+        factory.coordinator = self
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let redRoute = route as? RedRoute else { return false }
+        return redRoute == .info
+    }
+}
+
+class GreenInfoCoordinator: Coordinator<GreenRoute> {
+    init() {
+        let factory = GreenViewFactory()
+        super.init(router: Router(initial: .info, factory: factory))
+        factory.coordinator = self
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let greenRoute = route as? GreenRoute else { return false }
+        return greenRoute == .info
+    }
+}
+
+class BlueInfoCoordinator: Coordinator<BlueRoute> {
+    init() {
+        let factory = BlueViewFactory()
+        super.init(router: Router(initial: .info, factory: factory))
+        factory.coordinator = self
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let blueRoute = route as? BlueRoute else { return false }
+        return blueRoute == .info
+    }
+}
+
+class YellowInfoCoordinator: Coordinator<YellowRoute> {
+    init() {
+        let factory = YellowViewFactory()
+        super.init(router: Router(initial: .info, factory: factory))
+        factory.coordinator = self
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let yellowRoute = route as? YellowRoute else { return false }
+        return yellowRoute == .info
+    }
+}
+
+class PurpleInfoCoordinator: Coordinator<PurpleRoute> {
+    init() {
+        let factory = PurpleViewFactory()
+        super.init(router: Router(initial: .info, factory: factory))
+        factory.coordinator = self
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let purpleRoute = route as? PurpleRoute else { return false }
+        return purpleRoute == .info
     }
 }
