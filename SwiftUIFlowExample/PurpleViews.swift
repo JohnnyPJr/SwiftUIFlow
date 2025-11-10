@@ -50,6 +50,11 @@ struct PurpleView: View {
                 }
             }
         }
+        .withInfoButton {
+            coordinator.presentModal(coordinator.infoCoordinator,
+                                     presenting: .info,
+                                     detentConfiguration: ModalDetentConfiguration(detents: [.fullscreen]))
+        }
         .customNavigationBar(title: "Purple",
                              titleColor: .white,
                              backgroundColor: Color.purple.opacity(0.8))

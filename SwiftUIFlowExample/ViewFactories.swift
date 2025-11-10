@@ -32,6 +32,11 @@ class RedViewFactory: ViewFactory<RedRoute> {
         case .darkRed:
             guard let coord = coordinator as? RedModalCoordinator else { return nil }
             return view(DarkRedView(coordinator: coord))
+        case .info:
+            return view(InfoView(title: "Red Tab Info",
+                                 description: "This modal uses .custom detent, automatically sizing to fit its content.",
+                                 detentType: ".custom",
+                                 color: .red))
         }
     }
 }
@@ -51,6 +56,11 @@ class GreenViewFactory: ViewFactory<GreenRoute> {
         case .evenDarkerGreen:
             guard let coord = coordinator as? GreenModalCoordinator else { return nil }
             return view(EvenDarkerGreenView(coordinator: coord))
+        case .info:
+            return view(InfoView(title: "Green Tab Info",
+                                 description: "This modal uses .small detent, showing only essential content.",
+                                 detentType: ".small",
+                                 color: .green))
         }
     }
 }
@@ -70,6 +80,11 @@ class BlueViewFactory: ViewFactory<BlueRoute> {
         case .invalidView:
             // Intentionally return nil to trigger viewCreationFailed error
             return nil
+        case .info:
+            return view(InfoView(title: "Blue Tab Info",
+                                 description: "This modal uses .medium detent, approximately 50% of screen height.",
+                                 detentType: ".medium",
+                                 color: .blue))
         }
     }
 }
@@ -86,6 +101,11 @@ class YellowViewFactory: ViewFactory<YellowRoute> {
         case .darkYellow:
             guard let coord = coordinator as? YellowModalCoordinator else { return nil }
             return view(DarkYellowView(coordinator: coord))
+        case .info:
+            return view(InfoView(title: "Yellow Tab Info",
+                                 description: "This modal uses .large detent, nearly full screen at 99.9% height.",
+                                 detentType: ".large",
+                                 color: .orange))
         }
     }
 }
@@ -105,6 +125,11 @@ class PurpleViewFactory: ViewFactory<PurpleRoute> {
         case let .result(success):
             guard let coord = coordinator as? PurpleCoordinator else { return nil }
             return view(ResultView(success: success, coordinator: coord))
+        case .info:
+            return view(InfoView(title: "Purple Tab Info",
+                                 description: "This modal uses .fullscreen detent, presenting as a true fullScreenCover!",
+                                 detentType: ".fullscreen",
+                                 color: .purple))
         }
     }
 }
