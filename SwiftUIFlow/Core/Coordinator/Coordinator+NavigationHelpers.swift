@@ -104,9 +104,6 @@ extension Coordinator {
             }
             // Modal navigation type but no coordinator configured
             return .failure(makeError(for: route, errorType: .modalCoordinatorNotConfigured))
-        case .detour:
-            // Invalid - detour through navigate() not allowed
-            return .failure(makeError(for: route, errorType: .invalidDetourNavigation))
         }
     }
 
@@ -211,7 +208,8 @@ extension Coordinator {
         }
 
         if detourCoordinator === detour {
-            if !detourHandledRoute || shouldDismissDetourFor(route: route) {
+            if !detourHandledRoute {
+                // Detours always dismiss if they don't handle the route
                 NavigationLogger.debug("🔙 \(Self.self): Dismissing detour for \(route.identifier)")
                 dismissDetour()
             }
@@ -222,9 +220,41 @@ extension Coordinator {
 
     func delegateToChildren(route: any Route, caller: AnyCoordinator?) -> Bool {
         for child in children where child !== caller {
-            if child.navigate(to: route, from: self) {
-                NavigationLogger.debug("👶 \(Self.self): Child handled \(route.identifier)")
-                return true
+            if child.canHandle(route) {
+                // Get the navigation type the child coordinator expects for this route
+                let navType = child.navigationType(for: route)
+
+                switch navType {
+                case .push:
+                    // Push child coordinator to parent's navigation stack
+                    router.pushChild(child)
+                    child.parent = self
+                    child.presentationContext = .pushed
+                    _ = child.navigate(to: route, from: self)
+                    NavigationLogger.debug("👶 \(Self.self): Pushed child coordinator for \(route.identifier)")
+                    return true
+
+                case .replace:
+                    // Push child coordinator (first time), child will handle replace internally
+                    router.pushChild(child)
+                    child.parent = self
+                    child.presentationContext = .pushed
+                    _ = child.navigate(to: route, from: self)
+                    NavigationLogger.debug("👶 \(Self.self): Pushed child coordinator (replace) for \(route.identifier)")
+                    return true
+
+                case .modal:
+                    // Modal presentation should be done explicitly via presentModal()
+                    // Child coordinators should not be automatically presented as modals via delegation
+                    NavigationLogger.debug("⚠️ \(Self.self): Child returns .modal for \(route.identifier) - use presentModal() instead")
+                    return false
+
+                case .tabSwitch:
+                    // Tab switching doesn't make sense for child delegation, just delegate
+                    _ = child.navigate(to: route, from: self)
+                    NavigationLogger.debug("👶 \(Self.self): Child handled tab switch for \(route.identifier)")
+                    return true
+                }
             }
         }
         return false
@@ -263,8 +293,6 @@ extension Coordinator {
             return router.state.currentRoute == route
         case .modal:
             return router.state.presented == route
-        case .detour:
-            return router.state.detour?.identifier == route.identifier
         }
     }
 
@@ -289,16 +317,10 @@ extension Coordinator {
                 return false
             }
 
-            currentModalCoordinator = modalChild
-            modalChild.parent = self
-            modalChild.presentationContext = .modal
-            router.present(route)
+            // Use the public presentModal API to avoid code duplication
+            presentModal(modalChild, presenting: route)
             _ = modalChild.navigate(to: route, from: self)
             return true
-        case .detour:
-            NavigationLogger
-                .error("❌ \(Self.self): Detour navigation via navigate() - validation should have caught this")
-            return false
         case let .tabSwitch(index):
             router.selectTab(index)
             return true

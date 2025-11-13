@@ -30,6 +30,12 @@ final class NavigationFlowIntegrationTests: XCTestCase {
             return
         }
 
+        // CRITICAL: Verify that UnlockCoordinator was pushed to tab2's navigation stack
+        XCTAssertTrue(tab2.router.state.pushedChildren.contains(where: { $0 === unlock }),
+                      "UnlockCoordinator should be in tab2's pushedChildren array")
+        XCTAssertEqual(tab2.router.state.pushedChildren.count, 1,
+                       "Tab2 should have exactly 1 pushed child coordinator")
+
         // Stack should have [.loading] (enterCode is root, not in stack)
         XCTAssertEqual(unlock.router.state.stack.count, 1, "Stack should have 1 item")
         XCTAssertEqual(unlock.router.state.stack[0], .loading)
@@ -69,6 +75,10 @@ final class NavigationFlowIntegrationTests: XCTestCase {
         // Verify we're now at Tab2's root screen (.startUnlock)
         XCTAssertTrue(tab2.router.state.stack.isEmpty, "Tab2 should be at root with empty stack")
         XCTAssertNil(tab2.router.state.presented, "Tab2 should have no modal presented")
+
+        // CRITICAL: Verify unlock coordinator was popped from pushedChildren
+        XCTAssertTrue(tab2.router.state.pushedChildren.isEmpty,
+                      "Tab2 pushedChildren should be empty after exiting unlock flow")
 
         // Verify unlock coordinator is still a child (children are permanent)
         XCTAssertTrue(tab2.children.contains(where: { $0 is UnlockCoordinator }),
