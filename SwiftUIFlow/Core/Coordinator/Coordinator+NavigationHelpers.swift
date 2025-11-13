@@ -306,7 +306,7 @@ extension Coordinator {
             return true
         case .modal:
             if let currentModal = currentModalCoordinator, currentModal.canHandle(route) {
-                router.present(route)
+                // Modal is already presented - let it handle navigation internally
                 _ = currentModal.navigate(to: route, from: self)
                 return true
             }
