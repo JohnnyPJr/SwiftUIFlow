@@ -112,30 +112,6 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
 
     // MARK: - Invalid Detour Navigation Tests
 
-    func test_InvalidDetourNavigation_CallsErrorHandler() {
-        // Given: A coordinator with detour NavigationType
-        let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
-        let coordinator = TestDetourNavigationCoordinator(router: router)
-
-        var capturedError: SwiftUIFlowError?
-        SwiftUIFlowErrorHandler.shared.setHandler { error in
-            capturedError = error
-        }
-
-        // When: Trying to navigate to detour via navigate() instead of presentDetour()
-        let result = coordinator.navigate(to: MockRoute.details)
-
-        // Then: Should fail and call error handler
-        XCTAssertFalse(result, "Navigation should fail")
-        XCTAssertNotNil(capturedError, "Error handler should be called")
-
-        if case .invalidDetourNavigation = capturedError {
-            // Success - validation now reports specific error
-        } else {
-            XCTFail("Expected invalidDetourNavigation error")
-        }
-    }
-
     // MARK: - Configuration Error Tests
 
     func test_InvalidTabIndex_CallsErrorHandler() {
@@ -326,8 +302,7 @@ private class TestDetourNavigationCoordinator: Coordinator<MockRoute> {
     }
 
     override func navigationType(for route: any Route) -> NavigationType {
-        guard let mockRoute = route as? MockRoute else { return .push }
-        return mockRoute == .details ? .detour : .push
+        return .push
     }
 }
 

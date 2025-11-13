@@ -165,6 +165,11 @@ open class Coordinator<R: Route>: AnyCoordinator {
         NavigationLogger.debug("🔍 \(Self.self): Navigating to \(route.identifier)")
 
         if let typedRoute = route as? R, trySmartNavigation(to: typedRoute) {
+            // If caller is a pushed child, pop it (navigating back to parent)
+            if let caller, router.state.pushedChildren.contains(where: { $0 === caller }) {
+                router.popChild()
+                NavigationLogger.debug("👈 \(Self.self): Popped child coordinator after bubbling back")
+            }
             return true
         }
 
@@ -190,10 +195,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     open func shouldDismissModalFor(route: any Route) -> Bool {
         return !(route is R)
-    }
-
-    open func shouldDismissDetourFor(route: any Route) -> Bool {
-        return true
     }
 
     open func shouldCleanStateForBubbling(route: any Route) -> Bool {
@@ -256,6 +257,13 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// Pop one screen from the navigation stack
     /// If at root and presented as modal/detour, dismisses instead
     public func pop() {
+        // Check if we have pushed child coordinators
+        if !router.state.pushedChildren.isEmpty {
+            // Pop the last child coordinator
+            router.popChild()
+            return
+        }
+
         // If we're at the root (no pushed screens) and presented as modal/detour,
         // dismiss instead of attempting to pop
         if router.state.stack.isEmpty {
