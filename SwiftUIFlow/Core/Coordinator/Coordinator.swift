@@ -170,6 +170,14 @@ open class Coordinator<R: Route>: AnyCoordinator {
                 router.popChild()
                 NavigationLogger.debug("👈 \(Self.self): Popped child coordinator after bubbling back")
             }
+            // If we are a pushed child and navigating to parent's route, tell parent to pop us
+            else if caller == nil, let parent, parent is Coordinator<R> {
+                if let parentCoordinator = parent as? Coordinator<R>,
+                   parentCoordinator.router.state.pushedChildren.contains(where: { $0 === self }) {
+                    parentCoordinator.router.popChild()
+                    NavigationLogger.debug("👈 \(Self.self): Popped self from parent after navigating to parent route")
+                }
+            }
             return true
         }
 
