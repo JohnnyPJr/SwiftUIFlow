@@ -67,7 +67,7 @@ public final class Router<R: Route>: ObservableObject {
     }
 
     /// Present a route modally.
-    /// **Internal:** Use `Coordinator.presentModal()` instead.
+    /// **Internal:** Use `Coordinator.navigate()` with .modal NavigationType instead.
     func present(_ route: R,
                  detentConfiguration: ModalDetentConfiguration = ModalDetentConfiguration(detents: [.large]))
     {

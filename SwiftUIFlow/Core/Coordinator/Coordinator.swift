@@ -22,7 +22,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     public var presentationContext: CoordinatorPresentationContext = .root
 
     public internal(set) var children: [AnyCoordinator] = []
-    public internal(set) var modalCoordinators: [AnyCoordinator] = []
+    public internal(set) var modalCoordinators: [Coordinator<R>] = []
     public internal(set) var currentModalCoordinator: AnyCoordinator?
     public internal(set) var detourCoordinator: AnyCoordinator?
 
@@ -49,6 +49,13 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     open func navigationType(for route: any Route) -> NavigationType {
         return .push
+    }
+
+    /// Configure modal presentation detents for a route.
+    /// Override this to customize how modals are presented.
+    /// Only called when navigationType returns .modal
+    open func modalDetentConfiguration(for route: any Route) -> ModalDetentConfiguration {
+        return ModalDetentConfiguration(detents: [.large])
     }
 
     public func addChild(_ coordinator: AnyCoordinator, context: CoordinatorPresentationContext = .pushed) {
@@ -78,11 +85,13 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
     }
 
-    public func addModalCoordinator(_ coordinator: AnyCoordinator) {
+    /// Add a modal coordinator that can be presented via navigate() when navigationType returns .modal
+    /// - Parameter coordinator: Must be Coordinator<R> (same route type as parent)
+    public func addModalCoordinator(_ coordinator: Coordinator<R>) {
         modalCoordinators.append(coordinator)
     }
 
-    public func removeModalCoordinator(_ coordinator: AnyCoordinator) {
+    public func removeModalCoordinator(_ coordinator: Coordinator<R>) {
         modalCoordinators.removeAll { $0 === coordinator }
     }
 
@@ -227,10 +236,12 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
     }
 
-    public func presentModal(_ coordinator: AnyCoordinator,
-                             presenting route: R,
-                             detentConfiguration: ModalDetentConfiguration =
-                                 ModalDetentConfiguration(detents: [.large]))
+    /// **Internal:** Present a modal coordinator with a route.
+    /// **Clients should use `navigate(to:)` instead.**
+    /// Called by the framework when navigationType returns .modal
+    func presentModal(_ coordinator: AnyCoordinator,
+                      presenting route: R,
+                      detentConfiguration: ModalDetentConfiguration)
     {
         currentModalCoordinator = coordinator
         coordinator.parent = self

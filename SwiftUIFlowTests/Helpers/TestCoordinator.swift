@@ -48,7 +48,7 @@ final class TestModalCoordinator: Coordinator<MockRoute> {
 
     override func canHandle(_ route: any Route) -> Bool {
         guard let route = route as? MockRoute else { return false }
-        return route == .details
+        return route == .details || route == .modal
     }
 }
 

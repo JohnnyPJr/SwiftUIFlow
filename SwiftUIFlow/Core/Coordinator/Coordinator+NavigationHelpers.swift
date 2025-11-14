@@ -244,10 +244,10 @@ extension Coordinator {
                     return true
 
                 case .modal:
-                    // Modal presentation should be done explicitly via presentModal()
-                    // Child coordinators should not be automatically presented as modals via delegation
-                    NavigationLogger.debug("⚠️ \(Self.self): Child returns .modal for \(route.identifier) - use presentModal() instead")
-                    return false
+                    // Delegate modal navigation to child - let child handle its own modal presentation
+                    _ = child.navigate(to: route, from: self)
+                    NavigationLogger.debug("👶 \(Self.self): Child handled modal navigation for \(route.identifier)")
+                    return true
 
                 case .tabSwitch:
                     // Tab switching doesn't make sense for child delegation, just delegate
@@ -317,8 +317,11 @@ extension Coordinator {
                 return false
             }
 
-            // Use the public presentModal API to avoid code duplication
-            presentModal(modalChild, presenting: route)
+            // Get detent configuration from parent coordinator
+            let detents = modalDetentConfiguration(for: route)
+
+            // Present modal using internal API
+            presentModal(modalChild, presenting: route, detentConfiguration: detents)
             _ = modalChild.navigate(to: route, from: self)
             return true
         case let .tabSwitch(index):

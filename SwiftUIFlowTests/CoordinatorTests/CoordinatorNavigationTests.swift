@@ -26,7 +26,7 @@ final class CoordinatorNavigationTests: XCTestCase {
         // Present modal properly using presentModal (not direct router access)
         let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
         let modal = Coordinator(router: modalRouter)
-        child.presentModal(modal, presenting: .modal)
+        child.presentModal(modal, presenting: .modal, detentConfiguration: ModalDetentConfiguration(detents: [.large]))
 
         // Navigate to route child can't handle - should clean and bubble
         let handled = child.navigate(to: MockRoute.details)
