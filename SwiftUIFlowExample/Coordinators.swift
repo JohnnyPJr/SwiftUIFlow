@@ -151,6 +151,19 @@ class RedCoordinator: Coordinator<RedRoute> {
             return .modal
         }
     }
+
+    override func modalDetentConfiguration(for route: any Route) -> ModalDetentConfiguration {
+        guard let redRoute = route as? RedRoute else {
+            return ModalDetentConfiguration(detents: [.large])
+        }
+
+        switch redRoute {
+        case .info:
+            return ModalDetentConfiguration(detents: [.custom])
+        default:
+            return ModalDetentConfiguration(detents: [.large])
+        }
+    }
 }
 
 class RedModalCoordinator: Coordinator<RedRoute> {
@@ -198,6 +211,19 @@ class GreenCoordinator: Coordinator<GreenRoute> {
             return .push
         case .darkGreen, .info:
             return .modal
+        }
+    }
+
+    override func modalDetentConfiguration(for route: any Route) -> ModalDetentConfiguration {
+        guard let greenRoute = route as? GreenRoute else {
+            return ModalDetentConfiguration(detents: [.large])
+        }
+
+        switch greenRoute {
+        case .info:
+            return ModalDetentConfiguration(detents: [.small])
+        default:
+            return ModalDetentConfiguration(detents: [.large])
         }
     }
 }
@@ -249,6 +275,19 @@ class BlueCoordinator: Coordinator<BlueRoute> {
             return .modal
         }
     }
+
+    override func modalDetentConfiguration(for route: any Route) -> ModalDetentConfiguration {
+        guard let blueRoute = route as? BlueRoute else {
+            return ModalDetentConfiguration(detents: [.large])
+        }
+
+        switch blueRoute {
+        case .info:
+            return ModalDetentConfiguration(detents: [.medium])
+        default:
+            return ModalDetentConfiguration(detents: [.large])
+        }
+    }
 }
 
 class BlueModalCoordinator: Coordinator<BlueRoute> {
@@ -296,6 +335,19 @@ class YellowCoordinator: Coordinator<YellowRoute> {
             return .push
         case .darkYellow, .info:
             return .modal
+        }
+    }
+
+    override func modalDetentConfiguration(for route: any Route) -> ModalDetentConfiguration {
+        guard let yellowRoute = route as? YellowRoute else {
+            return ModalDetentConfiguration(detents: [.large])
+        }
+
+        switch yellowRoute {
+        case .info:
+            return ModalDetentConfiguration(detents: [.large])
+        default:
+            return ModalDetentConfiguration(detents: [.large])
         }
     }
 }
@@ -347,6 +399,19 @@ class PurpleCoordinator: Coordinator<PurpleRoute> {
             return .modal
         case .result:
             return .replace
+        }
+    }
+
+    override func modalDetentConfiguration(for route: any Route) -> ModalDetentConfiguration {
+        guard let purpleRoute = route as? PurpleRoute else {
+            return ModalDetentConfiguration(detents: [.large])
+        }
+
+        switch purpleRoute {
+        case .info:
+            return ModalDetentConfiguration(detents: [.fullscreen])
+        default:
+            return ModalDetentConfiguration(detents: [.large])
         }
     }
 }

@@ -33,9 +33,7 @@ struct BlueView: View {
             }
         }
         .withInfoButton {
-            coordinator.presentModal(coordinator.infoCoordinator,
-                                     presenting: .info,
-                                     detentConfiguration: ModalDetentConfiguration(detents: [.medium]))
+            let _ = coordinator.navigate(to: BlueRoute.info)
         }
         .customNavigationBar(title: "Blue",
                              titleColor: .white,
