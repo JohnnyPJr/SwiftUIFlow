@@ -177,16 +177,19 @@ open class Coordinator<R: Route>: AnyCoordinator {
             // If caller is a pushed child, pop it (navigating back to parent)
             if let caller, router.state.pushedChildren.contains(where: { $0 === caller }) {
                 router.popChild()
-                NavigationLogger.debug("👈 \(Self.self): Popped child coordinator after bubbling back")
+                NavigationLogger
+                    .debug("👈 \(Self.self): Popped child coordinator after bubbling back")
             }
             // If caller is current modal, dismiss it (modal bubbled a route we're already at)
             else if let caller, currentModalCoordinator === caller {
-                NavigationLogger.debug("🚪 \(Self.self): Dismissing modal after smart navigation to \(route.identifier)")
+                NavigationLogger
+                    .debug("🚪 \(Self.self): Dismissing modal after smart navigation to \(route.identifier)")
                 dismissModal()
             }
             // If caller is detour, dismiss it (detour bubbled a route we're already at)
             else if let caller, detourCoordinator === caller {
-                NavigationLogger.debug("🔙 \(Self.self): Dismissing detour after smart navigation to \(route.identifier)")
+                NavigationLogger
+                    .debug("🔙 \(Self.self): Dismissing detour after smart navigation to \(route.identifier)")
                 dismissDetour()
             }
             // If we are a pushed child and navigating to parent's route, tell parent to pop us
