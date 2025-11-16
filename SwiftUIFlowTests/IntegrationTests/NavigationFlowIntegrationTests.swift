@@ -239,4 +239,143 @@ final class NavigationFlowIntegrationTests: XCTestCase {
         appCoordinator.pop()
         XCTAssertEqual(appRouter.state.root, .home, "Should remain at home after pop")
     }
+
+    // MARK: - Pushed Children Navigation Tests
+
+    func test_PushedChildNavigationNotifiesParent() {
+        // Test that when a pushed child navigates internally, the parent is notified
+        // This ensures parent's NavigationPath stays in sync with child's routes
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
+
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator")
+            return
+        }
+
+        // Navigate to unlock flow - creates UnlockCoordinator and pushes it
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.enterCode))
+
+        guard let unlock = tab2.router.state.pushedChildren.first as? UnlockCoordinator else {
+            XCTFail("Expected UnlockCoordinator to be pushed")
+            return
+        }
+
+        // Setup callback to track parent notifications
+        var notifiedRoutes: [[any Route]] = []
+        unlock.setNavigationChangedCallback { routes in
+            notifiedRoutes.append(routes)
+        }
+
+        // Navigate within child - should trigger callback
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.loading))
+        XCTAssertEqual(notifiedRoutes.count, 1, "Parent should be notified once")
+        XCTAssertEqual(notifiedRoutes[0].count, 2, "Should have root + 1 stack item")
+        XCTAssertEqual(notifiedRoutes[0][0].identifier, "enterCode")
+        XCTAssertEqual(notifiedRoutes[0][1].identifier, "loading")
+
+        // Navigate again
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.failure))
+        XCTAssertEqual(notifiedRoutes.count, 2, "Parent should be notified again")
+        XCTAssertEqual(notifiedRoutes[1].count, 3, "Should have root + 2 stack items")
+
+        // Pop - should trigger callback
+        unlock.pop()
+        XCTAssertEqual(notifiedRoutes.count, 3, "Parent should be notified on pop")
+        XCTAssertEqual(notifiedRoutes[2].count, 2, "Should have root + 1 stack item after pop")
+
+        // PopToRoot - should trigger callback (THIS WAS THE BUG!)
+        unlock.popToRoot()
+        XCTAssertEqual(notifiedRoutes.count, 4, "Parent should be notified on popToRoot")
+        XCTAssertEqual(notifiedRoutes[3].count, 1, "Should have only root after popToRoot")
+        XCTAssertEqual(notifiedRoutes[3][0].identifier, "enterCode")
+    }
+
+    func test_PushedChildBubblingCleansParentState() {
+        // Test that when a pushed child bubbles a route the parent can't handle,
+        // the parent cleans up pushed children before bubbling further
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        // Switch to Tab2
+        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
+        XCTAssertEqual(router.state.selectedTab, 1, "Should be at Tab2")
+
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator")
+            return
+        }
+
+        // Push unlock coordinator
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.enterCode))
+
+        guard let unlock = tab2.router.state.pushedChildren.first as? UnlockCoordinator else {
+            XCTFail("Expected UnlockCoordinator to be pushed")
+            return
+        }
+
+        // Navigate within unlock flow
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.loading))
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.failure))
+        XCTAssertEqual(unlock.router.state.stack.count, 2, "Unlock should have 2 items in stack")
+
+        // Verify child is pushed
+        XCTAssertEqual(tab2.router.state.pushedChildren.count, 1, "Tab2 should have 1 pushed child")
+        XCTAssertTrue(tab2.router.state.pushedChildren.contains(where: { $0 === unlock }))
+
+        // Navigate to Tab3 - this should bubble from unlock → tab2 → mainCoordinator
+        // Tab2 should clean up pushed children before bubbling
+        XCTAssertTrue(unlock.navigate(to: MainTabRoute.tab3))
+
+        // Verify state was cleaned (THIS WAS THE BUG!)
+        XCTAssertTrue(tab2.router.state.pushedChildren.isEmpty,
+                      "Tab2 should have no pushed children after bubbling")
+        XCTAssertTrue(tab2.router.state.stack.isEmpty,
+                      "Tab2 stack should be empty after bubbling")
+        XCTAssertEqual(router.state.selectedTab, 2, "Should have switched to Tab3")
+    }
+
+    func test_PushedChildWithMultipleNavigations() {
+        // Test realistic scenario: push child, navigate within it multiple times,
+        // verify parent stays in sync
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
+
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator")
+            return
+        }
+
+        // Push unlock coordinator and navigate through entire flow
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.enterCode))
+
+        guard let unlock = tab2.router.state.pushedChildren.first as? UnlockCoordinator else {
+            XCTFail("Expected UnlockCoordinator to be pushed")
+            return
+        }
+
+        // Track all notifications
+        var notificationCount = 0
+        unlock.setNavigationChangedCallback { _ in
+            notificationCount += 1
+        }
+
+        // Go through flow: enterCode → loading → failure → loading → failure → enterCode
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.loading))
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.failure))
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.loading)) // Smart navigation: pop back
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.failure))
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.enterCode)) // Smart navigation: popToRoot
+
+        // Should have triggered notifications for each navigation
+        XCTAssertEqual(notificationCount, 5, "Should notify parent on each navigation")
+
+        // Verify final state
+        XCTAssertTrue(unlock.router.state.stack.isEmpty, "Should be at root")
+        XCTAssertEqual(unlock.router.state.root, .enterCode)
+    }
 }
