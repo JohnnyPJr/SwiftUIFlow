@@ -23,6 +23,15 @@ public final class Router<R: Route>: ObservableObject {
     }
 
     // MARK: - Navigation Methods (Internal - Use Coordinator methods instead)
+    //
+    // ⚠️ CRITICAL IMPLEMENTATION NOTE:
+    // All methods that modify `state.stack` or `state.root` MUST call
+    // `notifyParentOfNavigationChange()` to keep parent's NavigationPath in sync
+    // when this router belongs to a pushed child coordinator.
+    //
+    // Methods that must notify: push(), pop(), replace(), popToRoot(), setRoot()
+    // Methods that don't notify: present/dismiss modals, detours, tab selection
+    // (those don't affect NavigationStack hierarchy)
 
     /// Push a route onto the navigation stack.
     /// **Internal:** Use `Coordinator.navigate(to:)` instead.
@@ -49,6 +58,7 @@ public final class Router<R: Route>: ObservableObject {
             _ = state.stack.popLast()
         }
         state.stack.append(route)
+        notifyParentOfNavigationChange()
     }
 
     /// Push a child coordinator onto the navigation stack.
@@ -79,6 +89,7 @@ public final class Router<R: Route>: ObservableObject {
     func setRoot(_ route: R) {
         state.root = route
         state.stack.removeAll()
+        notifyParentOfNavigationChange()
     }
 
     /// Present a route modally.

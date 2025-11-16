@@ -378,4 +378,44 @@ final class NavigationFlowIntegrationTests: XCTestCase {
         XCTAssertTrue(unlock.router.state.stack.isEmpty, "Should be at root")
         XCTAssertEqual(unlock.router.state.root, .enterCode)
     }
+
+    func test_PushedChildReplaceNavigationNotifiesParent() {
+        // Test that replace() navigation also notifies parent (regression test)
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
+
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator")
+            return
+        }
+
+        // Add password reset coordinator that uses replace navigation
+        let resetRouter = Router<PasswordResetRoute>(initial: .enterCode, factory: DummyFactory())
+        let resetCoordinator = PasswordResetCoordinator(router: resetRouter)
+        tab2.addChild(resetCoordinator)
+
+        // Navigate to password reset (pushes it)
+        XCTAssertTrue(tab2.navigate(to: PasswordResetRoute.enterCode))
+
+        guard let reset = tab2.router.state.pushedChildren.first as? PasswordResetCoordinator else {
+            XCTFail("Expected PasswordResetCoordinator to be pushed")
+            return
+        }
+
+        // Setup callback to track notifications
+        var notificationCount = 0
+        reset.setNavigationChangedCallback { _ in
+            notificationCount += 1
+        }
+
+        // Use replace navigation (enterCode → verifying, can't go back)
+        XCTAssertTrue(reset.navigate(to: PasswordResetRoute.verifying))
+        XCTAssertEqual(notificationCount, 1, "Replace should notify parent")
+
+        // Replace again
+        XCTAssertTrue(reset.navigate(to: PasswordResetRoute.newPassword))
+        XCTAssertEqual(notificationCount, 2, "Replace should notify parent again")
+    }
 }
