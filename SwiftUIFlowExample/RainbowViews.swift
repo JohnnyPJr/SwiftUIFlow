@@ -146,6 +146,12 @@ struct RainbowPurpleView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.red)
+
+                Button("Go to Dark Blue Tab") {
+                    coordinator.navigate(to: BlueRoute.darkBlue)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
             }
         }
         .navigationTitle("Rainbow Purple")

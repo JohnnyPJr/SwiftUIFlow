@@ -244,7 +244,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         if case .tabSwitch = navigationType(for: route) {
             return false
         }
-        return detourCoordinator != nil || currentModalCoordinator != nil || !router.state.stack.isEmpty
+        return detourCoordinator != nil || currentModalCoordinator != nil || !router.state.stack.isEmpty || !router.state.pushedChildren.isEmpty
     }
 
     open func cleanStateForBubbling() {
@@ -258,6 +258,11 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
         if !router.state.stack.isEmpty {
             router.popToRoot()
+        }
+
+        // Pop all pushed children
+        while !router.state.pushedChildren.isEmpty {
+            router.popChild()
         }
     }
 
