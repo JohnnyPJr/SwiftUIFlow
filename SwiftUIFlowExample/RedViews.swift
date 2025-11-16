@@ -30,6 +30,11 @@ struct RedView: View {
                     let _ = coordinator.navigate(to: RedRoute.darkRed)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
+
+                Button("Test Pushed Children") {
+                    let _ = coordinator.navigate(to: RainbowRoute.red)
+                }
+                .buttonStyle(NavigationButtonStyle(color: .purple))
             }
         }
         .withInfoButton {

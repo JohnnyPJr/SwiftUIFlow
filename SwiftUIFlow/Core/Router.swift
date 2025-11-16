@@ -13,6 +13,10 @@ public final class Router<R: Route>: ObservableObject {
     @Published public private(set) var state: NavigationState<R>
     private let factory: ViewFactory<R>
 
+    /// Callback for notifying parent when this router's state changes (for pushed child coordinators)
+    /// Parent uses this to update its @State without observing this router
+    var onNavigationChanged: (([any Route]) -> Void)?
+
     public init(initial: R, factory: ViewFactory<R>) {
         state = NavigationState(root: initial)
         self.factory = factory
@@ -24,6 +28,16 @@ public final class Router<R: Route>: ObservableObject {
     /// **Internal:** Use `Coordinator.navigate(to:)` instead.
     func push(_ route: R) {
         state.stack.append(route)
+        notifyParentOfNavigationChange()
+    }
+
+    /// Notify parent coordinator that navigation state changed (for pushed child coordinators)
+    private func notifyParentOfNavigationChange() {
+        guard let callback = onNavigationChanged else { return }
+        // Send all routes (root + stack) to parent
+        var allRoutes: [any Route] = [state.root]
+        allRoutes.append(contentsOf: state.stack)
+        callback(allRoutes)
     }
 
     /// Replace the current route with a new one (no back navigation).
@@ -53,6 +67,7 @@ public final class Router<R: Route>: ObservableObject {
     /// **Internal:** Use `Coordinator.pop()` instead.
     func pop() {
         _ = state.stack.popLast()
+        notifyParentOfNavigationChange()
     }
 
     /// **ADMIN OPERATION** - Set a new root route and clear the stack.
@@ -104,6 +119,7 @@ public final class Router<R: Route>: ObservableObject {
     /// **Internal:** Use `Coordinator.popToRoot()` instead.
     func popToRoot() {
         state.stack.removeAll()
+        notifyParentOfNavigationChange()
     }
 
     /// Dismiss all presented modals.

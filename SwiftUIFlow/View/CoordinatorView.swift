@@ -22,9 +22,18 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+/// Helper class to store child routes without observing child routers
+private class ChildRoutesStore: ObservableObject {
+    @Published var routes: [[any Route]] = []
+}
+
 public struct CoordinatorView<R: Route>: View {
     private let coordinator: Coordinator<R>
     @ObservedObject private var router: Router<R>
+
+    /// Child coordinator routes tracked via @StateObject (not observing child routers)
+    /// This decouples parent from observing child routers
+    @StateObject private var childRoutesStore = ChildRoutesStore()
 
     public init(coordinator: Coordinator<R>) {
         self.coordinator = coordinator
@@ -40,7 +49,7 @@ public struct CoordinatorView<R: Route>: View {
                     // Root view back button visibility determined by presentation context
                     .environment(\.canNavigateBack, coordinator.presentationContext.shouldShowBackButton)
                     .navigationDestination(for: R.self) { route in
-                        // Render pushed views
+                        // Render pushed views (parent's own routes)
                         if let view = router.view(for: route) {
                             view
                                 .environment(\.navigationBackAction) { coordinator.pop() }
@@ -52,10 +61,17 @@ public struct CoordinatorView<R: Route>: View {
                                            errorType: .viewCreationFailed(viewType: .pushed)))
                         }
                     }
-                    .navigationDestination(for: CoordinatorWrapper.self) { wrapper in
-                        // Render pushed child coordinator
-                        let coordinatorView = wrapper.coordinator.buildCoordinatorView()
-                        eraseToAnyView(coordinatorView)
+                    .navigationDestination(for: AnyRouteWrapper.self) { wrapper in
+                        // Render child coordinator routes (flattened into parent's NavigationStack)
+                        if let view = wrapper.coordinator.buildView(for: wrapper.route) {
+                            eraseToAnyView(view)
+                                .environment(\.navigationBackAction) { coordinator.pop() }
+                                .environment(\.canNavigateBack, true)
+                        } else {
+                            ErrorReportingView(error: coordinator
+                                .makeError(for: wrapper.route,
+                                           errorType: .viewCreationFailed(viewType: .pushed)))
+                        }
                     }
             } else {
                 // Fallback if view factory doesn't provide a view
@@ -63,6 +79,12 @@ public struct CoordinatorView<R: Route>: View {
                     .makeError(for: router.state.root,
                                errorType: .viewCreationFailed(viewType: .root)))
             }
+        }
+        .onChange(of: router.state.pushedChildren.count) { _ in
+            setupChildRouterCallbacks()
+        }
+        .onAppear {
+            setupChildRouterCallbacks()
         }
         .sheet(item: shouldUseFullScreenCover ? .constant(nil) : presentedRoute) { route in
             // Render modal sheet with full coordinator navigation support
@@ -155,7 +177,7 @@ public struct CoordinatorView<R: Route>: View {
     /// Create a binding to the navigation path that syncs with the coordinator
     private var navigationPath: Binding<NavigationPath> {
         Binding(get: {
-                    // Build heterogeneous path with both routes and child coordinators
+                    // Build flattened path with parent routes + all child routes
                     var path = NavigationPath()
 
                     // Add parent's routes
@@ -163,16 +185,27 @@ public struct CoordinatorView<R: Route>: View {
                         path.append(route)
                     }
 
-                    // Add child coordinators (wrapped for Hashable conformance)
-                    for child in router.state.pushedChildren {
-                        path.append(CoordinatorWrapper(child))
+                    // Add child coordinator routes (flattened, wrapped with coordinator reference)
+                    for (index, child) in router.state.pushedChildren.enumerated() {
+                        guard index < childRoutesStore.routes.count else { continue }
+                        let routes = childRoutesStore.routes[index]
+                        NavigationLogger.debug("📍 Child \(index) has \(routes.count) routes: \(routes.map(\.identifier))")
+                        for route in routes {
+                            path.append(AnyRouteWrapper(route: route, coordinator: child))
+                        }
                     }
 
+                    NavigationLogger.debug("📍 navigationPath total count: \(path.count)")
                     return path
                 },
                 set: { newPath in
                     // Handle back navigation (user tapped back or swiped)
-                    let currentTotalCount = router.state.stack.count + router.state.pushedChildren.count
+                    // Calculate total route count (parent routes + all child routes)
+                    var currentTotalCount = router.state.stack.count
+                    for routes in childRoutesStore.routes {
+                        currentTotalCount += routes.count
+                    }
+
                     let newCount = newPath.count
 
                     if newCount < currentTotalCount {
@@ -267,5 +300,29 @@ public struct CoordinatorView<R: Route>: View {
     /// Update the minimum height in the modal detent configuration
     private func updateMinHeight(_ height: CGFloat?) {
         router.updateModalMinHeight(height)
+    }
+
+    /// Setup callbacks for child coordinators to update parent's store
+    /// This decouples parent from observing child routers
+    private func setupChildRouterCallbacks() {
+        NavigationLogger.debug("🔧 Setting up callbacks for \(router.state.pushedChildren.count) pushed children")
+        // Initialize routes array to match pushed children count
+        childRoutesStore.routes = Array(repeating: [], count: router.state.pushedChildren.count)
+
+        // Set up callback for each child coordinator
+        for (index, child) in router.state.pushedChildren.enumerated() {
+            child.setNavigationChangedCallback { [weak childRoutesStore] routes in
+                guard let store = childRoutesStore, index < store.routes.count else { return }
+                store.routes[index] = routes
+            }
+
+            // Trigger callback immediately to get initial routes
+            // This is needed because the child may have already navigated (e.g., to its root)
+            let initialRoutes = child.getCurrentRoutes()
+            if !initialRoutes.isEmpty {
+                NavigationLogger.debug("🔧 Child \(index) initial routes: \(initialRoutes.map(\.identifier))")
+                childRoutesStore.routes[index] = initialRoutes
+            }
+        }
     }
 }

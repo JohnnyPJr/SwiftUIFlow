@@ -41,9 +41,17 @@ public protocol AnyCoordinator: AnyObject {
     /// Tab item configuration for coordinators used as tabs
     /// Return nil if this coordinator is not used as a tab
     var tabItem: (text: String, image: String)? { get }
+
+    /// Set up callback for notifying parent when navigation changes
+    /// Used for pushed child coordinators to update parent's @State
+    func setNavigationChangedCallback(_ callback: @escaping ([any Route]) -> Void)
+
+    /// Get current navigation routes (root + stack) for flattening into parent's NavigationPath
+    func getCurrentRoutes() -> [any Route]
 }
 
-// MARK: - Hashable Wrapper for NavigationPath
+// MARK: - Hashable Wrappers for NavigationPath
+
 /// A Hashable wrapper for AnyCoordinator to be used with NavigationPath
 public struct CoordinatorWrapper: Hashable {
     public let coordinator: AnyCoordinator
@@ -58,5 +66,27 @@ public struct CoordinatorWrapper: Hashable {
 
     public static func == (lhs: CoordinatorWrapper, rhs: CoordinatorWrapper) -> Bool {
         return lhs.coordinator === rhs.coordinator
+    }
+}
+
+/// A Hashable wrapper for any Route with its owning coordinator
+/// Used for flattening child coordinator routes into parent's NavigationPath
+public struct AnyRouteWrapper: Hashable {
+    public let route: any Route
+    public let coordinator: AnyCoordinator
+
+    public init(route: any Route, coordinator: AnyCoordinator) {
+        self.route = route
+        self.coordinator = coordinator
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(route.identifier)
+        hasher.combine(ObjectIdentifier(coordinator))
+    }
+
+    public static func == (lhs: AnyRouteWrapper, rhs: AnyRouteWrapper) -> Bool {
+        return lhs.route.identifier == rhs.route.identifier &&
+            lhs.coordinator === rhs.coordinator
     }
 }

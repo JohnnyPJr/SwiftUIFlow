@@ -47,6 +47,18 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return nil
     }
 
+    /// Set navigation changed callback for pushed child coordinators
+    public func setNavigationChangedCallback(_ callback: @escaping ([any Route]) -> Void) {
+        router.onNavigationChanged = callback
+    }
+
+    /// Get current navigation routes (root + stack)
+    public func getCurrentRoutes() -> [any Route] {
+        var routes: [any Route] = [router.state.root]
+        routes.append(contentsOf: router.state.stack)
+        return routes
+    }
+
     open func navigationType(for route: any Route) -> NavigationType {
         return .push
     }

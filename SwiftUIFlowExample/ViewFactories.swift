@@ -133,3 +133,26 @@ class PurpleViewFactory: ViewFactory<PurpleRoute> {
         }
     }
 }
+
+// MARK: - Rainbow View Factory (Testing Pushed Children)
+
+final class RainbowViewFactory: ViewFactory<RainbowRoute> {
+    override func buildView(for route: RainbowRoute) -> AnyView? {
+        guard let coordinator = coordinator as? RainbowCoordinator else { return nil }
+
+        switch route {
+        case .red:
+            return view(RainbowRedView(coordinator: coordinator))
+        case .orange:
+            return view(RainbowOrangeView(coordinator: coordinator))
+        case .yellow:
+            return view(RainbowYellowView(coordinator: coordinator))
+        case .green:
+            return view(RainbowGreenView(coordinator: coordinator))
+        case .blue:
+            return view(RainbowBlueView(coordinator: coordinator))
+        case .purple:
+            return view(RainbowPurpleView(coordinator: coordinator))
+        }
+    }
+}
