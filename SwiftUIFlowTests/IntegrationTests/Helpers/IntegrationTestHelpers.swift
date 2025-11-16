@@ -25,11 +25,6 @@ enum UnlockRoute: Route {
     var identifier: String { "\(self)" }
 }
 
-enum UnlockResultRoute: Route {
-    case showResult
-    var identifier: String { "\(self)" }
-}
-
 enum Tab5Route: Route {
     case batteryStatus
     var identifier: String { "\(self)" }
@@ -162,34 +157,40 @@ final class Tab2Coordinator: Coordinator<Tab2Route> {
 final class UnlockCoordinator: Coordinator<UnlockRoute> {
     var result: UnlockResultCoordinator?
 
+    override init(router: Router<UnlockRoute>) {
+        super.init(router: router)
+
+        // Create and add modal coordinator (declarative pattern)
+        // Modal shows .success route
+        result = UnlockResultCoordinator(router: Router(initial: .success, factory: DummyFactory()))
+        addModalCoordinator(result!)
+    }
+
     override func canHandle(_ route: any Route) -> Bool {
         guard let route = route as? UnlockRoute else { return false }
 
-        // Pure query - no side effects
+        // Can handle all UnlockRoute cases
         switch route {
         case .enterCode, .loading, .failure, .success:
             return true
         }
     }
 
-    override func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
-        // Special handling for .success route - present modal and return early
-        if let unlockRoute = route as? UnlockRoute, unlockRoute == .success {
-            // Create and present result modal if needed
-            if result == nil {
-                result = UnlockResultCoordinator(router: Router(initial: .showResult, factory: DummyFactory()))
-                presentModal(result!, presenting: .success)
-            }
-            return true // We handled it - don't call super
-        }
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let unlockRoute = route as? UnlockRoute else { return .push }
 
-        // For all other routes, use base class logic
-        return super.navigate(to: route, from: caller)
+        // .success should be presented as modal
+        switch unlockRoute {
+        case .success:
+            return .modal
+        case .enterCode, .loading, .failure:
+            return .push
+        }
     }
 
     override func shouldDismissModalFor(route: any Route) -> Bool {
         // Dismiss modal for non-unlock related routes
-        return !(route is UnlockRoute || route is UnlockResultRoute)
+        return !(route is UnlockRoute)
     }
 
     deinit {
@@ -197,10 +198,11 @@ final class UnlockCoordinator: Coordinator<UnlockRoute> {
     }
 }
 
-final class UnlockResultCoordinator: Coordinator<UnlockResultRoute> {
+final class UnlockResultCoordinator: Coordinator<UnlockRoute> {
     override func canHandle(_ route: any Route) -> Bool {
-        guard let route = route as? UnlockResultRoute else { return false }
-        return route == .showResult
+        guard let route = route as? UnlockRoute else { return false }
+        // Modal coordinator handles .success route
+        return route == .success
     }
 
     deinit {

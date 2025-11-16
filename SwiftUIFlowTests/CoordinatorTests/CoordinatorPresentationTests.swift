@@ -16,7 +16,9 @@ final class CoordinatorPresentationTests: XCTestCase {
         let modal = Coordinator(router: sut.router)
         trackForMemoryLeaks(modal)
 
-        sut.coordinator.presentModal(modal, presenting: .home)
+        sut.coordinator.presentModal(modal,
+                                     presenting: .home,
+                                     detentConfiguration: ModalDetentConfiguration(detents: [.large]))
         XCTAssertTrue(sut.coordinator.currentModalCoordinator === modal)
 
         sut.coordinator.dismissModal()
@@ -30,7 +32,9 @@ final class CoordinatorPresentationTests: XCTestCase {
         trackForMemoryLeaks(modal)
 
         // Present modal (handles both coordinator and router state)
-        sut.coordinator.presentModal(modal, presenting: .modal)
+        sut.coordinator.presentModal(modal,
+                                     presenting: .modal,
+                                     detentConfiguration: ModalDetentConfiguration(detents: [.large]))
         XCTAssertNotNil(sut.coordinator.currentModalCoordinator)
         XCTAssertNotNil(sut.router.state.presented)
 
@@ -96,7 +100,9 @@ final class CoordinatorPresentationTests: XCTestCase {
         let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
         let modal = TestCoordinator(router: modalRouter)
 
-        sut.coordinator.presentModal(modal, presenting: .modal)
+        sut.coordinator.presentModal(modal,
+                                     presenting: .modal,
+                                     detentConfiguration: ModalDetentConfiguration(detents: [.large]))
 
         XCTAssertEqual(modal.presentationContext, .modal,
                        "Presented modal should have .modal context")
@@ -164,7 +170,9 @@ final class CoordinatorPresentationTests: XCTestCase {
         trackForMemoryLeaks(modal)
 
         // Present modal
-        sut.coordinator.presentModal(modal, presenting: .modal)
+        sut.coordinator.presentModal(modal,
+                                     presenting: .modal,
+                                     detentConfiguration: ModalDetentConfiguration(detents: [.large]))
 
         // Modal should have empty stack initially
         XCTAssertTrue(modal.router.state.stack.isEmpty, "Modal should start with empty stack")
@@ -184,7 +192,9 @@ final class CoordinatorPresentationTests: XCTestCase {
         trackForMemoryLeaks(modal)
 
         // Present modal and push a route
-        sut.coordinator.presentModal(modal, presenting: .modal)
+        sut.coordinator.presentModal(modal,
+                                     presenting: .modal,
+                                     detentConfiguration: ModalDetentConfiguration(detents: [.large]))
         modal.router.push(.details)
 
         XCTAssertEqual(modal.router.state.stack.count, 1, "Modal should have 1 item in stack")
@@ -204,7 +214,9 @@ final class CoordinatorPresentationTests: XCTestCase {
         trackForMemoryLeaks(modal)
 
         // Present modal
-        sut.coordinator.presentModal(modal, presenting: .modal)
+        sut.coordinator.presentModal(modal,
+                                     presenting: .modal,
+                                     detentConfiguration: ModalDetentConfiguration(detents: [.large]))
 
         XCTAssertTrue(modal.router.state.stack.isEmpty, "Modal should start with empty stack")
         XCTAssertNotNil(sut.coordinator.currentModalCoordinator, "Modal should be presented")

@@ -14,6 +14,10 @@ public struct NavigationState<R: Route>: Equatable {
     public var presented: R?
     public var detour: (any Route)?
 
+    /// Child coordinators currently pushed in the navigation stack
+    /// Maintained in parallel with the route stack for rendering
+    public var pushedChildren: [AnyCoordinator]
+
     /// Configuration for modal presentation detents
     public var modalDetentConfiguration: ModalDetentConfiguration?
 
@@ -28,6 +32,7 @@ public struct NavigationState<R: Route>: Equatable {
         selectedTab = 0
         presented = nil
         detour = nil
+        pushedChildren = []
         modalDetentConfiguration = nil
     }
 
@@ -37,6 +42,8 @@ public struct NavigationState<R: Route>: Equatable {
             lhs.selectedTab == rhs.selectedTab &&
             lhs.presented == rhs.presented &&
             lhs.detour?.identifier == rhs.detour?.identifier &&
+            lhs.pushedChildren.count == rhs.pushedChildren.count &&
+            zip(lhs.pushedChildren, rhs.pushedChildren).allSatisfy { $0 === $1 } &&
             lhs.modalDetentConfiguration == rhs.modalDetentConfiguration
     }
 }

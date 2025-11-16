@@ -18,7 +18,7 @@ public final class Router<R: Route>: ObservableObject {
         self.factory = factory
     }
 
-    // MARK: - Navigation Methods (Internal - Use Coordinator.navigate() instead)
+    // MARK: - Navigation Methods (Internal - Use Coordinator methods instead)
 
     /// Push a route onto the navigation stack.
     /// **Internal:** Use `Coordinator.navigate(to:)` instead.
@@ -35,6 +35,18 @@ public final class Router<R: Route>: ObservableObject {
             _ = state.stack.popLast()
         }
         state.stack.append(route)
+    }
+
+    /// Push a child coordinator onto the navigation stack.
+    /// **Internal:** Used when delegating navigation to a child coordinator.
+    func pushChild(_ coordinator: AnyCoordinator) {
+        state.pushedChildren.append(coordinator)
+    }
+
+    /// Pop the top child coordinator from the navigation stack.
+    /// **Internal:** Called when NavigationStack pops a child coordinator (user taps back).
+    func popChild() {
+        _ = state.pushedChildren.popLast()
     }
 
     /// Pop the top route from the navigation stack.
@@ -55,7 +67,7 @@ public final class Router<R: Route>: ObservableObject {
     }
 
     /// Present a route modally.
-    /// **Internal:** Use `Coordinator.navigate(to:)` with `.modal` NavigationType instead.
+    /// **Internal:** Use `Coordinator.navigate()` with .modal NavigationType instead.
     func present(_ route: R,
                  detentConfiguration: ModalDetentConfiguration = ModalDetentConfiguration(detents: [.large]))
     {
@@ -71,7 +83,7 @@ public final class Router<R: Route>: ObservableObject {
     }
 
     /// Present a detour route (cross-coordinator navigation with context preservation).
-    /// **Internal:** Use `Coordinator.navigate(to:)` with `.detour` NavigationType instead.
+    /// **Internal:** Use `Coordinator.presentDetour()` instead.
     func presentDetour(_ route: any Route) {
         state.detour = route
     }

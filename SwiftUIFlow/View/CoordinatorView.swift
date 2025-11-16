@@ -52,6 +52,11 @@ public struct CoordinatorView<R: Route>: View {
                                            errorType: .viewCreationFailed(viewType: .pushed)))
                         }
                     }
+                    .navigationDestination(for: CoordinatorWrapper.self) { wrapper in
+                        // Render pushed child coordinator
+                        let coordinatorView = wrapper.coordinator.buildCoordinatorView()
+                        eraseToAnyView(coordinatorView)
+                    }
             } else {
                 // Fallback if view factory doesn't provide a view
                 ErrorReportingView(error: coordinator
@@ -76,6 +81,23 @@ public struct CoordinatorView<R: Route>: View {
                 ErrorReportingView(error: coordinator
                     .makeError(for: route,
                                errorType: .viewCreationFailed(viewType: .modal)))
+            }
+        }
+        .sheet(isPresented: hasModalCoordinator, onDismiss: {
+            coordinator.dismissModal()
+        }) {
+            // Render cross-type modal sheet (when coordinator exists but no typed route)
+            if let modalCoordinator = coordinator.currentModalCoordinator {
+                let coordinatorView = modalCoordinator.buildCoordinatorView()
+                eraseToAnyView(coordinatorView)
+                    .onPreferenceChange(IdealHeightPreferenceKey.self) { height in
+                        updateIdealHeight(height)
+                    }
+                    .onPreferenceChange(MinHeightPreferenceKey.self) { height in
+                        updateMinHeight(height)
+                    }
+                    .presentationDetents(presentationDetentsSet,
+                                         selection: presentationDetentSelection)
             }
         }
         #if os(iOS)
@@ -131,18 +153,31 @@ public struct CoordinatorView<R: Route>: View {
     }
 
     /// Create a binding to the navigation path that syncs with the coordinator
-    private var navigationPath: Binding<[R]> {
+    private var navigationPath: Binding<NavigationPath> {
         Binding(get: {
-                    // Get current stack from router
-                    router.state.stack
-                },
-                set: { newStack in
-                    // Handle back navigation (user tapped back or swiped)
-                    let currentStack = router.state.stack
+                    // Build heterogeneous path with both routes and child coordinators
+                    var path = NavigationPath()
 
-                    if newStack.count < currentStack.count {
+                    // Add parent's routes
+                    for route in router.state.stack {
+                        path.append(route)
+                    }
+
+                    // Add child coordinators (wrapped for Hashable conformance)
+                    for child in router.state.pushedChildren {
+                        path.append(CoordinatorWrapper(child))
+                    }
+
+                    return path
+                },
+                set: { newPath in
+                    // Handle back navigation (user tapped back or swiped)
+                    let currentTotalCount = router.state.stack.count + router.state.pushedChildren.count
+                    let newCount = newPath.count
+
+                    if newCount < currentTotalCount {
                         // User went back - pop the difference
-                        let popCount = currentStack.count - newStack.count
+                        let popCount = currentTotalCount - newCount
                         for _ in 0 ..< popCount {
                             coordinator.pop()
                         }
@@ -175,6 +210,18 @@ public struct CoordinatorView<R: Route>: View {
                 },
                 set: { _ in
                     // This is called when fullScreenCover is dismissed by user gesture
+                    // The onDismiss closure handles the actual cleanup
+                })
+    }
+
+    /// Binding for cross-type modal presentation (when modal coordinator exists but no typed route)
+    private var hasModalCoordinator: Binding<Bool> {
+        Binding(get: {
+                    // Modal coordinator exists but no typed route (cross-type modal)
+                    coordinator.currentModalCoordinator != nil && router.state.presented == nil
+                },
+                set: { _ in
+                    // This is called when sheet is dismissed by user gesture
                     // The onDismiss closure handles the actual cleanup
                 })
     }

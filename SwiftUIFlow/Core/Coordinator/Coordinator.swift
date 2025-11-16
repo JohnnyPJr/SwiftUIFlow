@@ -22,7 +22,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     public var presentationContext: CoordinatorPresentationContext = .root
 
     public internal(set) var children: [AnyCoordinator] = []
-    public internal(set) var modalCoordinators: [AnyCoordinator] = []
+    public internal(set) var modalCoordinators: [Coordinator<R>] = []
     public internal(set) var currentModalCoordinator: AnyCoordinator?
     public internal(set) var detourCoordinator: AnyCoordinator?
 
@@ -49,6 +49,13 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     open func navigationType(for route: any Route) -> NavigationType {
         return .push
+    }
+
+    /// Configure modal presentation detents for a route.
+    /// Override this to customize how modals are presented.
+    /// Only called when navigationType returns .modal
+    open func modalDetentConfiguration(for route: any Route) -> ModalDetentConfiguration {
+        return ModalDetentConfiguration(detents: [.large])
     }
 
     public func addChild(_ coordinator: AnyCoordinator, context: CoordinatorPresentationContext = .pushed) {
@@ -78,11 +85,13 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
     }
 
-    public func addModalCoordinator(_ coordinator: AnyCoordinator) {
+    /// Add a modal coordinator that can be presented via navigate() when navigationType returns .modal
+    /// - Parameter coordinator: Must be Coordinator<R> (same route type as parent)
+    public func addModalCoordinator(_ coordinator: Coordinator<R>) {
         modalCoordinators.append(coordinator)
     }
 
-    public func removeModalCoordinator(_ coordinator: AnyCoordinator) {
+    public func removeModalCoordinator(_ coordinator: Coordinator<R>) {
         modalCoordinators.removeAll { $0 === coordinator }
     }
 
@@ -165,6 +174,33 @@ open class Coordinator<R: Route>: AnyCoordinator {
         NavigationLogger.debug("🔍 \(Self.self): Navigating to \(route.identifier)")
 
         if let typedRoute = route as? R, trySmartNavigation(to: typedRoute) {
+            // If caller is a pushed child, pop it (navigating back to parent)
+            if let caller, router.state.pushedChildren.contains(where: { $0 === caller }) {
+                router.popChild()
+                NavigationLogger
+                    .debug("👈 \(Self.self): Popped child coordinator after bubbling back")
+            }
+            // If caller is current modal, dismiss it (modal bubbled a route we're already at)
+            else if let caller, currentModalCoordinator === caller {
+                NavigationLogger
+                    .debug("🚪 \(Self.self): Dismissing modal after smart navigation to \(route.identifier)")
+                dismissModal()
+            }
+            // If caller is detour, dismiss it (detour bubbled a route we're already at)
+            else if let caller, detourCoordinator === caller {
+                NavigationLogger
+                    .debug("🔙 \(Self.self): Dismissing detour after smart navigation to \(route.identifier)")
+                dismissDetour()
+            }
+            // If we are a pushed child and navigating to parent's route, tell parent to pop us
+            else if caller == nil, let parent, parent is Coordinator<R> {
+                if let parentCoordinator = parent as? Coordinator<R>,
+                   parentCoordinator.router.state.pushedChildren.contains(where: { $0 === self })
+                {
+                    parentCoordinator.router.popChild()
+                    NavigationLogger.debug("👈 \(Self.self): Popped self from parent after navigating to parent route")
+                }
+            }
             return true
         }
 
@@ -192,10 +228,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return !(route is R)
     }
 
-    open func shouldDismissDetourFor(route: any Route) -> Bool {
-        return true
-    }
-
     open func shouldCleanStateForBubbling(route: any Route) -> Bool {
         if case .tabSwitch = navigationType(for: route) {
             return false
@@ -217,10 +249,12 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
     }
 
-    public func presentModal(_ coordinator: AnyCoordinator,
-                             presenting route: R,
-                             detentConfiguration: ModalDetentConfiguration =
-                                 ModalDetentConfiguration(detents: [.large]))
+    /// **Internal:** Present a modal coordinator with a route.
+    /// **Clients should use `navigate(to:)` instead.**
+    /// Called by the framework when navigationType returns .modal
+    func presentModal(_ coordinator: AnyCoordinator,
+                      presenting route: R,
+                      detentConfiguration: ModalDetentConfiguration)
     {
         currentModalCoordinator = coordinator
         coordinator.parent = self
@@ -256,6 +290,13 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// Pop one screen from the navigation stack
     /// If at root and presented as modal/detour, dismisses instead
     public func pop() {
+        // Check if we have pushed child coordinators
+        if !router.state.pushedChildren.isEmpty {
+            // Pop the last child coordinator
+            router.popChild()
+            return
+        }
+
         // If we're at the root (no pushed screens) and presented as modal/detour,
         // dismiss instead of attempting to pop
         if router.state.stack.isEmpty {
