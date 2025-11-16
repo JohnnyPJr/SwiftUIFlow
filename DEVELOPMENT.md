@@ -1,6 +1,6 @@
 # SwiftUIFlow - Development Progress
 
-**Last Updated:** November 10, 2025
+**Last Updated:** November 16, 2025
 
 ---
 
@@ -22,7 +22,7 @@ SwiftUIFlow is a coordinator-based navigation framework for SwiftUI that provide
 
 **Core Components:**
 1. **Route Protocol** - Type-safe navigation destinations
-2. **NavigationState** - State container (root, stack, selectedTab, presented, currentRoute)
+2. **NavigationState** - State container (root, stack, selectedTab, presented, currentRoute, pushedChildren)
 3. **Router** - Observable state machine managing navigation mutations
 4. **NavigationType** - Enum defining navigation strategies (.push, .replace, .modal, .tabSwitch)
 5. **Coordinator** - Navigation orchestration with smart features
@@ -77,18 +77,21 @@ SwiftUIFlow is a coordinator-based navigation framework for SwiftUI that provide
    - Two-way binding for user-initiated dismissals
 
 3. **Detour Navigation** ✅
-   - Added `.detour` case to NavigationType enum
+   - **REMOVED** `.detour` case from NavigationType enum (now explicit-only presentation)
    - Implemented `presentDetour()` and `dismissDetour()` in Coordinator
-   - Detours must be presented explicitly (not through navigate())
+   - Detours must be presented explicitly via `presentDetour()` (NEVER through navigate())
    - Automatic detour dismissal during cross-flow navigation
+   - Smart detour dismissal when detour bubbles to parent route already displayed
    - FullScreenCover presentation (slides from right, preserves context)
    - Integration tests for detour bubbling and dismissal
 
 4. **Multiple Modal Coordinators** ✅
    - Changed from single modal coordinator to `modalCoordinators` array
+   - **Type-constrained**: Modal coordinators must be `Coordinator<R>` (same route type as parent)
    - Multiple modal coordinators can be registered per coordinator
    - Only one presented at a time via `currentModalCoordinator`
    - Modal navigation finds appropriate coordinator via `canHandle()`
+   - Smart modal dismissal when modal bubbles to parent route already displayed
    - Fixed bug: ensure `router.present()` is called before delegating to modal coordinator
 
 5. **CoordinatorView Modal Rendering Fix** ✅
@@ -209,7 +212,7 @@ appCoordinator.navigate(to: .profile)
 - Login → Home
 - Logout → Login
 
-### 4. Cross-Flow Navigation: .detour Pattern
+### 4. Cross-Flow Navigation: Detour Pattern (Explicit Presentation Only)
 
 **Problem:** Deep linking across coordinators wipes navigation context
 
@@ -219,17 +222,26 @@ appCoordinator.navigate(to: .profile)
 - Desired: Push ProfileSettings, back button returns to Failure
 - Problem: Without detours, bubbling up cleans state
 
-**Solution:** `.detour` NavigationType
+**Solution:** Explicit Detour Presentation (NOT via NavigationType)
+- **REMOVED** `.detour` from NavigationType enum (breaking change from earlier design)
+- Detours MUST be presented explicitly via `presentDetour()` method
+- NEVER return `.detour` from `navigationType()` - framework does not support this
 - Presents as fullScreenCover (slides from right like push)
 - Preserves underlying navigation context
-- Auto-dismisses during cross-flow navigation (via shouldDismissDetourFor)
-- Must be presented explicitly via `presentDetour()`, NOT through `navigate()`
-- Returns assertionFailure if `.detour` returned from `navigationType(for:)`
+- Auto-dismisses during cross-flow navigation
+- **Smart dismissal**: Auto-dismisses when detour bubbles to parent route already displayed
+
+**Why Explicit-Only?**
+- Clearer API: Detours are fundamentally different from regular navigation
+- Type safety: Detours can be any coordinator type (not constrained like modals)
+- Less ambiguity: Explicit presentation makes intent obvious
+- Prevents navigation type confusion with modals
 
 **Implementation Details:**
 - `detourCoordinator` property holds the currently presented detour
 - `handleDetourNavigation()` checks detour first, similar to modal handling
-- Default `shouldDismissDetourFor()` returns true (always dismiss)
+- **REMOVED** `shouldDismissDetourFor()` method - detours always auto-dismiss during cross-flow navigation
+- Detours always dismiss if they don't handle route (simplified logic)
 - One level of detour (doesn't infinitely stack)
 
 **Status:** ✅ Implemented and tested
@@ -275,15 +287,15 @@ class AppViewFactory: ViewFactory<AppRoute> {
 
 **Deferred to:** After example app validates basics
 
-### 7. Multiple Modal Coordinators Pattern
+### 7. Multiple Modal Coordinators Pattern (Type-Constrained)
 
-**Decision:** Support multiple modal coordinator registration per coordinator
+**Decision:** Support multiple modal coordinator registration per coordinator with type constraints
 
 **Pattern:**
 ```swift
 let mainCoordinator = MainCoordinator(...)
-let profileModalCoord = ProfileModalCoordinator(...)
-let settingsModalCoord = SettingsModalCoordinator(...)
+let profileModalCoord = ProfileModalCoordinator(...)  // Must be Coordinator<MainRoute>
+let settingsModalCoord = SettingsModalCoordinator(...) // Must be Coordinator<MainRoute>
 
 mainCoordinator.addModalCoordinator(profileModalCoord)
 mainCoordinator.addModalCoordinator(settingsModalCoord)
@@ -294,10 +306,17 @@ mainCoordinator.navigate(to: .settings) // Uses settingsModalCoord
 ```
 
 **Implementation:**
-- `modalCoordinators: [AnyCoordinator]` - array of registered modal coordinators
-- `currentModalCoordinator: AnyCoordinator?` - the one currently presented
+- `modalCoordinators: [Coordinator<R>]` - **type-constrained** array of modal coordinators (same route type as parent)
+- `currentModalCoordinator: AnyCoordinator?` - the one currently presented (type-erased)
 - Modal navigation finds coordinator via `canHandle()`, then presents it
 - Only one modal presented at a time
+- **Smart modal dismissal**: Modals auto-dismiss when they bubble to parent route already displayed
+
+**Type Constraint Rationale:**
+- Ensures modal coordinators can handle same routes as parent
+- Compile-time safety for modal registration
+- Parent and modal share same route enum for seamless navigation
+- Detours are NOT type-constrained (use AnyCoordinator) for flexibility
 
 **Bug Fixed:** Modal navigation now ensures `router.present()` is called before delegating to modal coordinator, so the presentation state is properly updated.
 
@@ -1259,6 +1278,90 @@ Added "even darker green" screen to demonstrate:
 
 **Status:** ✅ Fully implemented with tests and example
 
+### 16A. Pushed Child Coordinators - Child Coordinator Navigation Support ✅
+
+**Decision:** Enable child coordinators to be pushed into parent's navigation stack
+
+**Problem:** Child coordinators could only be rendered as tabs or separate flows, but couldn't be pushed into parent's navigation hierarchy for true hierarchical navigation.
+
+**Solution: Pushed Children Tracking**
+
+**Implementation:**
+
+1. **NavigationState.pushedChildren** - New array tracking pushed child coordinators
+   ```swift
+   /// Child coordinators currently pushed in the navigation stack
+   /// Maintained in parallel with the route stack for rendering
+   public var pushedChildren: [AnyCoordinator]
+   ```
+
+2. **Router.pushChild() / popChild()** - Methods to manage pushed children
+   ```swift
+   func pushChild(_ coordinator: AnyCoordinator)
+   func popChild()
+   ```
+
+3. **CoordinatorView Integration** - Renders pushed children coordinators
+   - Uses `buildCoordinatorView()` to get child's full navigation view
+   - Child coordinators have their own NavigationStack
+   - Back button automatically pops child coordinator
+
+4. **Smart Navigation for Pushed Children** - Auto-pop when navigating to parent route
+   - When pushed child navigates to parent's route, child gets popped
+   - When parent navigates and child bubbles back, child gets popped
+   - Prevents getting stuck in child coordinator flow
+
+**How It Works:**
+
+```swift
+// Parent delegates to child for route
+func delegateToChildren(route: any Route, caller: AnyCoordinator?) -> Bool {
+    for child in children where child !== caller {
+        if child.canHandle(route) {
+            let navType = child.navigationType(for: route)
+
+            switch navType {
+            case .push:
+                router.pushChild(child)  // ← Pushed into parent's nav stack
+                child.parent = self
+                child.presentationContext = .pushed
+                _ = child.navigate(to: route, from: self)
+                return true
+            // ... other cases
+            }
+        }
+    }
+}
+
+// Smart navigation handles pushed children
+if let typedRoute = route as? R, trySmartNavigation(to: typedRoute) {
+    // If caller is a pushed child, pop it
+    if let caller, router.state.pushedChildren.contains(where: { $0 === caller }) {
+        router.popChild()
+        NavigationLogger.debug("👈 Popped child coordinator after bubbling back")
+    }
+    return true
+}
+```
+
+**Testing:**
+
+Added tests to NavigationFlowIntegrationTests.swift:
+- Pushed child coordinators are rendered correctly
+- Back button pops pushed child
+- Smart navigation pops child when navigating to parent route
+- Multiple pushed children work correctly
+
+**Benefits:**
+
+✅ **Hierarchical navigation**: Child coordinators can be part of parent's navigation flow
+✅ **Type safety**: Child knows its own route types
+✅ **Clean back navigation**: Automatically pops child when returning to parent
+✅ **Consistent behavior**: Same pop() API works for routes and child coordinators
+✅ **Flexible architecture**: Mix routes and child coordinators in same navigation stack
+
+**Status:** ✅ Fully implemented and tested
+
 ### 17. Two-Phase Navigation - Atomic Navigation with Specific Error Reporting ✅
 
 **Decision:** Implement validation-before-execution pattern to prevent broken intermediate states during navigation failures
@@ -2042,12 +2145,24 @@ References:
 - [x] Add example app demonstrations (info button in all 5 tabs)
 - [x] Create InfoView, InfoButton, and info coordinators
 - [x] Document detent system comprehensively
+- [x] Remove `.detour` from NavigationType enum (breaking change - detours now explicit-only)
+- [x] Add pushedChildren tracking to NavigationState
+- [x] Implement Router.pushChild() / popChild() methods
+- [x] Add CoordinatorView rendering for pushed child coordinators
+- [x] Fix smart navigation for pushed child coordinators (auto-pop when navigating to parent)
+- [x] Implement type-constrained modal coordinators (Coordinator<R> instead of AnyCoordinator)
+- [x] Fix modal/detour smart dismissal bug (dismiss when bubbling to already-displayed parent route)
+- [x] Remove shouldDismissDetourFor() method (detours always auto-dismiss)
+- [x] Update development.md with all branch changes
+- [x] Fix SwiftLint warnings
 
 ### In Progress 🔄
-- [ ] Prepare for main branch merge (review & clean up)
+- [ ] Merge branch to main
 
 ### Pending 📋
 - [ ] Add snapshot tests for view layer (optional)
+- [ ] Add drag indicator for modals with multiple detents (visual feedback for draggable sheets)
+- [ ] Enable drag-to-fullscreen for modal sheets (seamless transition from sheet to fullScreenCover)
 
 ---
 
@@ -2108,13 +2223,13 @@ Not yet started - postponed until Phase 2A complete:
 - Phase 1: Unit + integration tests (comprehensive)
 - Phase 2: Manual validation via example app, then snapshot tests
 
-**Branch:** Currently on `origin/Add-View-layer` (will merge to main after Phase 2A complete)
+**Branch:** Currently on `feature/Navigation-Engine-Missing-Implementation-For-Childs` (ready for merge to main)
 
 ---
 
 ## Questions / Decisions Needed
 
-None currently - proceeding with TabCoordinatorView implementation.
+None - branch ready for merge to main.
 
 ---
 
@@ -2122,12 +2237,18 @@ None currently - proceeding with TabCoordinatorView implementation.
 
 - All router mutation methods are `internal` (public observation only)
 - Coordinator hierarchy is permanent (children), modals/detours are temporary
+- **Modal coordinators are type-constrained**: Must be `Coordinator<R>` (same route type as parent)
+- **Detour coordinators are NOT type-constrained**: Use `AnyCoordinator` for flexibility
 - Multiple modal coordinators can be registered, but only one presented at a time
 - currentRoute priority: Detour → Modal → Stack top → Root
+- **Pushed children tracking**: NavigationState.pushedChildren array tracks child coordinators in nav stack
+- **Smart navigation for pushed children**: Auto-pops child when navigating to parent route
+- **Smart modal/detour dismissal**: Auto-dismisses when bubbling to parent route already displayed
 - Smart navigation auto-detects backward navigation and pops instead of push
 - Tab switching doesn't clean state (tabs manage their own state)
 - Cross-flow bubbling cleans state unless presented as detour
-- Detours must be presented explicitly via `presentDetour()`, NOT through `navigate()`
+- **`.detour` NavigationType REMOVED**: Detours must be presented explicitly via `presentDetour()`, NEVER through `navigate()`
+- **`shouldDismissDetourFor()` method REMOVED**: Detours always auto-dismiss during cross-flow navigation
 - Error handling uses `assertionFailure()` for programmer errors (safe in production)
 - CoordinatorPresentationContext automatically set by framework (zero user configuration)
 - Views can check `coordinator.presentationContext` for context-aware UI
@@ -2165,6 +2286,6 @@ None currently - proceeding with TabCoordinatorView implementation.
 
 ---
 
-**Last Task Completed:** Implemented two-phase navigation with ValidationResult pattern to fix critical navigation bug
-**Next Task:** Merge feature/Refactor-Navigation-Engine branch to main
-**Branch:** origin/feature/Refactor-Navigation-Engine
+**Last Task Completed:** Updated development.md with all changes from feature/Navigation-Engine-Missing-Implementation-For-Childs branch
+**Next Task:** Merge branch to main
+**Branch:** feature/Navigation-Engine-Missing-Implementation-For-Childs
