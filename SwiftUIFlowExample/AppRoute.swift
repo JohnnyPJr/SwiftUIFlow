@@ -36,6 +36,22 @@ enum RedRoute: Route {
     }
 }
 
+// Rainbow routes for testing pushed child coordinators
+enum RainbowRoute: Route {
+    case red, orange, yellow, green, blue, purple
+
+    var identifier: String {
+        switch self {
+        case .red: return "rainbow_red"
+        case .orange: return "rainbow_orange"
+        case .yellow: return "rainbow_yellow"
+        case .green: return "rainbow_green"
+        case .blue: return "rainbow_blue"
+        case .purple: return "rainbow_purple"
+        }
+    }
+}
+
 enum GreenRoute: Route {
     case green
     case lightGreen

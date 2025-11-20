@@ -13,6 +13,9 @@ public final class Router<R: Route>: ObservableObject {
     @Published public private(set) var state: NavigationState<R>
     private let factory: ViewFactory<R>
 
+    /// Publisher for route changes (type-erased for parent observation)
+    public let routesDidChange = PassthroughSubject<[any Route], Never>()
+
     public init(initial: R, factory: ViewFactory<R>) {
         state = NavigationState(root: initial)
         self.factory = factory
@@ -24,6 +27,7 @@ public final class Router<R: Route>: ObservableObject {
     /// **Internal:** Use `Coordinator.navigate(to:)` instead.
     func push(_ route: R) {
         state.stack.append(route)
+        notifyRoutesChanged()
     }
 
     /// Replace the current route with a new one (no back navigation).
@@ -35,6 +39,7 @@ public final class Router<R: Route>: ObservableObject {
             _ = state.stack.popLast()
         }
         state.stack.append(route)
+        notifyRoutesChanged()
     }
 
     /// Push a child coordinator onto the navigation stack.
@@ -53,6 +58,7 @@ public final class Router<R: Route>: ObservableObject {
     /// **Internal:** Use `Coordinator.pop()` instead.
     func pop() {
         _ = state.stack.popLast()
+        notifyRoutesChanged()
     }
 
     /// **ADMIN OPERATION** - Set a new root route and clear the stack.
@@ -104,6 +110,7 @@ public final class Router<R: Route>: ObservableObject {
     /// **Internal:** Use `Coordinator.popToRoot()` instead.
     func popToRoot() {
         state.stack.removeAll()
+        notifyRoutesChanged()
     }
 
     /// Dismiss all presented modals.
@@ -147,5 +154,13 @@ public final class Router<R: Route>: ObservableObject {
     // MARK: - View Building
     public func view(for route: R) -> AnyView? {
         factory.buildView(for: route)
+    }
+
+    // MARK: - Private Helpers
+
+    /// Notify subscribers that routes have changed
+    private func notifyRoutesChanged() {
+        let allRoutes: [any Route] = [state.root] + state.stack
+        routesDidChange.send(allRoutes)
     }
 }

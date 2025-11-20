@@ -290,7 +290,10 @@ extension Coordinator {
         case let .tabSwitch(index):
             return router.state.selectedTab == index
         case .push, .replace:
-            return router.state.currentRoute == route
+            let currentRoute = router.state.currentRoute
+            let isAt = currentRoute == route
+            NavigationLogger.debug("🔍 isAlreadyAt check: currentRoute=\(currentRoute.identifier), target=\(route.identifier), result=\(isAt)")
+            return isAt
         case .modal:
             return router.state.presented == route
         }

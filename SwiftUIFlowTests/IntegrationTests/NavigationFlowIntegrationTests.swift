@@ -239,4 +239,171 @@ final class NavigationFlowIntegrationTests: XCTestCase {
         appCoordinator.pop()
         XCTAssertEqual(appRouter.state.root, .home, "Should remain at home after pop")
     }
+
+    // MARK: - Pushed Children Route Change Notification Tests (Regression Tests)
+
+    func test_PushedChildPopNotifiesParent() {
+        // Regression test: Verify that pop() triggers route change notification
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
+
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator")
+            return
+        }
+
+        // Push unlock coordinator
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.enterCode))
+
+        guard let unlock = tab2.router.state.pushedChildren.first as? UnlockCoordinator else {
+            XCTFail("Expected UnlockCoordinator to be pushed")
+            return
+        }
+
+        // Navigate within unlock flow
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.loading))
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.failure))
+
+        // Setup expectation for route changes
+        var routeChangeCount = 0
+        let cancellable = unlock.routesDidChange
+            .sink { _ in
+                routeChangeCount += 1
+            }
+
+        // Pop should trigger notification
+        unlock.pop()
+        XCTAssertEqual(routeChangeCount, 1, "pop() should trigger route change notification")
+        XCTAssertEqual(unlock.router.state.stack.count, 1, "Stack should have 1 item after pop")
+
+        cancellable.cancel()
+    }
+
+    func test_PushedChildPopToRootNotifiesParent() {
+        // Regression test: popToRoot() was not notifying parent - THIS WAS THE BUG!
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
+
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator")
+            return
+        }
+
+        // Push unlock coordinator
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.enterCode))
+
+        guard let unlock = tab2.router.state.pushedChildren.first as? UnlockCoordinator else {
+            XCTFail("Expected UnlockCoordinator to be pushed")
+            return
+        }
+
+        // Navigate within unlock flow
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.loading))
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.failure))
+        XCTAssertEqual(unlock.router.state.stack.count, 2, "Stack should have 2 items")
+
+        // Setup expectation for route changes
+        var routeChangeCount = 0
+        let cancellable = unlock.routesDidChange
+            .sink { _ in
+                routeChangeCount += 1
+            }
+
+        // popToRoot should trigger notification (THIS WAS THE BUG!)
+        unlock.popToRoot()
+        XCTAssertEqual(routeChangeCount, 1, "popToRoot() should trigger route change notification")
+        XCTAssertTrue(unlock.router.state.stack.isEmpty, "Stack should be empty after popToRoot")
+
+        cancellable.cancel()
+    }
+
+    func test_PushedChildReplaceNotifiesParent() {
+        // Regression test: replace() navigation should notify parent
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
+
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator")
+            return
+        }
+
+        // Create and add password reset coordinator
+        let resetRouter = Router<PasswordResetRoute>(initial: .enterCode, factory: DummyFactory())
+        let resetCoordinator = PasswordResetCoordinator(router: resetRouter)
+        tab2.addChild(resetCoordinator)
+
+        // Navigate to password reset (pushes it)
+        XCTAssertTrue(tab2.navigate(to: PasswordResetRoute.enterCode))
+
+        guard let reset = tab2.router.state.pushedChildren.first as? PasswordResetCoordinator else {
+            XCTFail("Expected PasswordResetCoordinator to be pushed")
+            return
+        }
+
+        // Setup expectation for route changes
+        var routeChangeCount = 0
+        let cancellable = reset.routesDidChange
+            .sink { _ in
+                routeChangeCount += 1
+            }
+
+        // Use replace navigation (enterCode → verifying, can't go back)
+        XCTAssertTrue(reset.navigate(to: PasswordResetRoute.verifying))
+        XCTAssertEqual(routeChangeCount, 1, "replace() should trigger route change notification")
+        XCTAssertEqual(reset.router.state.stack.count, 1, "Stack should have 1 item after replace")
+        XCTAssertEqual(reset.router.state.stack[0], .verifying)
+
+        // Replace again
+        XCTAssertTrue(reset.navigate(to: PasswordResetRoute.newPassword))
+        XCTAssertEqual(routeChangeCount, 2, "replace() should trigger route change notification again")
+
+        cancellable.cancel()
+    }
+
+    func test_CleanStateForBubblingRemovesPushedChildren() {
+        // Regression test: cleanStateForBubbling() should remove pushed children - THIS WAS THE BUG!
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        XCTAssertTrue(mainCoordinator.navigate(to: MainTabRoute.tab2))
+
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator")
+            return
+        }
+
+        // Push unlock coordinator
+        XCTAssertTrue(tab2.navigate(to: UnlockRoute.enterCode))
+
+        guard let unlock = tab2.router.state.pushedChildren.first as? UnlockCoordinator else {
+            XCTFail("Expected UnlockCoordinator to be pushed")
+            return
+        }
+
+        // Navigate within unlock flow
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.loading))
+        XCTAssertTrue(unlock.navigate(to: UnlockRoute.failure))
+        XCTAssertEqual(unlock.router.state.stack.count, 2, "Unlock should have 2 items in stack")
+
+        // Verify child is pushed
+        XCTAssertEqual(tab2.router.state.pushedChildren.count, 1, "Tab2 should have 1 pushed child")
+        XCTAssertTrue(tab2.router.state.pushedChildren.contains(where: { $0 === unlock }))
+
+        // Navigate to Tab3 - this should bubble from unlock → tab2 → mainCoordinator
+        // Tab2 should clean up pushed children before bubbling
+        XCTAssertTrue(unlock.navigate(to: MainTabRoute.tab3))
+
+        // Verify state was cleaned (THIS WAS THE BUG!)
+        XCTAssertTrue(tab2.router.state.pushedChildren.isEmpty,
+                      "Tab2 should have no pushed children after bubbling")
+        XCTAssertTrue(tab2.router.state.stack.isEmpty,
+                      "Tab2 stack should be empty after bubbling")
+        XCTAssertEqual(router.state.selectedTab, 2, "Should have switched to Tab3")
+    }
 }

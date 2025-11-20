@@ -5,6 +5,7 @@
 //  Created by Ioannis Platsis on 1/8/25.
 //
 
+import Combine
 import Foundation
 
 open class Coordinator<R: Route>: AnyCoordinator {
@@ -16,6 +17,17 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// Do NOT call mutation methods directly (push, pop, etc.).
     /// Use `navigate(to:)` instead for all navigation.
     public let router: Router<R>
+
+    /// All routes for this coordinator (root + stack)
+    /// Computed property for immediate access
+    public var allRoutes: [any Route] {
+        [router.state.root] + router.state.stack
+    }
+
+    /// Type-erased publisher for route changes
+    public var routesDidChange: AnyPublisher<[any Route], Never> {
+        router.routesDidChange.eraseToAnyPublisher()
+    }
 
     /// How this coordinator is presented in the navigation hierarchy.
     /// Determines whether the root view should show a back button.
@@ -39,6 +51,12 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// Build a CoordinatorView for this coordinator with full navigation support
     public func buildCoordinatorView() -> Any {
         return CoordinatorView(coordinator: self)
+    }
+
+    /// Build a view for a specific route with modal/detour presentation support
+    /// Returns CoordinatorRouteView as type-erased Any (caller should cast to AnyView)
+    public func buildCoordinatorRouteView(for route: any Route) -> Any {
+        return CoordinatorRouteView(coordinator: self, route: route)
     }
 
     /// Tab item configuration for coordinators used as tabs
@@ -232,7 +250,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         if case .tabSwitch = navigationType(for: route) {
             return false
         }
-        return detourCoordinator != nil || currentModalCoordinator != nil || !router.state.stack.isEmpty
+        return detourCoordinator != nil || currentModalCoordinator != nil || !router.state.stack.isEmpty || !router.state.pushedChildren.isEmpty
     }
 
     open func cleanStateForBubbling() {
@@ -246,6 +264,11 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
         if !router.state.stack.isEmpty {
             router.popToRoot()
+        }
+
+        // Pop all pushed children
+        while !router.state.pushedChildren.isEmpty {
+            router.popChild()
         }
     }
 
@@ -275,6 +298,9 @@ open class Coordinator<R: Route>: AnyCoordinator {
         coordinator.parent = self
         coordinator.presentationContext = .detour
         router.presentDetour(route)
+
+        // Navigate detour coordinator to the presenting route
+        _ = coordinator.navigate(to: route, from: self)
     }
 
     public func dismissDetour() {
@@ -291,9 +317,15 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// If at root and presented as modal/detour, dismisses instead
     public func pop() {
         // Check if we have pushed child coordinators
-        if !router.state.pushedChildren.isEmpty {
-            // Pop the last child coordinator
-            router.popChild()
+        if let lastChild = router.state.pushedChildren.last {
+            // Check if child has routes in its stack (beyond root)
+            if lastChild.allRoutes.count > 1 {
+                // Child has internal stack - pop from child
+                lastChild.pop()
+            } else {
+                // Child is at its root - pop entire child coordinator
+                router.popChild()
+            }
             return
         }
 
