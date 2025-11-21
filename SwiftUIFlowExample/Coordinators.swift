@@ -123,9 +123,9 @@ class RedCoordinator: Coordinator<RedRoute> {
     var infoCoordinator: RedInfoCoordinator!
     var rainbowCoordinator: RainbowCoordinator!
 
-    init() {
+    init(root: RedRoute = .red) {
         let factory = RedViewFactory()
-        super.init(router: Router(initial: .red, factory: factory))
+        super.init(router: Router(initial: root, factory: factory))
         factory.coordinator = self
         let modalCoord = RedModalCoordinator()
         addModalCoordinator(modalCoord)
@@ -313,9 +313,9 @@ class BlueModalCoordinator: Coordinator<BlueRoute> {
 class YellowCoordinator: Coordinator<YellowRoute> {
     var infoCoordinator: YellowInfoCoordinator!
 
-    init() {
+    init(root: YellowRoute = .yellow) {
         let factory = YellowViewFactory()
-        super.init(router: Router(initial: .yellow, factory: factory))
+        super.init(router: Router(initial: root, factory: factory))
         factory.coordinator = self
         let modalCoord = YellowModalCoordinator()
         addModalCoordinator(modalCoord)

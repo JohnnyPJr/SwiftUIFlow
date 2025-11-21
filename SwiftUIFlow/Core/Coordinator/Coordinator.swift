@@ -298,9 +298,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
         coordinator.parent = self
         coordinator.presentationContext = .detour
         router.presentDetour(route)
-
-        // Navigate detour coordinator to the presenting route
-        _ = coordinator.navigate(to: route, from: self)
     }
 
     public func dismissDetour() {
