@@ -124,7 +124,7 @@ struct RainbowBlueView: View {
                 .tint(.purple)
 
                 Button("Detour to Yellow's Light Screen") {
-                    let yellowDetourCoordinator = YellowCoordinator()
+                    let yellowDetourCoordinator = YellowCoordinator(root: .lightYellow)
                     coordinator.presentDetour(yellowDetourCoordinator, presenting: YellowRoute.lightYellow)
                 }
                 .buttonStyle(.borderedProminent)
