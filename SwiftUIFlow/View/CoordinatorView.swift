@@ -34,11 +34,9 @@ public struct CoordinatorView<R: Route>: View {
     public init(coordinator: Coordinator<R>) {
         self.coordinator = coordinator
         router = coordinator.router
-        NavigationLogger.debug("🏗️ CoordinatorView init for \(String(describing: R.self))")
     }
 
     public var body: some View {
-        let _ = NavigationLogger.debug("🎨 CoordinatorView body for root: \(router.state.root.identifier)")
         return bodyContent
     }
 
@@ -182,15 +180,12 @@ public struct CoordinatorView<R: Route>: View {
                         path.append(wrapper)
                     }
 
-                    NavigationLogger.debug("📍 navigationPath total count: \(path.count)")
                     return path
                 },
                 set: { newPath in
                     // Handle back navigation (user tapped back or swiped)
                     let currentTotalCount = router.state.stack.count + pushedChildStack.count
                     let newCount = newPath.count
-
-                    NavigationLogger.debug("⬅️ Back navigation: current=\(currentTotalCount), new=\(newCount)")
 
                     if newCount < currentTotalCount {
                         // User swiped back - pop the difference
@@ -314,6 +309,5 @@ public struct CoordinatorView<R: Route>: View {
                 ChildRouteWrapper(route: route, coordinator: child)
             }
         }
-        NavigationLogger.debug("🔄 Rebuilt pushedChildStack: \(pushedChildStack.count) routes")
     }
 }

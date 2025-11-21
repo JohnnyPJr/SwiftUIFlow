@@ -292,7 +292,7 @@ extension Coordinator {
         case .push, .replace:
             let currentRoute = router.state.currentRoute
             let isAt = currentRoute == route
-            NavigationLogger.debug("🔍 isAlreadyAt check: currentRoute=\(currentRoute.identifier), target=\(route.identifier), result=\(isAt)")
+            NavigationLogger.debug("🔍 isAlreadyAt check: currentRoute=\(currentRoute.identifier)")
             return isAt
         case .modal:
             return router.state.presented == route
@@ -330,6 +330,55 @@ extension Coordinator {
         case let .tabSwitch(index):
             router.selectTab(index)
             return true
+        }
+    }
+
+    // MARK: - Navigation Stack Control
+
+    /// Pop one screen from the navigation stack
+    public func pop() {
+        // Pushed childs pop handling
+        if let lastChild = router.state.pushedChildren.last {
+            if lastChild.allRoutes.count > 1 {
+                lastChild.pop()
+            } else {
+                router.popChild()
+            }
+            return
+        }
+
+        // Modal/detour childs handling
+        if router.state.stack.isEmpty {
+            switch presentationContext {
+            case .modal:
+                parent?.dismissModal()
+                return
+            case .detour:
+                parent?.dismissDetour()
+                return
+            default:
+                break
+            }
+        }
+
+        // Normal pop handling
+        router.pop()
+    }
+
+    /// Pop all screens and return to the root of this coordinator's flow
+    public func popToRoot() {
+        router.popToRoot()
+    }
+
+    /// Pop to a specific route in the stack (if it exists)
+    public func popTo(_ route: R) {
+        guard let index = router.state.stack.firstIndex(where: { $0 == route }) else {
+            return
+        }
+
+        let popCount = router.state.stack.count - index - 1
+        for _ in 0 ..< popCount {
+            router.pop()
         }
     }
 }

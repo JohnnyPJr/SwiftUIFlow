@@ -59,7 +59,7 @@ struct LightYellowView: View {
                     .foregroundColor(.black.opacity(0.7))
 
                 Button("Navigate to Dark Green") {
-                    coordinator.navigate(to: GreenRoute.darkGreen)
+                    _ = coordinator.navigate(to: GreenRoute.darkGreen)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)

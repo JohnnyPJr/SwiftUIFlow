@@ -54,12 +54,11 @@ open class Coordinator<R: Route>: AnyCoordinator {
     }
 
     /// Build a view for a specific route with modal/detour presentation support
-    /// Returns CoordinatorRouteView as type-erased Any (caller should cast to AnyView)
     public func buildCoordinatorRouteView(for route: any Route) -> Any {
         return CoordinatorRouteView(coordinator: self, route: route)
     }
 
-    /// Tab item configuration for coordinators used as tabs
+    /// Tab item configuration for coordinators used as tabs.
     /// Override this in subclasses that are used as tabs in a TabCoordinator
     open var tabItem: (text: String, image: String)? {
         return nil
@@ -70,8 +69,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
     }
 
     /// Configure modal presentation detents for a route.
-    /// Override this to customize how modals are presented.
-    /// Only called when navigationType returns .modal
     open func modalDetentConfiguration(for route: any Route) -> ModalDetentConfiguration {
         return ModalDetentConfiguration(detents: [.large])
     }
@@ -250,7 +247,10 @@ open class Coordinator<R: Route>: AnyCoordinator {
         if case .tabSwitch = navigationType(for: route) {
             return false
         }
-        return detourCoordinator != nil || currentModalCoordinator != nil || !router.state.stack.isEmpty || !router.state.pushedChildren.isEmpty
+        return detourCoordinator != nil ||
+            currentModalCoordinator != nil ||
+            !router.state.stack.isEmpty ||
+            !router.state.pushedChildren.isEmpty
     }
 
     open func cleanStateForBubbling() {
@@ -272,8 +272,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
     }
 
-    /// **Internal:** Present a modal coordinator with a route.
-    /// **Clients should use `navigate(to:)` instead.**
     /// Called by the framework when navigationType returns .modal
     func presentModal(_ coordinator: AnyCoordinator,
                       presenting route: R,
@@ -308,60 +306,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
         router.dismissDetour()
     }
 
-    // MARK: - Navigation Stack Control
-
-    /// Pop one screen from the navigation stack
-    /// If at root and presented as modal/detour, dismisses instead
-    public func pop() {
-        // Check if we have pushed child coordinators
-        if let lastChild = router.state.pushedChildren.last {
-            // Check if child has routes in its stack (beyond root)
-            if lastChild.allRoutes.count > 1 {
-                // Child has internal stack - pop from child
-                lastChild.pop()
-            } else {
-                // Child is at its root - pop entire child coordinator
-                router.popChild()
-            }
-            return
-        }
-
-        // If we're at the root (no pushed screens) and presented as modal/detour,
-        // dismiss instead of attempting to pop
-        if router.state.stack.isEmpty {
-            switch presentationContext {
-            case .modal:
-                parent?.dismissModal()
-                return
-            case .detour:
-                parent?.dismissDetour()
-                return
-            default:
-                break
-            }
-        }
-
-        // Normal pop behavior
-        router.pop()
-    }
-
-    /// Pop all screens and return to the root of this coordinator's flow
-    public func popToRoot() {
-        router.popToRoot()
-    }
-
-    /// Pop to a specific route in the stack (if it exists)
-    public func popTo(_ route: R) {
-        guard let index = router.state.stack.firstIndex(where: { $0 == route }) else {
-            return
-        }
-
-        let popCount = router.state.stack.count - index - 1
-        for _ in 0 ..< popCount {
-            router.pop()
-        }
-    }
-
     public func resetToCleanState() {
         router.resetToRoot()
         dismissModal()
@@ -372,7 +316,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     /// **ADMIN OPERATION** - Transition to a completely new flow with a new root.
     /// Sets new root route, clears stack, and dismisses modals/detours.
-    /// Use for major transitions like Login → Home, not for regular navigation.
     public func transitionToNewFlow(root: R) {
         router.setRoot(root)
         dismissModal()

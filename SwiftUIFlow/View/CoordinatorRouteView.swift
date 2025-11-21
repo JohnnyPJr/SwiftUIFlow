@@ -39,41 +39,53 @@ struct CoordinatorRouteView<R: Route>: View {
             }
         }
         // Same modal presentation as CoordinatorView
-        .sheet(isPresented: Binding(get: { coordinator.currentModalCoordinator != nil && router.state.presented == nil },
-                                    set: { if !$0 { coordinator.dismissModal() }}))
-        {
+        .sheet(isPresented: hasCrossTypeModal) {
             if let modal = coordinator.currentModalCoordinator {
                 let coordinatorView = modal.buildCoordinatorView()
                 eraseToAnyView(coordinatorView)
             }
         }
-        .sheet(item: Binding(get: { router.state.presented },
-                             set: { if $0 == nil { coordinator.dismissModal() }}))
-        { _ in
+        .sheet(item: presentedModalRoute) { _ in
             if let modal = coordinator.currentModalCoordinator {
                 let coordinatorView = modal.buildCoordinatorView()
                 eraseToAnyView(coordinatorView)
             }
         }
         #if os(iOS)
-        .fullScreenCover(isPresented: Binding(get: { coordinator.detourCoordinator != nil },
-                                              set: { if !$0 { coordinator.dismissDetour() }}))
-        {
+        .fullScreenCover(isPresented: hasDetour) {
             if let detour = coordinator.detourCoordinator {
                 let coordinatorView = detour.buildCoordinatorView()
                 eraseToAnyView(coordinatorView)
             }
         }
         #else
-        .sheet(isPresented: Binding(get: { coordinator.detourCoordinator != nil },
-                                    set: { if !$0 { coordinator.dismissDetour() }}))
-        {
-            if let detour = coordinator.detourCoordinator {
-                let coordinatorView = detour.buildCoordinatorView()
-                eraseToAnyView(coordinatorView)
-            }
+        .sheet(isPresented: hasDetour) {
+                    if let detour = coordinator.detourCoordinator {
+                        let coordinatorView = detour.buildCoordinatorView()
+                        eraseToAnyView(coordinatorView)
+                    }
                 }
         #endif
+    }
+
+    // MARK: - Presentation Bindings
+
+    /// Binding for cross-type modal presentation (when modal coordinator exists but no typed route)
+    private var hasCrossTypeModal: Binding<Bool> {
+        Binding(get: { coordinator.currentModalCoordinator != nil && router.state.presented == nil },
+                set: { if !$0 { coordinator.dismissModal() } })
+    }
+
+    /// Binding for typed modal route presentation
+    private var presentedModalRoute: Binding<R?> {
+        Binding(get: { router.state.presented },
+                set: { if $0 == nil { coordinator.dismissModal() } })
+    }
+
+    /// Binding for detour presentation state
+    private var hasDetour: Binding<Bool> {
+        Binding(get: { coordinator.detourCoordinator != nil },
+                set: { if !$0 { coordinator.dismissDetour() } })
     }
 }
 
