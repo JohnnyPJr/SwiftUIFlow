@@ -57,6 +57,12 @@ struct LightYellowView: View {
                 Text("Pushed from Yellow Tab")
                     .font(.subheadline)
                     .foregroundColor(.black.opacity(0.7))
+
+                Button("Navigate to Dark Green") {
+                    _ = coordinator.navigate(to: GreenRoute.darkGreen)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
             }
         }
         .customNavigationBar(title: "Light Yellow",

@@ -5,6 +5,7 @@
 //  Created by Ioannis Platsis on 30/10/25.
 //
 
+import Combine
 import SwiftUI
 
 /// A SwiftUI view that renders a coordinator's navigation state.
@@ -26,12 +27,20 @@ public struct CoordinatorView<R: Route>: View {
     private let coordinator: Coordinator<R>
     @ObservedObject private var router: Router<R>
 
+    // Cached stack of all pushed child routes (flattened)
+    @State private var pushedChildStack: [ChildRouteWrapper] = []
+    @State private var cancellables: Set<AnyCancellable> = []
+
     public init(coordinator: Coordinator<R>) {
         self.coordinator = coordinator
         router = coordinator.router
     }
 
     public var body: some View {
+        return bodyContent
+    }
+
+    private var bodyContent: some View {
         NavigationStack(path: navigationPath) {
             // Render root view
             if let rootView = router.view(for: router.state.root) {
@@ -52,10 +61,9 @@ public struct CoordinatorView<R: Route>: View {
                                            errorType: .viewCreationFailed(viewType: .pushed)))
                         }
                     }
-                    .navigationDestination(for: CoordinatorWrapper.self) { wrapper in
-                        // Render pushed child coordinator
-                        let coordinatorView = wrapper.coordinator.buildCoordinatorView()
-                        eraseToAnyView(coordinatorView)
+                    .navigationDestination(for: ChildRouteWrapper.self) { wrapper in
+                        // Render child coordinator routes with full modal/detour support
+                        ChildCoordinatorRouteView(wrapper: wrapper)
                     }
             } else {
                 // Fallback if view factory doesn't provide a view
@@ -63,6 +71,10 @@ public struct CoordinatorView<R: Route>: View {
                     .makeError(for: router.state.root,
                                errorType: .viewCreationFailed(viewType: .root)))
             }
+        }
+        .onReceive(router.$state) { _ in
+            // When router state changes (including pushedChildren), setup subscriptions
+            setupChildSubscriptions()
         }
         .sheet(item: shouldUseFullScreenCover ? .constant(nil) : presentedRoute) { route in
             // Render modal sheet with full coordinator navigation support
@@ -155,7 +167,7 @@ public struct CoordinatorView<R: Route>: View {
     /// Create a binding to the navigation path that syncs with the coordinator
     private var navigationPath: Binding<NavigationPath> {
         Binding(get: {
-                    // Build heterogeneous path with both routes and child coordinators
+                    // Build flattened path with parent routes + cached child routes
                     var path = NavigationPath()
 
                     // Add parent's routes
@@ -163,20 +175,20 @@ public struct CoordinatorView<R: Route>: View {
                         path.append(route)
                     }
 
-                    // Add child coordinators (wrapped for Hashable conformance)
-                    for child in router.state.pushedChildren {
-                        path.append(CoordinatorWrapper(child))
+                    // Add child routes (from cached stack)
+                    for wrapper in pushedChildStack {
+                        path.append(wrapper)
                     }
 
                     return path
                 },
                 set: { newPath in
                     // Handle back navigation (user tapped back or swiped)
-                    let currentTotalCount = router.state.stack.count + router.state.pushedChildren.count
+                    let currentTotalCount = router.state.stack.count + pushedChildStack.count
                     let newCount = newPath.count
 
                     if newCount < currentTotalCount {
-                        // User went back - pop the difference
+                        // User swiped back - pop the difference
                         let popCount = currentTotalCount - newCount
                         for _ in 0 ..< popCount {
                             coordinator.pop()
@@ -267,5 +279,35 @@ public struct CoordinatorView<R: Route>: View {
     /// Update the minimum height in the modal detent configuration
     private func updateMinHeight(_ height: CGFloat?) {
         router.updateModalMinHeight(height)
+    }
+
+    // MARK: - Child Route Observation
+
+    /// Setup subscriptions to child coordinators' route changes
+    private func setupChildSubscriptions() {
+        // Clear existing subscriptions
+        cancellables.removeAll()
+
+        // Subscribe to each child's routesDidChange publisher
+        for child in router.state.pushedChildren {
+            child.routesDidChange
+                .receive(on: DispatchQueue.main)
+                .sink { _ in
+                    rebuildPushedChildStack()
+                }
+                .store(in: &cancellables)
+        }
+
+        // Initial build of child stack
+        rebuildPushedChildStack()
+    }
+
+    /// Rebuild the flattened stack of all pushed child routes
+    private func rebuildPushedChildStack() {
+        pushedChildStack = router.state.pushedChildren.flatMap { child in
+            child.allRoutes.map { route in
+                ChildRouteWrapper(route: route, coordinator: child)
+            }
+        }
     }
 }

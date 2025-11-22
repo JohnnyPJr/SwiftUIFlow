@@ -121,16 +121,21 @@ class MainTabCoordinator: TabCoordinator<AppRoute> {
 
 class RedCoordinator: Coordinator<RedRoute> {
     var infoCoordinator: RedInfoCoordinator!
+    var rainbowCoordinator: RainbowCoordinator!
 
-    init() {
+    init(root: RedRoute = .red) {
         let factory = RedViewFactory()
-        super.init(router: Router(initial: .red, factory: factory))
+        super.init(router: Router(initial: root, factory: factory))
         factory.coordinator = self
         let modalCoord = RedModalCoordinator()
         addModalCoordinator(modalCoord)
 
         infoCoordinator = RedInfoCoordinator()
         addModalCoordinator(infoCoordinator)
+
+        // Add rainbow coordinator as child for testing pushed children
+        rainbowCoordinator = RainbowCoordinator()
+        addChild(rainbowCoordinator)
     }
 
     override var tabItem: (text: String, image: String)? {
@@ -308,9 +313,9 @@ class BlueModalCoordinator: Coordinator<BlueRoute> {
 class YellowCoordinator: Coordinator<YellowRoute> {
     var infoCoordinator: YellowInfoCoordinator!
 
-    init() {
+    init(root: YellowRoute = .yellow) {
         let factory = YellowViewFactory()
-        super.init(router: Router(initial: .yellow, factory: factory))
+        super.init(router: Router(initial: root, factory: factory))
         factory.coordinator = self
         let modalCoord = YellowModalCoordinator()
         addModalCoordinator(modalCoord)
@@ -493,5 +498,19 @@ class PurpleInfoCoordinator: Coordinator<PurpleRoute> {
     override func canHandle(_ route: any Route) -> Bool {
         guard let purpleRoute = route as? PurpleRoute else { return false }
         return purpleRoute == .info
+    }
+}
+
+// MARK: - Rainbow Coordinator (Testing Pushed Children)
+
+final class RainbowCoordinator: Coordinator<RainbowRoute> {
+    init() {
+        let factory = RainbowViewFactory()
+        super.init(router: Router(initial: .red, factory: factory))
+        factory.coordinator = self
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is RainbowRoute
     }
 }

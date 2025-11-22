@@ -61,7 +61,7 @@ struct LightBlueView: View {
                 Spacer().frame(height: 40)
 
                 Button("Detour to Red's Light Screen") {
-                    let redDetourCoordinator = RedCoordinator()
+                    let redDetourCoordinator = RedCoordinator(root: .lightRed)
                     coordinator.presentDetour(redDetourCoordinator, presenting: RedRoute.lightRed)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .red))
