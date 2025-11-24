@@ -1,6 +1,6 @@
 # SwiftUIFlow - Development Progress
 
-**Last Updated:** November 20, 2025
+**Last Updated:** November 24, 2025
 
 ---
 
@@ -13,6 +13,7 @@ SwiftUIFlow is a coordinator-based navigation framework for SwiftUI that provide
 - Deeplinking with context preservation (detours)
 - Tab-based navigation support
 - Multiple modal coordinator registration
+- Proper encapsulation (internal framework implementation hidden from clients)
 
 ---
 
@@ -25,9 +26,10 @@ SwiftUIFlow is a coordinator-based navigation framework for SwiftUI that provide
 2. **NavigationState** - State container (root, stack, selectedTab, presented, currentRoute, pushedChildren)
 3. **Router** - Observable state machine managing navigation mutations
 4. **NavigationType** - Enum defining navigation strategies (.push, .replace, .modal, .tabSwitch)
-5. **Coordinator** - Navigation orchestration with smart features
+5. **Coordinator** - Navigation orchestration with smart features (clients work with concrete `Coordinator<R>` types)
 6. **TabCoordinator** - Specialized coordinator for tab-based navigation
-7. **AnyCoordinator** - Type-erased protocol for coordinator hierarchy
+7. **AnyCoordinator** - Type-erased protocol for coordinator hierarchy (**internal** - hidden from clients)
+8. **CoordinatorUISupport** - Public protocol for custom UI implementations (minimal interface)
 
 **Navigation Features:**
 - ✅ Universal navigate API (call from anywhere, framework finds the right flow)
@@ -51,7 +53,7 @@ SwiftUIFlow is a coordinator-based navigation framework for SwiftUI that provide
 - ✅ Consistent coordinator creation (eager in init)
 - ✅ SwiftLint compliant
 - ✅ Comprehensive test coverage (unit + integration tests)
-- ✅ Proper access control (public router for observation, internal mutation methods)
+- ✅ Proper access control and encapsulation (AnyCoordinator internal, public API uses generics, router mutation methods internal)
 - ✅ Input file lists configured for build phase dependency tracking
 
 ---
@@ -147,8 +149,8 @@ SwiftUIFlow is a coordinator-based navigation framework for SwiftUI that provide
     - Base class for root coordinators that manage major app flow transitions
     - Eliminates boilerplate code for flow changes (48-62% code reduction)
     - Automatic coordinator lifecycle management (deallocation and creation)
-    - Public API: `transitionToFlow(_ coordinator: AnyCoordinator, root: R)`
-    - Property: `currentFlow: AnyCoordinator?` - the currently active flow coordinator
+    - Public API: `transitionToFlow<FlowRoute>(_ coordinator: Coordinator<FlowRoute>, root: R)` (generic, accepts any concrete coordinator)
+    - Property: `currentFlow: Any?` - the currently active flow coordinator (public read-only, cast to concrete type)
     - Clean architecture: Dependencies via init, service calls after transition
     - Comprehensive test coverage (8 unit tests + updated integration tests)
     - Example app updated to use FlowOrchestrator pattern
@@ -307,7 +309,7 @@ mainCoordinator.navigate(to: .settings) // Uses settingsModalCoord
 
 **Implementation:**
 - `modalCoordinators: [Coordinator<R>]` - **type-constrained** array of modal coordinators (same route type as parent)
-- `currentModalCoordinator: AnyCoordinator?` - the one currently presented (type-erased)
+- `currentModalCoordinator: AnyCoordinator?` - the one currently presented (type-erased, internal storage)
 - Modal navigation finds coordinator via `canHandle()`, then presents it
 - Only one modal presented at a time
 - **Smart modal dismissal**: Modals auto-dismiss when they bubble to parent route already displayed
@@ -316,7 +318,7 @@ mainCoordinator.navigate(to: .settings) // Uses settingsModalCoord
 - Ensures modal coordinators can handle same routes as parent
 - Compile-time safety for modal registration
 - Parent and modal share same route enum for seamless navigation
-- Detours are NOT type-constrained (use AnyCoordinator) for flexibility
+- Detours use generics (`presentDetour<DetourRoute>(_:presenting:)`) for flexibility - any coordinator type accepted
 
 **Bug Fixed:** Modal navigation now ensures `router.present()` is called before delegating to modal coordinator, so the presentation state is properly updated.
 
@@ -798,7 +800,8 @@ Created specialized coordinator that encapsulates flow transition logic:
 ```swift
 open class FlowOrchestrator<R: Route>: Coordinator<R> {
     /// The currently active flow coordinator.
-    public private(set) var currentFlow: AnyCoordinator?
+    /// Clients can cast to concrete coordinator type (e.g., `as? MainTabCoordinator`)
+    public private(set) var currentFlow: Any?
 
     /// Transition to a new application flow.
     ///
@@ -822,9 +825,9 @@ open class FlowOrchestrator<R: Route>: Coordinator<R> {
     /// fetchUserProfile()
     /// loadDashboardData()
     /// ```
-    public func transitionToFlow(_ coordinator: AnyCoordinator, root: R) {
+    public func transitionToFlow<FlowRoute: Route>(_ coordinator: Coordinator<FlowRoute>, root: R) {
         // 1. Deallocate old flow
-        if let current = currentFlow {
+        if let current = currentFlow as? AnyCoordinator {
             removeChild(current)
         }
 
@@ -986,7 +989,7 @@ viewFactory.coordinator = self
 1. **Add coordinator property to base ViewFactory**
    ```swift
    open class ViewFactory<R: Route>: ObservableObject {
-       public weak var coordinator: (any AnyCoordinator)?
+       public weak var coordinator: Coordinator<R>?
        // ...
    }
    ```
@@ -1202,7 +1205,7 @@ Created ErrorHandlingIntegrationTests.swift (4 tests):
 
 1. **Added dismissModal() and dismissDetour() to AnyCoordinator protocol** - AnyCoordinator.swift:22-26
    ```swift
-   public protocol AnyCoordinator: AnyObject {
+   protocol AnyCoordinator: AnyObject {  // Internal protocol
        func dismissModal()
        func dismissDetour()
        // ... existing methods
@@ -1292,12 +1295,13 @@ Added "even darker green" screen to demonstrate:
    ```swift
    /// Child coordinators currently pushed in the navigation stack
    /// Maintained in parallel with the route stack for rendering
-   public var pushedChildren: [AnyCoordinator]
+   /// **Framework internal** - hidden from clients
+   var pushedChildren: [AnyCoordinator]
    ```
 
 2. **Router.pushChild() / popChild()** - Methods to manage pushed children
    ```swift
-   func pushChild(_ coordinator: AnyCoordinator)
+   func pushChild(_ coordinator: AnyCoordinator)  // Internal
    func popChild()
    ```
 
@@ -1459,11 +1463,11 @@ var navigationPath: Binding<NavigationPath> {
 
 **1. ChildRouteWrapper - Type Erasure for Flattened Navigation**
 ```swift
-public struct ChildRouteWrapper: Hashable {
-    public let route: any Route       // Type-erased child route
-    public let coordinator: AnyCoordinator  // Coordinator that owns this route
+struct ChildRouteWrapper: Hashable {  // Internal struct
+    let route: any Route       // Type-erased child route
+    let coordinator: AnyCoordinator  // Coordinator that owns this route (internal)
 
-    public func hash(into hasher: inout Hasher) {
+    func hash(into hasher: inout Hasher) {
         hasher.combine(route.identifier)
         hasher.combine(ObjectIdentifier(coordinator))
     }
@@ -1703,16 +1707,16 @@ var navigationPath: Binding<NavigationPath> {
 **AnyCoordinator.swift:**
 ```swift
 // Added for flattening:
-public protocol AnyCoordinator: AnyObject {
+protocol AnyCoordinator: AnyObject {  // Internal protocol
     var allRoutes: [any Route] { get }
     var routesDidChange: AnyPublisher<[any Route], Never> { get }
     func buildCoordinatorRouteView(for route: any Route) -> Any
 }
 
 // Type erasure wrapper:
-public struct ChildRouteWrapper: Hashable {
-    public let route: any Route
-    public let coordinator: AnyCoordinator
+struct ChildRouteWrapper: Hashable {  // Internal struct
+    let route: any Route
+    let coordinator: AnyCoordinator
 }
 ```
 
@@ -1895,7 +1899,13 @@ extension Coordinator {
 
 **Execution Phase** - `Coordinator.swift`:
 ```swift
-public func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
+// Public API (no caller parameter)
+public func navigate(to route: any Route) -> Bool {
+    return navigate(to: route, from: nil)
+}
+
+// Internal with caller tracking
+func navigate(to route: any Route, from caller: AnyCoordinator?) -> Bool {
     // Phase 1: Validation - ONLY at entry point (caller == nil)
     if caller == nil {
         let validationResult = validateNavigationPath(to: route, from: caller)
@@ -2503,6 +2513,137 @@ References:
 
 ---
 
+### 19. Privacy Refactor - Framework Internal Encapsulation ✅
+
+**Date:** November 24, 2025
+
+**Problem:** The `AnyCoordinator` protocol was public, exposing sensitive framework internals (parent, presentationContext, router mutation methods) to clients. This violated encapsulation principles and could lead to clients accidentally calling internal methods.
+
+**Goal:** Hide `AnyCoordinator` and all framework internals while maintaining client API ergonomics and functionality.
+
+**Implementation:**
+
+1. **Made `AnyCoordinator` Internal**
+   - Changed from `public protocol` to `protocol` (internal by default)
+   - Clients never see `AnyCoordinator` - they work exclusively with concrete `Coordinator<R>` types
+   - All type erasure happens transparently within the framework
+
+2. **Created `CoordinatorUISupport` Public Protocol**
+   ```swift
+   public protocol CoordinatorUISupport: AnyObject {
+       func buildCoordinatorView() -> Any
+       var tabItem: (text: String, image: String)? { get }
+   }
+   ```
+   - Minimal public interface for custom UI implementations (e.g., custom tab bars)
+   - `AnyCoordinator` inherits from `CoordinatorUISupport` internally
+   - Provides only what clients need for rendering
+
+3. **Updated Public Methods to Use Generics**
+   ```swift
+   // Before (exposed AnyCoordinator)
+   public func addChild(_ coordinator: AnyCoordinator)
+
+   // After (generic, hides type erasure)
+   public func addChild<ChildRoute: Route>(_ coordinator: Coordinator<ChildRoute>,
+                                           context: CoordinatorPresentationContext = .pushed)
+   ```
+   - `addChild<ChildRoute>(_:context:)` - accepts any concrete coordinator type
+   - `removeChild<ChildRoute>(_:)` - public API for manual child removal
+   - `presentDetour<DetourRoute>(_:presenting:)` - accepts any concrete coordinator type
+   - `transitionToFlow<FlowRoute>(_:root:)` (FlowOrchestrator) - accepts any concrete coordinator type
+   - Internal storage uses `AnyCoordinator` (type-erased), public API never exposes it
+
+4. **Exposed `children` as `[CoordinatorUISupport]`**
+   ```swift
+   // Internal storage
+   var internalChildren: [AnyCoordinator] = []
+
+   // Public read-only access
+   public var children: [CoordinatorUISupport] {
+       return internalChildren
+   }
+   ```
+   - Clients can iterate over children for custom UI (e.g., custom tab bars)
+   - Can access `buildCoordinatorView()` and `tabItem` through protocol
+   - Can cast to concrete types if needed
+   - Internal framework code uses `internalChildren` for full access
+
+5. **Exposed `currentFlow` as `Any?`** (FlowOrchestrator)
+   ```swift
+   // Public read-only, private write
+   public private(set) var currentFlow: Any?
+   ```
+   - Clients can check which flow is active
+   - Cast to concrete coordinator type as needed: `as? MainTabCoordinator`
+   - Internal framework code casts to `AnyCoordinator` when needed
+
+6. **Made `buildCoordinatorView()` Public**
+   - Changed from internal to public
+   - Needed for custom UI implementations like custom tab bars
+   - Returns type-erased `Any` to avoid SwiftUI dependency in protocol
+
+7. **Kept `router` Public** (Decision: Safe as-is)
+   - Mutation methods (`push`, `pop`, `present`, etc.) are **internal** - clients can't call them
+   - Only `view(for:)` is public (safe)
+   - `state` is `public private(set)` (read-only)
+   - Clients need to observe with `@ObservedObject` (ergonomic pattern)
+   - Alternative (making router internal) would break client observation patterns
+
+8. **Made `NavigationState.pushedChildren` Internal**
+   - Changed from `public var` to `var` (internal)
+   - Clients don't need to know about framework's internal child tracking
+
+**What Clients See:**
+```swift
+// ✅ Public API - Clean and Safe
+coordinator.navigate(to: .someRoute)
+coordinator.addChild(childCoordinator)
+coordinator.removeChild(childCoordinator)
+coordinator.addModalCoordinator(modalCoordinator)
+coordinator.removeModalCoordinator(modalCoordinator)
+coordinator.presentDetour(detourCoordinator, presenting: route)
+let state = coordinator.router.state  // Read-only observation
+let children = coordinator.children   // [CoordinatorUISupport]
+
+// ❌ Hidden - Framework Internal
+// coordinator.parent - NOT VISIBLE
+// coordinator.presentationContext - NOT VISIBLE
+// coordinator.internalChildren - NOT VISIBLE
+// coordinator.router.push() - INTERNAL METHOD, can't call
+// AnyCoordinator - TYPE NOT VISIBLE
+```
+
+**Benefits:**
+- ✅ True encapsulation - internal implementation hidden
+- ✅ Prevents accidental misuse of internal APIs
+- ✅ Maintains client API ergonomics (generics are transparent)
+- ✅ Future-proof - can change internals without breaking clients
+- ✅ Clean separation between public API and internal implementation
+- ✅ Tests still work (same module, can access internals)
+
+**Files Modified:**
+- `AnyCoordinator.swift` - Made protocol internal, added `CoordinatorUISupport`
+- `Coordinator.swift` - Updated methods to use generics, exposed `children` and `internalChildren`
+- `TabCoordinator.swift` - Updated `addChild` override to use generics
+- `FlowOrchestrator.swift` - Updated `transitionToFlow` to use generics, exposed `currentFlow` as `Any?`
+- `ViewFactory.swift` - Changed `coordinator` property from `(any AnyCoordinator)?` to `Coordinator<R>?`
+- `NavigationState.swift` - Made `pushedChildren` internal
+- `TabCoordinatorView.swift` - Uses `_children` internally (same module)
+- `CustomTabBarView.swift` (example) - Uses public `children: [CoordinatorUISupport]` API
+- `FlowOrchestratorTests.swift` - Updated tests to cast `currentFlow` and `children` to concrete types
+
+**Naming Convention:**
+- Renamed `_children` to `internalChildren` (SwiftLint compliant)
+- Swift naming convention: underscore prefix only for unused parameters
+
+**Migration Notes:**
+- No breaking changes for client code that uses concrete `Coordinator<R>` types
+- Internal framework code can still access `internalChildren` (same module)
+- Tests can access internals (same module)
+
+---
+
 ## Current TODO List
 
 ### Completed ✅
@@ -2596,6 +2737,13 @@ References:
 - [x] Test modal presentation from pushed child coordinators (RainbowCoordinator)
 - [x] Update development.md with flattened navigation architecture documentation
 - [x] Fix SwiftLint warnings
+- [x] Implement Privacy Refactor - make AnyCoordinator internal
+- [x] Create CoordinatorUISupport public protocol for custom UI needs
+- [x] Update public methods to use generics (addChild, removeChild, presentDetour, transitionToFlow)
+- [x] Expose children as [CoordinatorUISupport] and currentFlow as Any?
+- [x] Rename _children to internalChildren (SwiftLint compliant)
+- [x] Update tests to work with privacy refactor
+- [x] Document Privacy Refactor in development.md
 
 ### In Progress 🔄
 - [ ] Review final code and prepare for merge to main
