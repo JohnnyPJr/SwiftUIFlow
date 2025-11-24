@@ -11,7 +11,8 @@ import SwiftUI
 
 open class ViewFactory<R: Route>: ObservableObject {
     /// Weak reference to the coordinator that owns this factory.
-    public weak var coordinator: (any AnyCoordinator)?
+    /// Set this in your coordinator's init: `factory.coordinator = self`
+    public weak var coordinator: Coordinator<R>?
 
     public init() {}
 

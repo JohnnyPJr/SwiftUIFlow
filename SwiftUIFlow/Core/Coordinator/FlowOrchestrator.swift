@@ -63,11 +63,9 @@ import Foundation
 /// The factory closure pattern allows you to perform any necessary setup
 /// before returning the coordinator.
 open class FlowOrchestrator<R: Route>: Coordinator<R> {
-    /// The currently active flow coordinator.
-    ///
-    /// This property holds a reference to the coordinator managing the current flow.
-    /// It's automatically updated when calling `transitionToFlow(_:root:)`.
-    public private(set) var currentFlow: AnyCoordinator?
+    /// The currently active flow coordinator
+    /// Clients can cast this to their concrete coordinator types (e.g., `as? MainTabCoordinator`)
+    public private(set) var currentFlow: Any?
 
     /// Transition to a new application flow.
     ///
@@ -98,15 +96,15 @@ open class FlowOrchestrator<R: Route>: Coordinator<R> {
     /// ```
     ///
     /// - Parameters:
-    ///   - coordinator: The new flow coordinator to install
+    ///   - coordinator: The new flow coordinator to install (concrete Coordinator type)
     ///   - root: The new root route to transition to
-    public func transitionToFlow(_ coordinator: AnyCoordinator, root: R) {
+    public func transitionToFlow(_ coordinator: Coordinator<some Route>, root: R) {
         // 1. Deallocate old flow
-        if let current = currentFlow {
+        if let current = currentFlow as? AnyCoordinator {
             removeChild(current)
         }
 
-        // 2. Install new flow
+        // 2. Install new flow (stored as Any publicly, AnyCoordinator internally)
         addChild(coordinator)
         currentFlow = coordinator
 
