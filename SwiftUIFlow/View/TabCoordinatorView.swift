@@ -79,7 +79,7 @@ public struct TabCoordinatorView<R: Route>: View {
 
     public var body: some View {
         TabView(selection: selectedTabBinding) {
-            ForEach(Array(coordinator.children.enumerated()), id: \.offset) { index, child in
+            ForEach(Array(coordinator.internalChildren.enumerated()), id: \.offset) { index, child in
                 tabContent(for: child, at: index)
                     .tag(index)
             }

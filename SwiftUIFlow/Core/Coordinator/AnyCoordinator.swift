@@ -8,7 +8,18 @@
 import Combine
 import Foundation
 
-public protocol AnyCoordinator: AnyObject {
+/// Public protocol for coordinator UI operations
+/// Provides minimal interface for custom UI implementations (e.g., custom tab bars)
+public protocol CoordinatorUISupport: AnyObject {
+    /// Build a CoordinatorView for this coordinator
+    func buildCoordinatorView() -> Any
+
+    /// Tab item configuration (if this coordinator is used as a tab)
+    var tabItem: (text: String, image: String)? { get }
+}
+
+/// Internal protocol for type-erased coordinator operations
+protocol AnyCoordinator: CoordinatorUISupport {
     var parent: AnyCoordinator? { get set }
 
     /// How this coordinator is presented in the navigation hierarchy.
@@ -21,25 +32,11 @@ public protocol AnyCoordinator: AnyObject {
     func canHandle(_ route: any Route) -> Bool
     func canNavigate(to route: any Route) -> Bool
     func resetToCleanState()
-
-    /// Present a detour coordinator
-    func presentDetour(_ coordinator: AnyCoordinator, presenting route: any Route)
-
-    /// Dismiss the currently presented modal
     func dismissModal()
-
-    /// Dismiss the currently presented detour
     func dismissDetour()
-
-    /// Pop one screen from the navigation stack
     func pop()
 
-    /// Build a view for a given route using this coordinator's ViewFactory
-    /// Returns type-erased Any to avoid SwiftUI dependency in protocol
     func buildView(for route: any Route) -> Any?
-
-    /// Build a CoordinatorView for this coordinator with full navigation support
-    /// Returns type-erased Any to avoid SwiftUI dependency in protocol
     func buildCoordinatorView() -> Any
 
     /// Build a view for a specific route with modal/detour presentation support
@@ -47,8 +44,6 @@ public protocol AnyCoordinator: AnyObject {
     /// Returns type-erased Any to avoid SwiftUI dependency in protocol
     func buildCoordinatorRouteView(for route: any Route) -> Any
 
-    /// Tab item configuration for coordinators used as tabs
-    /// Return nil if this coordinator is not used as a tab
     var tabItem: (text: String, image: String)? { get }
 
     /// All routes for this coordinator (root + stack)
@@ -60,25 +55,20 @@ public protocol AnyCoordinator: AnyObject {
     var routesDidChange: AnyPublisher<[any Route], Never> { get }
 }
 
-// MARK: - Hashable Wrappers for NavigationPath
+// MARK: - Child Route Wrapper (Internal)
+/// A Hashable wrapper for child route + coordinator pairs
+/// **Framework internal only** - Used for flattened navigation
+struct ChildRouteWrapper: Hashable {
+    let route: any Route
+    let coordinator: AnyCoordinator
 
-/// A wrapper for child routes that includes coordinator reference
-/// This allows rendering child routes in parent's NavigationStack (flattened hierarchy)
-public struct ChildRouteWrapper: Hashable {
-    public let route: any Route
-    public let coordinator: AnyCoordinator
-
-    public init(route: any Route, coordinator: AnyCoordinator) {
-        self.route = route
-        self.coordinator = coordinator
-    }
-
-    public func hash(into hasher: inout Hasher) {
+    func hash(into hasher: inout Hasher) {
         hasher.combine(route.identifier)
         hasher.combine(ObjectIdentifier(coordinator))
     }
 
-    public static func == (lhs: ChildRouteWrapper, rhs: ChildRouteWrapper) -> Bool {
-        return lhs.route.identifier == rhs.route.identifier && lhs.coordinator === rhs.coordinator
+    static func == (lhs: ChildRouteWrapper, rhs: ChildRouteWrapper) -> Bool {
+        return lhs.route.identifier == rhs.route.identifier &&
+            lhs.coordinator === rhs.coordinator
     }
 }

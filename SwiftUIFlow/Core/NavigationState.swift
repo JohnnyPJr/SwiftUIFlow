@@ -15,8 +15,8 @@ public struct NavigationState<R: Route>: Equatable {
     public var detour: (any Route)?
 
     /// Child coordinators currently pushed in the navigation stack
-    /// Maintained in parallel with the route stack for rendering
-    public var pushedChildren: [AnyCoordinator]
+    /// **Framework internal only** - Maintained in parallel with the route stack for rendering
+    var pushedChildren: [AnyCoordinator]
 
     /// Configuration for modal presentation detents
     public var modalDetentConfiguration: ModalDetentConfiguration?

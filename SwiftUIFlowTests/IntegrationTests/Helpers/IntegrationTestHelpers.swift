@@ -116,7 +116,7 @@ final class MainTabCoordinator: TabCoordinator<MainTabRoute> {
     override func resetToCleanState() {
         super.resetToCleanState()
         // Reset all child tabs when main coordinator resets
-        for child in children {
+        for child in internalChildren {
             child.resetToCleanState()
         }
     }
