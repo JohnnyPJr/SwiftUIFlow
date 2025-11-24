@@ -103,7 +103,15 @@ open class Coordinator<R: Route>: AnyCoordinator {
         coordinator.presentationContext = context
     }
 
-    /// Remove a child coordinator
+    /// Remove a child coordinator - Public API
+    public func removeChild(_ coordinator: Coordinator<some Route>) {
+        internalChildren.removeAll { $0 === coordinator }
+        if coordinator.parent === self {
+            coordinator.parent = nil
+        }
+    }
+
+    /// Remove a child coordinator (internal version for framework use)
     /// **Framework internal only**
     func removeChild(_ coordinator: AnyCoordinator) {
         internalChildren.removeAll { $0 === coordinator }
@@ -118,9 +126,8 @@ open class Coordinator<R: Route>: AnyCoordinator {
         modalCoordinators.append(coordinator)
     }
 
-    /// Remove a modal coordinator
-    /// **Framework internal only**
-    func removeModalCoordinator(_ coordinator: Coordinator<R>) {
+    /// Remove a modal coordinator - Public API
+    public func removeModalCoordinator(_ coordinator: Coordinator<R>) {
         modalCoordinators.removeAll { $0 === coordinator }
     }
 
