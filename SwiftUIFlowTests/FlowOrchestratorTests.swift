@@ -21,8 +21,13 @@ final class FlowOrchestratorTests: XCTestCase {
         XCTAssertTrue(orchestrator.currentFlow is TestFlowCoordinator,
                       "Current flow should be TestFlowCoordinator")
         XCTAssertEqual(orchestrator.children.count, 1, "Should have one child")
-        XCTAssertTrue(orchestrator.children.first === orchestrator.currentFlow,
-                      "Child should be the current flow")
+        if let currentFlow = orchestrator.currentFlow as? TestFlowCoordinator,
+           let firstChild = orchestrator.children.first as? TestFlowCoordinator
+        {
+            XCTAssertTrue(firstChild === currentFlow, "Child should be the current flow")
+        } else {
+            XCTFail("Could not cast children or currentFlow")
+        }
     }
 
     func test_TransitionToFlow_TransitionsToNewRoot() {
@@ -38,8 +43,12 @@ final class FlowOrchestratorTests: XCTestCase {
 
         orchestrator.transitionToFlow(TestFlowCoordinator(), root: .flow1)
 
-        XCTAssertTrue(orchestrator.currentFlow?.parent === orchestrator,
-                      "Current flow's parent should be orchestrator")
+        if let currentFlow = orchestrator.currentFlow as? TestFlowCoordinator {
+            XCTAssertTrue(currentFlow.parent === orchestrator,
+                          "Current flow's parent should be orchestrator")
+        } else {
+            XCTFail("Could not cast currentFlow to TestFlowCoordinator")
+        }
     }
 
     // MARK: - Flow Cleanup
@@ -103,7 +112,11 @@ final class FlowOrchestratorTests: XCTestCase {
 
         orchestrator.transitionToFlow(specificCoordinator, root: .flow1)
 
-        XCTAssertTrue(orchestrator.currentFlow === specificCoordinator,
-                      "Should use the provided coordinator instance")
+        if let currentFlow = orchestrator.currentFlow as? TestFlowCoordinator {
+            XCTAssertTrue(currentFlow === specificCoordinator,
+                          "Should use the provided coordinator instance")
+        } else {
+            XCTFail("Could not cast currentFlow to TestFlowCoordinator")
+        }
     }
 }

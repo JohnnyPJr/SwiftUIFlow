@@ -14,13 +14,17 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
     }
 
     /// Override addChild to automatically set .tab context for tab children
-    override public func addChild(_ coordinator: AnyCoordinator, context: CoordinatorPresentationContext = .tab) {
+    override public func addChild(_ coordinator: Coordinator<some Route>,
+                                  context: CoordinatorPresentationContext = .tab)
+    {
         // TabCoordinator children are always tabs, so default to .tab context
         super.addChild(coordinator, context: context)
     }
 
-    open func getTabIndex(for coordinator: AnyCoordinator) -> Int? {
-        for (index, child) in children.enumerated() {
+    /// Get the tab index for a coordinator
+    /// **Framework internal only**
+    func getTabIndex(for coordinator: AnyCoordinator) -> Int? {
+        for (index, child) in internalChildren.enumerated() {
             if child === coordinator {
                 return index
             }
@@ -30,9 +34,9 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
 
     open func switchToTab(_ index: Int) {
         // Validate tab index
-        guard index >= 0, index < children.count else {
+        guard index >= 0, index < internalChildren.count else {
             let error = SwiftUIFlowError.invalidTabIndex(index: index,
-                                                         validRange: 0 ..< children.count)
+                                                         validRange: 0 ..< internalChildren.count)
             reportError(error)
             return
         }
@@ -48,12 +52,14 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
     }
 
     /// Override to use TabCoordinator-specific validation logic
-    override open func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
+    /// **Framework internal only**
+    override func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
         return validateNavigationPathTabImpl(to: route, from: caller)
     }
 
-    // Override navigate to handle tab switching intelligently
-    override public func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
+    /// Internal navigation with caller tracking - overridden for tab logic
+    /// **Framework internal only**
+    override func navigate(to route: any Route, from caller: AnyCoordinator?) -> Bool {
         NavigationLogger.debug("📑 \(Self.self): Tab navigation to \(route.identifier)")
 
         // First check if we can handle it directly
@@ -75,8 +81,8 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
         // Phase 2: Execution (side effects happen here)
         // Try current tab first, but not if it's the caller (prevents infinite loop)
         let currentTabIndex = router.state.selectedTab
-        if currentTabIndex < children.count {
-            let currentTab = children[currentTabIndex]
+        if currentTabIndex < internalChildren.count {
+            let currentTab = internalChildren[currentTabIndex]
             // Skip current tab if it's the one calling us (it already tried and failed)
             // Also check canNavigate first to avoid trying tabs that can't handle it
             if currentTab !== caller, currentTab.canNavigate(to: route) {
@@ -89,7 +95,7 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
 
         // Current tab couldn't handle it - check other tabs
         // Here we MUST use canNavigate to avoid switching to tabs that can't handle the route
-        for (index, child) in children.enumerated() {
+        for (index, child) in internalChildren.enumerated() {
             if index != currentTabIndex, child !== caller, child.canNavigate(to: route) {
                 NavigationLogger.info("🔄 \(Self.self): Switching to tab \(index) for \(route.identifier)")
                 switchToTab(index)
@@ -115,8 +121,8 @@ extension TabCoordinator {
 
         // Try current tab first, but not if it's the caller (prevents infinite loop)
         let currentTabIndex = router.state.selectedTab
-        if currentTabIndex < children.count {
-            let currentTab = children[currentTabIndex]
+        if currentTabIndex < internalChildren.count {
+            let currentTab = internalChildren[currentTabIndex]
             // Skip current tab if it's the one calling us (it already tried and failed)
             if currentTab !== caller, currentTab.canNavigate(to: route) {
                 let currentTabResult = currentTab.validateNavigationPath(to: route, from: self)
@@ -127,7 +133,7 @@ extension TabCoordinator {
         }
 
         // Current tab couldn't handle it - check other tabs
-        for (index, child) in children.enumerated() {
+        for (index, child) in internalChildren.enumerated() {
             if index != currentTabIndex, child !== caller, child.canNavigate(to: route) {
                 // In execution we'd switch tabs, but in validation we just check if child can handle
                 let childResult = child.validateNavigationPath(to: route, from: self)

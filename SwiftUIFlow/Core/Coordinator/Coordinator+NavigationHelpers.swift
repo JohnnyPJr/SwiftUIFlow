@@ -59,7 +59,7 @@ extension Coordinator {
     {
         // Only check modal/detour if caller is NOT one of our children/modal/detour
         // (If caller is a child, we already checked modal before delegating to children)
-        let callerIsOurChild = caller != nil && children.contains(where: { $0 === caller })
+        let callerIsOurChild = caller != nil && internalChildren.contains(where: { $0 === caller })
         let callerIsOurModalOrDetour = (caller === currentModalCoordinator) || (caller === detourCoordinator)
 
         // Check modal
@@ -108,7 +108,7 @@ extension Coordinator {
     }
 
     private func validateChildrenCanHandle(route: any Route, caller: AnyCoordinator?) -> ValidationResult? {
-        for child in children where child !== caller {
+        for child in internalChildren where child !== caller {
             // CRITICAL: Only delegate to children whose parent is actually us
             // (A child might be in our children array but have its parent temporarily changed,
             // e.g., when presented as a detour elsewhere)
@@ -219,7 +219,7 @@ extension Coordinator {
     }
 
     func delegateToChildren(route: any Route, caller: AnyCoordinator?) -> Bool {
-        for child in children where child !== caller {
+        for child in internalChildren where child !== caller {
             if child.canHandle(route) {
                 // Get the navigation type the child coordinator expects for this route
                 let navType = child.navigationType(for: route)
