@@ -9,13 +9,9 @@ import Combine
 import Foundation
 
 open class Coordinator<R: Route>: AnyCoordinator {
-    public weak var parent: AnyCoordinator?
+    weak var parent: AnyCoordinator?
 
     /// The router managing navigation state.
-    ///
-    /// **For observation only** - Views should observe this for rendering.
-    /// Do NOT call mutation methods directly (push, pop, etc.).
-    /// Use `navigate(to:)` instead for all navigation.
     public let router: Router<R>
 
     /// All routes for this coordinator (root + stack)
@@ -30,25 +26,37 @@ open class Coordinator<R: Route>: AnyCoordinator {
     }
 
     /// How this coordinator is presented in the navigation hierarchy.
-    /// Determines whether the root view should show a back button.
-    public var presentationContext: CoordinatorPresentationContext = .root
+    /// **Framework internal only**
+    var presentationContext: CoordinatorPresentationContext = .root
 
-    public internal(set) var children: [AnyCoordinator] = []
-    public internal(set) var modalCoordinators: [Coordinator<R>] = []
-    public internal(set) var currentModalCoordinator: AnyCoordinator?
-    public internal(set) var detourCoordinator: AnyCoordinator?
+    /// Internal storage for child coordinators
+    /// **Framework internal only** - Subclasses can access via internalChildren
+    var internalChildren: [AnyCoordinator] = []
+
+    /// Public read-only access to child coordinators for custom UI implementations
+    /// Each element conforms to CoordinatorUISupport for UI operations
+    /// Cast to your concrete coordinator type if you need type-specific access
+    public var children: [CoordinatorUISupport] {
+        return internalChildren
+    }
+
+    var modalCoordinators: [Coordinator<R>] = []
+    var currentModalCoordinator: AnyCoordinator?
+    var detourCoordinator: AnyCoordinator?
 
     public init(router: Router<R>) {
         self.router = router
     }
 
     /// Build a view for a given route using this coordinator's ViewFactory
-    public func buildView(for route: any Route) -> Any? {
+    /// **Framework internal only**
+    func buildView(for route: any Route) -> Any? {
         guard let typedRoute = route as? R else { return nil }
         return router.view(for: typedRoute)
     }
 
     /// Build a CoordinatorView for this coordinator with full navigation support
+    /// Used by custom UI implementations (e.g., custom tab bars)
     public func buildCoordinatorView() -> Any {
         return CoordinatorView(coordinator: self)
     }
@@ -73,7 +81,9 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return ModalDetentConfiguration(detents: [.large])
     }
 
-    public func addChild(_ coordinator: AnyCoordinator, context: CoordinatorPresentationContext = .pushed) {
+    /// Add a child coordinator - PUBLIC API
+    /// Clients pass concrete Coordinator<ChildRoute>, stored internally as AnyCoordinator
+    public func addChild(_ coordinator: Coordinator<some Route>, context: CoordinatorPresentationContext = .pushed) {
         // Check for circular reference
         if coordinator === self {
             let error = SwiftUIFlowError.circularReference(coordinator: String(describing: type(of: self)))
@@ -82,30 +92,41 @@ open class Coordinator<R: Route>: AnyCoordinator {
         }
 
         // Check for duplicate child
-        if children.contains(where: { $0 === coordinator }) {
+        if internalChildren.contains(where: { $0 === coordinator }) {
             let error = SwiftUIFlowError.duplicateChild(coordinator: String(describing: type(of: coordinator)))
             reportError(error)
             return
         }
 
-        children.append(coordinator)
+        internalChildren.append(coordinator)
         coordinator.parent = self
         coordinator.presentationContext = context
     }
 
-    public func removeChild(_ coordinator: AnyCoordinator) {
-        children.removeAll { $0 === coordinator }
+    /// Remove a child coordinator - Public API
+    public func removeChild(_ coordinator: Coordinator<some Route>) {
+        internalChildren.removeAll { $0 === coordinator }
+        if coordinator.parent === self {
+            coordinator.parent = nil
+        }
+    }
+
+    /// Remove a child coordinator (internal version for framework use)
+    /// **Framework internal only**
+    func removeChild(_ coordinator: AnyCoordinator) {
+        internalChildren.removeAll { $0 === coordinator }
         if coordinator.parent === self {
             coordinator.parent = nil
         }
     }
 
     /// Add a modal coordinator that can be presented via navigate() when navigationType returns .modal
-    /// - Parameter coordinator: Must be Coordinator<R> (same route type as parent)
+    /// - Parameter coordinator: Must be Coordinator with same route type as parent
     public func addModalCoordinator(_ coordinator: Coordinator<R>) {
         modalCoordinators.append(coordinator)
     }
 
+    /// Remove a modal coordinator - Public API
     public func removeModalCoordinator(_ coordinator: Coordinator<R>) {
         modalCoordinators.removeAll { $0 === coordinator }
     }
@@ -115,8 +136,9 @@ open class Coordinator<R: Route>: AnyCoordinator {
     }
 
     /// Validates navigation path without side effects - mirrors navigate() logic exactly.
+    /// **Framework internal only**
     /// Override in subclasses if needed. Default implementation delegates to extension helper.
-    open func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
+    func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
         return validateNavigationPathBase(to: route, from: caller)
     }
 
@@ -154,12 +176,13 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return false
     }
 
-    public func canNavigate(to route: any Route) -> Bool {
+    /// Check if this coordinator or any of its children can navigate to a route
+    func canNavigate(to route: any Route) -> Bool {
         if canHandle(route) {
             return true
         }
 
-        for child in children {
+        for child in internalChildren {
             if child.canNavigate(to: route) {
                 return true
             }
@@ -174,7 +197,14 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return false
     }
 
-    public func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
+    /// Navigate to a route - Public API
+    @discardableResult
+    public func navigate(to route: any Route) -> Bool {
+        return navigate(to: route, from: nil)
+    }
+
+    /// Internal navigation with caller tracking
+    func navigate(to route: any Route, from caller: AnyCoordinator?) -> Bool {
         // Phase 1: Validation - ONLY at entry point (caller == nil)
         if caller == nil {
             let validationResult = validateNavigationPath(to: route, from: caller)
@@ -283,7 +313,9 @@ open class Coordinator<R: Route>: AnyCoordinator {
         router.present(route, detentConfiguration: detentConfiguration)
     }
 
-    public func dismissModal() {
+    /// Dismiss the currently presented modal
+    /// **Framework internal only** - modals are dismissed automatically
+    func dismissModal() {
         if currentModalCoordinator?.parent === self {
             currentModalCoordinator?.parent = nil
         }
@@ -291,14 +323,19 @@ open class Coordinator<R: Route>: AnyCoordinator {
         router.dismissModal()
     }
 
-    public func presentDetour(_ coordinator: AnyCoordinator, presenting route: any Route) {
+    /// Present a detour coordinator - Public API
+    /// Detours are full-screen temporary flows that preserve underlying context
+    /// Clients pass concrete Coordinator<DetourRoute>, stored internally as AnyCoordinator
+    public func presentDetour(_ coordinator: Coordinator<some Route>, presenting route: any Route) {
         detourCoordinator = coordinator
         coordinator.parent = self
         coordinator.presentationContext = .detour
         router.presentDetour(route)
     }
 
-    public func dismissDetour() {
+    /// Dismiss the currently presented detour
+    /// **Framework internal only** - detours are dismissed by user gesture
+    func dismissDetour() {
         if detourCoordinator?.parent === self {
             detourCoordinator?.parent = nil
         }
@@ -306,17 +343,21 @@ open class Coordinator<R: Route>: AnyCoordinator {
         router.dismissDetour()
     }
 
-    public func resetToCleanState() {
+    /// Reset coordinator to clean state (root, no modals/detours)
+    /// **Framework internal only**
+    func resetToCleanState() {
         router.resetToRoot()
         dismissModal()
         dismissDetour()
     }
 
-    // MARK: - Admin Operations (Major Flow Transitions)
+    // MARK: - Admin Operations (Framework Internal)
 
     /// **ADMIN OPERATION** - Transition to a completely new flow with a new root.
+    /// **Framework internal only** - Used by FlowOrchestrator
     /// Sets new root route, clears stack, and dismisses modals/detours.
-    public func transitionToNewFlow(root: R) {
+    /// Use for major transitions like Login → Home, not for regular navigation.
+    func transitionToNewFlow(root: R) {
         router.setRoot(root)
         dismissModal()
         dismissDetour()
