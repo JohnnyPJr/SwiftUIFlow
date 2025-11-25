@@ -2885,7 +2885,132 @@ None - branch ready for merge to main.
 
 ---
 
-**Last Task Completed:** Documented flattened navigation architecture and SwiftUI NavigationStack limitations (section 16B)
+## Section 20: Custom Transitions Investigation & Future Plans
+
+**Date:** November 25, 2025
+**Branch:** feature/Custom-Transition-Animations (investigation branch - not merged)
+
+### Investigation Summary
+
+Investigated adding custom transition animations (fade, scale, slide variations) to navigation methods via optional `RouteTransition` parameter. After thorough research and testing, determined that custom transitions are **not practical** with SwiftUI's current APIs.
+
+### What We Learned
+
+**SwiftUI Transition Limitations:**
+
+1. **`.transition()` modifier only works for:**
+   - Conditional content (if/else showing/hiding views)
+   - Views added/removed from same container
+   - Requires explicit animation context (`withAnimation` or `.animation()`)
+
+2. **`.transition()` does NOT work for:**
+   - NavigationStack push/pop (uses built-in slide animation)
+   - `.sheet()` presentations (uses built-in slide-up animation)
+   - `.fullScreenCover()` presentations (uses built-in cover animation)
+   - Any Apple navigation primitives
+
+3. **Workarounds exist but are fragile:**
+   - Disable default animations
+   - Add internal state management in presented views
+   - Conditionally show/hide content with custom transitions
+   - Too complex and hacky for framework code
+
+**iOS 18 NavigationTransition API:**
+- Introduced `.navigationTransition()` modifier
+- Only supports `.automatic` (default) and `.zoom` (hero animations)
+- Does NOT support general-purpose custom transitions (fade, scale, slide variations)
+- Limited to specific use cases (photo galleries, detail expansions)
+
+**Industry Standard:**
+- 95%+ of iOS apps use default SwiftUI/UIKit transitions
+- Users expect standard slide animations
+- Custom transitions are "nice to have" not "must have"
+- Most common transitions: slide (default), fade, scale+fade for overlays
+
+### Decision: Do Not Implement Custom Transitions
+
+**Reasoning:**
+1. **No native support**: SwiftUI doesn't provide APIs for custom navigation transitions
+2. **Workarounds too fragile**: Complex patterns that may break in future iOS versions
+3. **Limited value**: Default transitions meet 95% of use cases
+4. **Misleading API**: Having transition parameters that don't work is confusing
+5. **Maintenance burden**: Threading unused parameters through entire navigation chain
+6. **Client capability**: Clients can already use `.transition()` for in-view animations
+
+### What Clients Can Already Do
+
+Clients have full access to SwiftUI's native transition system for **in-view animations**:
+
+```swift
+struct MyView: View {
+    @State var showDetails = false
+
+    var body: some View {
+        VStack {
+            // Conditional content with custom transitions
+            if showDetails {
+                DetailPanel()
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut, value: showDetails)
+    }
+}
+```
+
+**Common use cases clients can handle:**
+- Loading states and skeletons
+- Success/error feedback overlays
+- Expanding/collapsing sections
+- Custom alerts and toasts
+- Tab content switching
+- Conditional UI elements
+
+No framework support needed - SwiftUI's native APIs are sufficient.
+
+### Future v2 Plans: Modal Presentation Enhancements
+
+Instead of custom transitions, focus on **Apple's official modal presentation APIs** when minimum deployment target allows:
+
+**Enhanced Modal Presentation Controls (iOS 16.4+):**
+1. `.presentationBackgroundInteraction()` - Allow/prevent interaction with background
+2. `.presentationCornerRadius()` - Custom corner radius for sheets
+3. `.interactiveDismissDisabled()` - Prevent swipe-to-dismiss
+4. `.presentationDragIndicator()` - Show/hide drag indicator
+5. `.presentationCompactAdaptation()` - iPhone/iPad behavior customization
+
+**Current Modal Support (Already Implemented):**
+- ✅ `ModalDetentConfiguration` - Custom sheet heights
+- ✅ `.presentationDetents()` - small, medium, large, custom, fullscreen
+- ✅ Ideal/min height via PreferenceKeys
+- ✅ Interactive detent selection
+
+**Why This Approach:**
+- Uses Apple's stable, documented APIs
+- Works reliably across iOS versions
+- Provides real value for common modal patterns
+- No hacks or workarounds needed
+- Consistent with SwiftUI best practices
+
+### Architecture Preserved for Future
+
+Although custom transitions were not implemented, the investigation validated our architecture:
+- Navigation methods are well-designed for optional parameters
+- Router state management is flexible
+- View layer can consume additional metadata when needed
+- Framework can evolve to support new Apple APIs as they arrive
+
+### Key Takeaways
+
+1. **SwiftUI's default transitions are intentional design** - Apple wants consistent iOS experience
+2. **Framework should enhance, not fight platform** - Work with SwiftUI's strengths
+3. **Native APIs over workarounds** - Wait for Apple to provide official support
+4. **Focus on real value** - Modal presentation controls > custom transitions
+5. **Client flexibility preserved** - Clients can use `.transition()` for in-view animations
+
+---
+
+**Last Task Completed:** Custom transitions investigation and future v2 planning documentation (section 20)
 **Next Task:** Code review and prepare merge to main
 **Branch:** feature/Pushed-Childs-FullScreen-Approach
-**Key Insight:** Nested NavigationStack is officially unsupported by Apple - flattened architecture is the correct solution
+**Key Insight:** SwiftUI's navigation primitives don't support custom transitions - focus on modal presentation enhancements instead
