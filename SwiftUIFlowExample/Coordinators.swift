@@ -164,7 +164,8 @@ class RedCoordinator: Coordinator<RedRoute> {
 
         switch redRoute {
         case .info:
-            return ModalDetentConfiguration(detents: [.custom])
+            return ModalDetentConfiguration(detents: [.custom, .medium],
+                                            selectedDetent: .custom)
         default:
             return ModalDetentConfiguration(detents: [.large])
         }
