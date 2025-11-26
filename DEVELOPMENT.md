@@ -2449,6 +2449,48 @@ Binding(
 )
 ```
 
+**Important: Content-Sized Sheets and `.fixedSize()` Requirement**
+
+When using `.custom` detent for content-sized sheets, multiline text must use `.fixedSize(horizontal: false, vertical: true)` to prevent truncation:
+
+```swift
+struct MyModalContent: View {
+    var body: some View {
+        VStack {
+            Text("Long multiline text...")
+                .fixedSize(horizontal: false, vertical: true)  // Required!
+        }
+    }
+}
+```
+
+**Why is this required?**
+
+SwiftUI has a chicken-and-egg problem with content-sized sheets:
+1. To set the `.custom` detent height, the framework measures the content
+2. But during measurement, the content is in a constrained context (the sheet)
+3. Without `.fixedSize()`, Text compresses to one line with "..." truncation
+4. With `.fixedSize(vertical: true)`, Text expands to its natural height during measurement
+
+**This is standard SwiftUI behavior, not a framework limitation.**
+
+Design systems (like LoomMDS in Toyota's oneapp-ios) solve this by building `.fixedSize()` into their text components:
+
+```swift
+// LoomMDS/LMBodyText.swift
+public var body: some View {
+    LMText(string)
+        .LM_textStyle(...)
+        .fixedSize(horizontal: false, vertical: true)  // Built-in!
+}
+```
+
+**Our framework approach:**
+- ✅ SwiftUIFlow is a navigation framework, not a UI component library
+- ✅ We provide the measurement infrastructure (automatic via `ModalContentMeasurement`)
+- ✅ Clients handle text layout (either with `.fixedSize()` or their own design system components)
+- ✅ Clean separation of concerns
+
 **Benefits:**
 
 ✅ **Automatic content sizing** - No manual height calculations
