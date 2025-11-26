@@ -84,8 +84,10 @@ public struct ModalDetentConfiguration: Equatable {
     }
 
     /// Check if this configuration should use fullScreenCover instead of sheet
+    /// Only uses fullScreenCover when .fullscreen is the ONLY detent
+    /// When combined with other detents (e.g., [.custom, .fullscreen]), uses sheet with .large
     var shouldUseFullScreenCover: Bool {
-        return detents.contains(.fullscreen)
+        return detents == [.fullscreen]
     }
 
     /// Convert a ModalPresentationDetent to SwiftUI's PresentationDetent
@@ -131,7 +133,9 @@ public struct ModalDetentConfiguration: Equatable {
         }
 
         if detent == .large {
-            return .extraLarge
+            // If .fullscreen is in our detents array, map SwiftUI's .large to .fullscreen
+            // Otherwise map to .extraLarge
+            return detents.contains(.fullscreen) ? .fullscreen : .extraLarge
         }
 
         return nil

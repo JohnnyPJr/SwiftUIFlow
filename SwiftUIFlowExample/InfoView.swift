@@ -22,12 +22,14 @@ struct InfoView: View {
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(color)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(description)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text("Detent: \(detentType)")
                 .font(.caption)

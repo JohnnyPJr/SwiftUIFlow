@@ -2374,10 +2374,35 @@ Created comprehensive demonstrations in all 5 tabs:
 Each serves a specific use case:
 - `.small` - Collapsed states, quick actions
 - `.medium` - Standard modals
-- `.large` - Maximum sheet without fullscreen
-- `.extraLarge` - True 100% height but still dismissible
-- `.fullscreen` - Immersive experiences (onboarding, media)
+- `.large` - Maximum sheet without fullscreen (99.9% height, avoids 3D effect)
+- `.extraLarge` - True 100% height but still dismissible sheet
+- `.fullscreen` - Immersive fullScreenCover experiences (onboarding, media)
 - `.custom` - Content-first design (forms, dynamic content)
+
+**Important: `.fullscreen` Behavior with Multiple Detents**
+
+The `.fullscreen` detent behaves differently depending on whether it's used alone or with other detents:
+
+- **Single detent**: `[.fullscreen]` → Uses `fullScreenCover` (true fullscreen, non-dismissible, edge-to-edge)
+- **Multiple detents**: `[.custom, .fullscreen]` → Uses `sheet` with SwiftUI's `.large` detent (100% height, still dismissible)
+
+**Why this limitation?**
+SwiftUI does not support dynamically switching between `sheet` and `fullScreenCover` during user interaction. When `.fullscreen` is combined with other detents (to enable dragging between heights), the framework falls back to a 100% height **sheet** rather than a true fullScreenCover.
+
+**In practice:**
+```swift
+// True fullscreen (fullScreenCover, non-draggable)
+.modalDetentConfiguration(detents: [.fullscreen])
+
+// Draggable to 100% height sheet - these are functionally identical:
+.modalDetentConfiguration(detents: [.custom, .fullscreen], selectedDetent: .custom)
+.modalDetentConfiguration(detents: [.custom, .extraLarge], selectedDetent: .custom)
+// Both create a sheet that drags from custom height → 100% height
+```
+
+When using multiple detents including `.fullscreen`, the behavior is equivalent to using `.extraLarge` - both map to SwiftUI's native `.large` detent (100% screen height) within a sheet presentation.
+
+**Recommendation:** Use `.extraLarge` instead of `.fullscreen` when combining with other detents, as it more accurately describes the behavior (100% height sheet, not fullScreenCover).
 
 **2. Why .custom vs Manual Height?**
 
@@ -2448,6 +2473,48 @@ Binding(
     set: { router.updateModalSelectedDetent($0) }
 )
 ```
+
+**Important: Content-Sized Sheets and `.fixedSize()` Requirement**
+
+When using `.custom` detent for content-sized sheets, multiline text must use `.fixedSize(horizontal: false, vertical: true)` to prevent truncation:
+
+```swift
+struct MyModalContent: View {
+    var body: some View {
+        VStack {
+            Text("Long multiline text...")
+                .fixedSize(horizontal: false, vertical: true)  // Required!
+        }
+    }
+}
+```
+
+**Why is this required?**
+
+SwiftUI has a chicken-and-egg problem with content-sized sheets:
+1. To set the `.custom` detent height, the framework measures the content
+2. But during measurement, the content is in a constrained context (the sheet)
+3. Without `.fixedSize()`, Text compresses to one line with "..." truncation
+4. With `.fixedSize(vertical: true)`, Text expands to its natural height during measurement
+
+**This is standard SwiftUI behavior, not a framework limitation.**
+
+Design systems (like LoomMDS in Toyota's oneapp-ios) solve this by building `.fixedSize()` into their text components:
+
+```swift
+// LoomMDS/LMBodyText.swift
+public var body: some View {
+    LMText(string)
+        .LM_textStyle(...)
+        .fixedSize(horizontal: false, vertical: true)  // Built-in!
+}
+```
+
+**Our framework approach:**
+- ✅ SwiftUIFlow is a navigation framework, not a UI component library
+- ✅ We provide the measurement infrastructure (automatic via `ModalContentMeasurement`)
+- ✅ Clients handle text layout (either with `.fixedSize()` or their own design system components)
+- ✅ Clean separation of concerns
 
 **Benefits:**
 

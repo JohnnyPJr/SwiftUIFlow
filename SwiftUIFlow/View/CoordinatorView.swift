@@ -40,11 +40,15 @@ public struct CoordinatorView<R: Route>: View {
         return bodyContent
     }
 
+    @State private var contentHeight: CGFloat?
+
     private var bodyContent: some View {
         NavigationStack(path: navigationPath) {
             // Render root view
             if let rootView = router.view(for: router.state.root) {
                 rootView
+                    .modifier(ModalContentMeasurement(isModal: coordinator.presentationContext == .modal,
+                                                      height: $contentHeight))
                     .environment(\.navigationBackAction) { coordinator.pop() }
                     // Root view back button visibility determined by presentation context
                     .environment(\.canNavigateBack, coordinator.presentationContext.shouldShowBackButton)
