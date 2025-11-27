@@ -8,21 +8,71 @@
 import Combine
 import SwiftUI
 
-/// A SwiftUI view that renders a coordinator's navigation state.
+/// A SwiftUI view that renders a coordinator's navigation hierarchy.
 ///
-/// This view observes the coordinator's router and automatically updates when navigation changes.
-/// It handles NavigationStack rendering and will support modals/sheets in subsequent updates.
+/// `CoordinatorView` is the bridge between SwiftUIFlow's coordinator pattern and SwiftUI's
+/// declarative view system. It observes the coordinator's router and automatically updates
+/// the UI when navigation changes occur.
 ///
-/// Usage:
+/// ## Basic Usage
+///
+/// Use `CoordinatorView` as the root view of your app or scene:
+///
 /// ```swift
-/// struct MyApp: View {
-///     let coordinator: MyCoordinator
+/// @main
+/// struct MyApp: App {
+///     let appCoordinator = AppCoordinator()
 ///
-///     var body: some View {
-///         CoordinatorView(coordinator: coordinator)
+///     var body: some Scene {
+///         WindowGroup {
+///             CoordinatorView(coordinator: appCoordinator)
+///         }
 ///     }
 /// }
 /// ```
+///
+/// ## What It Renders
+///
+/// `CoordinatorView` automatically handles:
+/// - **NavigationStack** - Renders the navigation stack with push/pop animations
+/// - **Modal sheets** - Presents modals when navigating to `.modal` routes
+/// - **Detours** - Shows full-screen covers for detour flows
+/// - **Pushed child coordinators** - Flattens child coordinator routes into the stack
+/// - **Back button management** - Automatically shows/hides based on context
+///
+/// ## Reactive Updates
+///
+/// The view observes the router's published state and automatically updates when:
+/// - Routes are pushed or popped
+/// - Modals are presented or dismissed
+/// - Tabs are switched (in TabCoordinator)
+/// - Child coordinators are added or removed
+///
+/// ## Custom UI
+///
+/// For custom navigation UI (like custom tab bars), you can access child coordinators:
+///
+/// ```swift
+/// struct CustomTabView: View {
+///     let tabCoordinator: TabCoordinator<AppRoute>
+///
+///     var body: some View {
+///         HStack {
+///             ForEach(tabCoordinator.children.indices, id: \.self) { index in
+///                 if let child = tabCoordinator.children[index] as? Coordinator<AppRoute> {
+///                     CoordinatorView(coordinator: child)
+///                 }
+///             }
+///         }
+///     }
+/// }
+/// ```
+///
+/// ## See Also
+///
+/// - `Coordinator` - The coordinator whose navigation this view renders
+/// - `Router` - The navigation state being observed
+/// - `TabCoordinatorView` - Specialized view for tab-based navigation
 public struct CoordinatorView<R: Route>: View {
     private let coordinator: Coordinator<R>
     @ObservedObject private var router: Router<R>

@@ -89,25 +89,29 @@ final class MainTabCoordinator: TabCoordinator<MainTabRoute> {
     }
 
     override func canHandle(_ route: any Route) -> Bool {
-        // Tab coordinator handles tab routes to switch tabs
+        // Handle MainTabRoute for explicit tab switching
         return route is MainTabRoute
     }
 
     override func navigationType(for route: any Route) -> NavigationType {
-        // Map MainTabRoute to tab indices
-        guard let tabRoute = route as? MainTabRoute else {
-            return .push // Not a tab route, use default
+        // Use push for tab routes - we'll switch tabs manually in executeNavigation
+        return .push
+    }
+
+    override func navigate(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+        // Handle MainTabRoute by switching to the corresponding tab
+        if let tabRoute = route as? MainTabRoute {
+            let tabIndex = switch tabRoute {
+            case .tab1: 0
+            case .tab2: 1
+            case .tab3: 2
+            case .tab4: 3
+            case .tab5: 4
+            }
+            switchToTab(tabIndex)
         }
 
-        let tabIndex = switch tabRoute {
-        case .tab1: 0
-        case .tab2: 1
-        case .tab3: 2
-        case .tab4: 3
-        case .tab5: 4
-        }
-
-        return .tabSwitch(index: tabIndex)
+        return super.navigate(to: route, from: caller)
     }
 
     func switchTab(to index: Int) {
