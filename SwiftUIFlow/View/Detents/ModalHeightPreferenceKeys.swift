@@ -10,28 +10,41 @@ import SwiftUI
 /// PreferenceKey for propagating the ideal (full content) height from child views to parent views.
 ///
 /// This is used for the `.custom` detent to automatically size modals to their content.
-/// Multiple sections can report their heights, which are summed together.
+/// **The framework automatically measures content height** - you don't need to do anything
+/// for basic modals. This PreferenceKey is only needed for advanced multi-section modals.
 ///
-/// ## Example Usage
+/// ## Automatic Sizing (Most Common)
+///
+/// For most modals, just return your content and the framework measures it automatically:
 ///
 /// ```swift
-/// struct ModalContent: View {
-///     @State private var headerHeight: CGFloat?
-///     @State private var mainHeight: CGFloat?
-///
-///     var idealHeight: CGFloat? {
-///         let heights = [headerHeight, mainHeight].compactMap { $0 }
-///         return heights.isEmpty ? nil : heights.reduce(0, +)
+/// struct InfoView: View {
+///     var body: some View {
+///         VStack(spacing: 16) {
+///             Text("Title").font(.title2)
+///             Text("Description").font(.subheadline)
+///         }
+///         .padding()
+///         // No measurement code needed - framework handles it automatically!
 ///     }
+/// }
+/// ```
 ///
+/// ## Advanced: Multi-Section Modals
+///
+/// Only use this PreferenceKey directly when you need fine-grained control over
+/// which sections contribute to ideal vs minimum height:
+///
+/// ```swift
+/// struct AdvancedModalContent: View {
 ///     var body: some View {
 ///         VStack {
-///             HeaderView()
-///                 .onSizeChange { headerHeight = $0.height }
-///             MainView()
-///                 .onSizeChange { mainHeight = $0.height }
+///             HeaderSection()
+///                 .preference(key: IdealHeightPreferenceKey.self, value: 100)
+///             MainSection()
+///                 .preference(key: IdealHeightPreferenceKey.self, value: 200)
+///             // Total ideal height = 300
 ///         }
-///         .preference(key: IdealHeightPreferenceKey.self, value: idealHeight)
 ///     }
 /// }
 /// ```
@@ -50,25 +63,40 @@ public struct IdealHeightPreferenceKey: PreferenceKey {
 /// PreferenceKey for propagating the minimum height from child views to parent views.
 ///
 /// This is used for the `.small` detent to show only essential content (e.g., header only).
-/// Multiple sections can report their heights, which are summed together.
+/// **The framework automatically measures content height** - this PreferenceKey is only
+/// needed for advanced use cases where you want to control what's visible in the `.small` detent.
 ///
-/// ## Example Usage
+/// ## Automatic Sizing (Most Common)
+///
+/// For most modals, the framework automatically determines appropriate minimum height:
 ///
 /// ```swift
-/// struct ModalContent: View {
-///     @State private var headerHeight: CGFloat?
-///
-///     var minHeight: CGFloat? {
-///         headerHeight
+/// struct InfoView: View {
+///     var body: some View {
+///         VStack(spacing: 16) {
+///             Text("Title").font(.title2)
+///             Text("Description").font(.subheadline)
+///         }
+///         .padding()
+///         // Framework automatically handles both ideal and minimum heights!
 ///     }
+/// }
+/// ```
 ///
+/// ## Advanced: Custom Small Detent Height
+///
+/// Only use this PreferenceKey when you need to specify exactly what's visible
+/// in the `.small` detent state:
+///
+/// ```swift
+/// struct AdvancedModalContent: View {
 ///     var body: some View {
 ///         VStack {
-///             HeaderView()
-///                 .onSizeChange { headerHeight = $0.height }
-///             MainView()
+///             HeaderSection()
+///                 .preference(key: MinHeightPreferenceKey.self, value: 80)
+///             // Only header visible in .small detent
+///             MainSection()
 ///         }
-///         .preference(key: MinHeightPreferenceKey.self, value: minHeight)
 ///     }
 /// }
 /// ```

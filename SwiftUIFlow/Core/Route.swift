@@ -84,36 +84,9 @@ import Foundation
 /// - `Coordinator` - Manages navigation for routes
 /// - `ViewFactory.buildView(for:)` - Maps routes to views
 public protocol Route: Hashable, Identifiable {
-    /// A unique string identifier for this route.
-    ///
-    /// Used for navigation logging, analytics, and route comparison. Should be
-    /// unique across all cases of your route enum, including associated values.
-    ///
-    /// ## Example
-    ///
-    /// ```swift
-    /// enum AppRoute: Route {
-    ///     case home
-    ///     case settings
-    ///     case profile(userId: String)
-    ///
-    ///     var identifier: String {
-    ///         switch self {
-    ///         case .home: return "home"
-    ///         case .settings: return "settings"
-    ///         case .profile(let id): return "profile_\(id)"
-    ///         }
-    ///     }
-    /// }
-    /// ```
     var identifier: String { get }
 }
 
-/// Default implementation of `Identifiable.id` using the route's identifier.
-///
-/// This allows routes to automatically conform to `Identifiable` without
-/// additional implementation. SwiftUI uses `id` for list rendering and animations.
 public extension Route {
-    /// The stable identity of this route, derived from its identifier.
     var id: String { identifier }
 }

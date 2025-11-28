@@ -17,17 +17,31 @@ import Foundation
 /// Set up a global error handler to receive and handle all framework errors:
 ///
 /// ```swift
-/// SwiftUIFlowErrorHandler.shared.setHandler { error in
-///     // Log error details
-///     print(error.debugDescription)
+/// class AppState: ObservableObject {
+///     let appCoordinator: AppCoordinator
+///     @Published var currentError: SwiftUIFlowError?
+///     @Published var showErrorToast: Bool = false
 ///
-///     // Show user-friendly message
-///     if let description = error.errorDescription {
-///         showAlert(description)
+///     init() {
+///         appCoordinator = AppCoordinator()
+///
+///         // Set up global error handler to show toast
+///         SwiftUIFlowErrorHandler.shared.setHandler { [weak self] error in
+///             DispatchQueue.main.async {
+///                 self?.currentError = error
+///                 self?.showErrorToast = true
+///             }
+///         }
 ///     }
+/// }
 ///
-///     // Get recovery suggestions
-///     print("Fix: \(error.recommendedRecoveryAction)")
+/// struct AppRootView: View {
+///     @ObservedObject var appState: AppState
+///
+///     var body: some View {
+///         CoordinatorView(coordinator: appState.appCoordinator)
+///             .errorToast(isPresented: $appState.showErrorToast, error: appState.currentError)
+///     }
 /// }
 /// ```
 ///

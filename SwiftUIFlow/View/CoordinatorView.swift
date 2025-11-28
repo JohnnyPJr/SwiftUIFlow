@@ -14,18 +14,36 @@ import SwiftUI
 /// declarative view system. It observes the coordinator's router and automatically updates
 /// the UI when navigation changes occur.
 ///
-/// ## Basic Usage
+/// ## When to Use This View
 ///
-/// Use `CoordinatorView` as the root view of your app or scene:
+/// **You rarely create `CoordinatorView` directly.** The framework creates it automatically via
+/// `buildCoordinatorView()` for modals, detours, and tab children. You only use it directly in:
+///
+/// 1. **App root with dynamic flow switching** - When your app switches between major flows
+/// 2. **Custom tab bars** - When rendering tabs manually (use `buildCoordinatorView()` instead)
+///
+/// ## App Root with Flow Switching
 ///
 /// ```swift
-/// @main
-/// struct MyApp: App {
-///     let appCoordinator = AppCoordinator()
+/// class AppState: ObservableObject {
+///     let appCoordinator: AppCoordinator
+///     // ...
+/// }
 ///
-///     var body: some Scene {
-///         WindowGroup {
-///             CoordinatorView(coordinator: appCoordinator)
+/// struct AppRootView: View {
+///     @ObservedObject var appState: AppState
+///     @ObservedObject private var router: Router<AppRoute>
+///
+///     var body: some View {
+///         switch router.state.root {
+///         case .tabRoot:
+///             if let mainTabCoordinator = appState.appCoordinator.currentFlow as? MainTabCoordinator {
+///                 CustomTabBarView(coordinator: mainTabCoordinator)
+///             }
+///         case .login:
+///             if let loginCoordinator = appState.appCoordinator.currentFlow as? LoginCoordinator {
+///                 CoordinatorView(coordinator: loginCoordinator)  // Direct usage
+///             }
 ///         }
 ///     }
 /// }
@@ -47,26 +65,6 @@ import SwiftUI
 /// - Modals are presented or dismissed
 /// - Tabs are switched (in TabCoordinator)
 /// - Child coordinators are added or removed
-///
-/// ## Custom UI
-///
-/// For custom navigation UI (like custom tab bars), you can access child coordinators:
-///
-/// ```swift
-/// struct CustomTabView: View {
-///     let tabCoordinator: TabCoordinator<AppRoute>
-///
-///     var body: some View {
-///         HStack {
-///             ForEach(tabCoordinator.children.indices, id: \.self) { index in
-///                 if let child = tabCoordinator.children[index] as? Coordinator<AppRoute> {
-///                     CoordinatorView(coordinator: child)
-///                 }
-///             }
-///         }
-///     }
-/// }
-/// ```
 ///
 /// ## See Also
 ///

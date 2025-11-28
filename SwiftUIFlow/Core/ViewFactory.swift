@@ -93,23 +93,6 @@ open class ViewFactory<R: Route>: ObservableObject {
     /// Override this method in your ViewFactory subclass to map routes to their corresponding views.
     /// Use the `view(_:)` helper to wrap your views in AnyView.
     ///
-    /// ## Example
-    ///
-    /// ```swift
-    /// class ProductViewFactory: ViewFactory<ProductRoute> {
-    ///     override func buildView(for route: ProductRoute) -> AnyView? {
-    ///         switch route {
-    ///         case .list:
-    ///             return view(ProductListView())
-    ///         case .detail(let id):
-    ///             return view(ProductDetailView(productId: id))
-    ///         case .checkout:
-    ///             return view(CheckoutView())
-    ///         }
-    ///     }
-    /// }
-    /// ```
-    ///
     /// - Parameter route: The route to build a view for
     /// - Returns: An AnyView containing the view for this route, or `nil` if the route is not recognized
     open func buildView(for route: R) -> AnyView? { nil }

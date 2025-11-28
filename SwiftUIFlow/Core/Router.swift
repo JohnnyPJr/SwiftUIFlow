@@ -37,13 +37,10 @@ import SwiftUI
 /// primarily use it to **read** navigation state, not modify it:
 ///
 /// ```swift
-/// // ✅ Good - Read state
+/// // Read state
 /// let currentRoute = coordinator.router.state.currentRoute
 /// let stackDepth = coordinator.router.state.stack.count
 ///
-/// // ❌ Avoid - Use coordinator methods instead
-/// coordinator.router.push(.details)  // Use coordinator.navigate(to:) instead
-/// ```
 ///
 /// ## Observable State
 ///
@@ -86,26 +83,6 @@ public final class Router<R: Route>: ObservableObject {
     /// **Framework internal only** - Exposed via Coordinator.routesDidChange
     let routesDidChange = PassthroughSubject<[any Route], Never>()
 
-    /// Create a new router with an initial route and view factory.
-    ///
-    /// Initialize a router in your coordinator's initializer, providing the starting
-    /// route and a factory that maps routes to views.
-    ///
-    /// ## Example
-    ///
-    /// ```swift
-    /// class ProductCoordinator: Coordinator<ProductRoute> {
-    ///     init() {
-    ///         let factory = ProductViewFactory()
-    ///         let router = Router(initial: .list, factory: factory)
-    ///         super.init(router: router)
-    ///     }
-    /// }
-    /// ```
-    ///
-    /// - Parameters:
-    ///   - initial: The initial root route for this coordinator
-    ///   - factory: The view factory that builds views for routes
     public init(initial: R, factory: ViewFactory<R>) {
         state = NavigationState(root: initial)
         self.factory = factory
