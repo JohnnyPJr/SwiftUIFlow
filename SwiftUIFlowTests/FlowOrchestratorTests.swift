@@ -91,6 +91,36 @@ final class FlowOrchestratorTests: XCTestCase {
         XCTAssertNil(firstFlow.parent, "First flow's parent should be cleared")
     }
 
+    func test_TransitionToFlow_DeallocatesFlowWithNestedChildren() {
+        let orchestrator = TestFlowOrchestrator()
+
+        let firstFlow = TestFlowCoordinator()
+        trackForMemoryLeaks(firstFlow)
+
+        // Add nested children to the first flow
+        let childRouter1 = Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        let nestedChild1 = TestCoordinator(router: childRouter1)
+        trackForMemoryLeaks(nestedChild1)
+
+        let childRouter2 = Router<MockRoute>(initial: .details, factory: MockViewFactory())
+        let nestedChild2 = TestCoordinator(router: childRouter2)
+        trackForMemoryLeaks(nestedChild2)
+
+        firstFlow.addChild(nestedChild1)
+        firstFlow.addChild(nestedChild2)
+
+        XCTAssertEqual(firstFlow.children.count, 2, "First flow should have 2 nested children")
+
+        // Transition to first flow, then to second flow
+        orchestrator.transitionToFlow(firstFlow, root: .flow1)
+        orchestrator.transitionToFlow(TestFlowCoordinator(), root: .flow2)
+
+        // Verify first flow was removed from orchestrator
+        XCTAssertNil(firstFlow.parent, "First flow's parent should be cleared")
+        XCTAssertFalse(orchestrator.children.contains(where: { $0 === firstFlow }),
+                       "First flow should be removed from orchestrator's children")
+    }
+
     // MARK: - Integration with handleFlowChange
 
     func test_FlowOrchestrator_WorksWithHandleFlowChange() {
