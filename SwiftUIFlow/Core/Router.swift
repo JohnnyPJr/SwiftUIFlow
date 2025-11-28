@@ -9,12 +9,79 @@ import Combine
 import Foundation
 import SwiftUI
 
+/// Manages navigation state and view creation for a coordinator.
+///
+/// `Router` is the engine that powers navigation in SwiftUIFlow. Each coordinator
+/// owns a router that manages the navigation stack, tracks state, and builds views
+/// for routes using a `ViewFactory`.
+///
+/// ## Usage
+///
+/// Create a router when initializing your coordinator:
+///
+/// ```swift
+/// class ProductCoordinator: Coordinator<ProductRoute> {
+///     init() {
+///         let router = Router(
+///             initial: .list,
+///             factory: ProductViewFactory()
+///         )
+///         super.init(router: router)
+///     }
+/// }
+/// ```
+///
+/// ## Accessing Router State
+///
+/// While the router is publicly accessible via `coordinator.router`, you should
+/// primarily use it to **read** navigation state, not modify it:
+///
+/// ```swift
+/// // Read state
+/// let currentRoute = coordinator.router.state.currentRoute
+/// let stackDepth = coordinator.router.state.stack.count
+///
+///
+/// ## Observable State
+///
+/// Router conforms to `ObservableObject` with `@Published var state`, allowing
+/// SwiftUI views to automatically react to navigation changes:
+///
+/// ```swift
+/// struct DebugView: View {
+///     @ObservedObject var router: Router<AppRoute>
+///
+///     var body: some View {
+///         Text("Current: \(router.state.currentRoute.identifier)")
+///     }
+/// }
+/// ```
+///
+/// ## Navigation Methods
+///
+/// Most router methods are framework-internal. Use `Coordinator.navigate(to:)`
+/// for all navigation operations instead of calling router methods directly.
+///
+/// ## See Also
+///
+/// - `Coordinator` - Owns the router and provides navigation methods
+/// - `NavigationState` - The state managed by the router
+/// - `ViewFactory` - Builds views for routes
 public final class Router<R: Route>: ObservableObject {
+    /// The current navigation state.
+    ///
+    /// This published property contains the complete navigation state including
+    /// the root route, stack, selected tab, and presented modals/detours.
+    /// Changes to this property automatically trigger SwiftUI view updates.
+    ///
+    /// - Note: Read-only for clients. Use `Coordinator.navigate(to:)` to modify state.
     @Published public private(set) var state: NavigationState<R>
+
     private let factory: ViewFactory<R>
 
     /// Publisher for route changes (type-erased for parent observation)
-    public let routesDidChange = PassthroughSubject<[any Route], Never>()
+    /// **Framework internal only** - Exposed via Coordinator.routesDidChange
+    let routesDidChange = PassthroughSubject<[any Route], Never>()
 
     public init(initial: R, factory: ViewFactory<R>) {
         state = NavigationState(root: initial)
@@ -101,7 +168,7 @@ public final class Router<R: Route>: ObservableObject {
     }
 
     /// Switch to a specific tab index.
-    /// **Internal:** Use `Coordinator.navigate(to:)` with `.tabSwitch` NavigationType instead.
+    /// **Internal:** Used by TabCoordinator.switchToTab()
     func selectTab(_ index: Int) {
         state.selectedTab = index
     }

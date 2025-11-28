@@ -10,26 +10,24 @@ import SwiftUI
 public extension View {
     /// Observe the size of a view and execute a closure when it changes.
     ///
+    /// **Framework internal utility.** This modifier is used internally by SwiftUIFlow
+    /// to automatically measure modal content for the `.custom` detent. Client code
+    /// does not need to use this modifier - modal sizing happens automatically.
+    ///
     /// This modifier uses a transparent GeometryReader overlay to measure the view's size
     /// without affecting the view's layout or appearance. It reports size changes both on
     /// initial appearance and whenever the size changes.
     ///
-    /// ## Example Usage
+    /// ## For Framework Development Only
+    ///
+    /// Used by `ModalContentMeasurement` to automatically track content height:
     ///
     /// ```swift
-    /// struct ContentSizedModal: View {
-    ///     @State private var contentHeight: CGFloat?
-    ///
-    ///     var body: some View {
-    ///         VStack {
-    ///             Text("Dynamic Content")
-    ///             // ... more content
-    ///         }
-    ///         .onSizeChange { size in
-    ///             contentHeight = size.height
-    ///         }
+    /// content
+    ///     .onSizeChange { size in
+    ///         measuredHeight = size.height
     ///     }
-    /// }
+    ///     .preference(key: IdealHeightPreferenceKey.self, value: measuredHeight)
     /// ```
     ///
     /// - Parameter closure: A closure that receives the new size whenever it changes

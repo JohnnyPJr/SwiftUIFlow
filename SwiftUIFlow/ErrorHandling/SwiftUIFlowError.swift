@@ -7,7 +7,81 @@
 
 import Foundation
 
-/// Errors that can occur during navigation and view rendering in SwiftUIFlow
+/// Errors that can occur during navigation and view rendering in SwiftUIFlow.
+///
+/// The framework reports all errors through the global `SwiftUIFlowErrorHandler`.
+/// These errors provide detailed context about what went wrong and how to fix it.
+///
+/// ## Error Handling
+///
+/// Set up a global error handler to receive and handle all framework errors:
+///
+/// ```swift
+/// class AppState: ObservableObject {
+///     let appCoordinator: AppCoordinator
+///     @Published var currentError: SwiftUIFlowError?
+///     @Published var showErrorToast: Bool = false
+///
+///     init() {
+///         appCoordinator = AppCoordinator()
+///
+///         // Set up global error handler to show toast
+///         SwiftUIFlowErrorHandler.shared.setHandler { [weak self] error in
+///             DispatchQueue.main.async {
+///                 self?.currentError = error
+///                 self?.showErrorToast = true
+///             }
+///         }
+///     }
+/// }
+///
+/// struct AppRootView: View {
+///     @ObservedObject var appState: AppState
+///
+///     var body: some View {
+///         CoordinatorView(coordinator: appState.appCoordinator)
+///             .errorToast(isPresented: $appState.showErrorToast, error: appState.currentError)
+///     }
+/// }
+/// ```
+///
+/// ## Error Categories
+///
+/// **Navigation Errors:**
+/// - `.navigationFailed` - No coordinator could handle the route
+/// - `.modalCoordinatorNotConfigured` - Modal route but no modal coordinator registered
+/// - `.invalidDetourNavigation` - Detour route used with navigate() instead of presentDetour()
+///
+/// **View Creation Errors:**
+/// - `.viewCreationFailed` - ViewFactory returned nil for a route
+///
+/// **Configuration Errors:**
+/// - `.invalidTabIndex` - Attempted to switch to non-existent tab
+/// - `.duplicateChild` - Tried to add a child coordinator twice
+/// - `.circularReference` - Coordinator added as its own child/parent
+/// - `.configurationError` - Other setup issues
+///
+/// ## Error Properties
+///
+/// All errors conform to `LocalizedError` and provide:
+/// - `errorDescription` - User-friendly message
+/// - `debugDescription` - Technical details for debugging
+/// - `recommendedRecoveryAction` - How to fix the error
+///
+/// ## Example
+///
+/// ```swift
+/// // This will trigger .navigationFailed if no coordinator handles ProfileRoute
+/// coordinator.navigate(to: ProfileRoute.detail(userId: "123"))
+///
+/// // Error handler receives:
+/// // errorDescription: "Navigation failed for 'profile_123'. No coordinator in hierarchy can handle this route"
+/// // recommendedRecoveryAction: "Ensure a coordinator in the hierarchy implements canHandle() for ProfileRoute routes"
+/// ```
+///
+/// ## See Also
+///
+/// - `SwiftUIFlowErrorHandler` - Global error handler for receiving errors
 public enum SwiftUIFlowError: Error, LocalizedError, Equatable {
     // MARK: - Navigation Errors
 
@@ -65,15 +139,28 @@ public enum SwiftUIFlowError: Error, LocalizedError, Equatable {
     }
 }
 
-/// Type of view that failed to be created
+/// Type of view that failed to be created in a `viewCreationFailed` error.
+///
+/// Indicates which type of view the framework was trying to create when the
+/// ViewFactory returned nil.
 public enum ViewType: Equatable {
+    /// The root view of a coordinator
     case root
+
+    /// A view pushed onto the navigation stack
     case pushed
+
+    /// A view presented as a modal
     case modal
+
+    /// A view presented as a detour (fullScreenCover)
     case detour
 }
 
-/// Result of navigation validation
+/// Result of navigation path validation.
+///
+/// **Framework internal only.** Used during the validation phase of navigation
+/// to check if a route can be handled before executing navigation with side effects.
 public enum ValidationResult {
     case success
     case failure(SwiftUIFlowError)

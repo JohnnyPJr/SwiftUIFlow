@@ -53,13 +53,9 @@ final class TestModalCoordinator: Coordinator<MockRoute> {
 }
 
 final class TestTabCoordinator: TabCoordinator<MainTabRoute> {
-    override func navigationType(for route: any Route) -> NavigationType {
-        // Simple test tab coordinator - return default tab index
-        return .tabSwitch(index: 0)
-    }
-
     override func canHandle(_ route: any Route) -> Bool {
         // TestTabCoordinator doesn't handle routes directly
+        // Tab switching happens automatically via children
         return false
     }
 }

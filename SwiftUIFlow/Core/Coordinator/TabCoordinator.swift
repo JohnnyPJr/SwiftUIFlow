@@ -7,6 +7,68 @@
 
 import Foundation
 
+/// A specialized coordinator for managing tab-based navigation with automatic tab switching.
+///
+/// `TabCoordinator` extends `Coordinator` to provide tab bar functionality, including automatic
+/// tab switching when navigating to routes handled by different tabs. Child coordinators added
+/// to a `TabCoordinator` automatically become tabs.
+///
+/// ## Basic Usage
+///
+/// Create a TabCoordinator and add child coordinators as tabs:
+///
+/// ```swift
+/// class MainTabCoordinator: TabCoordinator<AppRoute> {
+///     init() {
+///         let router = Router(initial: .home, factory: AppViewFactory())
+///         super.init(router: router)
+///
+///         // Add child coordinators - each becomes a tab
+///         addChild(HomeCoordinator())
+///         addChild(SearchCoordinator())
+///         addChild(ProfileCoordinator())
+///     }
+/// }
+/// ```
+///
+/// Each child coordinator should override `tabItem` to define its tab bar appearance:
+///
+/// ```swift
+/// class HomeCoordinator: Coordinator<HomeRoute> {
+///     override var tabItem: (text: String, image: String)? {
+///         return ("Home", "house.fill")
+///     }
+/// }
+/// ```
+///
+/// ## Automatic Tab Switching
+///
+/// When you navigate to a route, `TabCoordinator` automatically switches to the tab
+/// that can handle that route. This enables deep linking and cross-tab navigation
+/// without manual tab selection:
+///
+/// ```swift
+/// // From anywhere in the app, navigate to a profile route
+/// // TabCoordinator will automatically switch to the Profile tab
+/// coordinator.navigate(to: ProfileRoute.detail(userId: "123"))
+/// ```
+///
+/// ## Manual Tab Selection
+///
+/// You can also switch tabs programmatically:
+///
+/// ```swift
+/// class MainTabCoordinator: TabCoordinator<AppRoute> {
+///     func showNotifications() {
+///         switchToTab(2)  // Switch to third tab (0-indexed)
+///     }
+/// }
+/// ```
+///
+/// ## See Also
+///
+/// - `Coordinator` - Base coordinator class
+/// - `TabCoordinatorView` - SwiftUI view that renders the tab bar UI
 open class TabCoordinator<R: Route>: Coordinator<R> {
     /// Build a TabCoordinatorView for this tab coordinator
     override public func buildCoordinatorView() -> Any {
@@ -14,11 +76,9 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
     }
 
     /// Override addChild to automatically set .tab context for tab children
-    override public func addChild(_ coordinator: Coordinator<some Route>,
-                                  context: CoordinatorPresentationContext = .tab)
-    {
-        // TabCoordinator children are always tabs, so default to .tab context
-        super.addChild(coordinator, context: context)
+    override public func addChild(_ coordinator: Coordinator<some Route>) {
+        // TabCoordinator children are always tabs, so use .tab context
+        super.addChild(coordinator, context: .tab)
     }
 
     /// Get the tab index for a coordinator
@@ -32,6 +92,23 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
         return nil
     }
 
+    /// Programmatically switch to a specific tab by index.
+    ///
+    /// This method allows you to change the selected tab from code, such as in response
+    /// to deep links, notifications, or user actions in other parts of the UI.
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// class MainTabCoordinator: TabCoordinator<AppRoute> {
+    ///     func showNotifications() {
+    ///         switchToTab(2)  // Switch to notifications tab
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// - Parameter index: The zero-based index of the tab to switch to
+    /// - Note: The framework will report an error if the index is out of bounds
     open func switchToTab(_ index: Int) {
         // Validate tab index
         guard index >= 0, index < internalChildren.count else {
@@ -43,7 +120,7 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
         router.selectTab(index)
     }
 
-    override open func cleanStateForBubbling() {
+    override func cleanStateForBubbling() {
         // TabCoordinators don't clean their stack when bubbling
         // They only dismiss modals (dismissModal handles both coordinator and router)
         if currentModalCoordinator != nil {
