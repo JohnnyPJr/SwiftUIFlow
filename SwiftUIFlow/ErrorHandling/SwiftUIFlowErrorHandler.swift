@@ -8,7 +8,40 @@
 import Foundation
 
 /// Global error handler for SwiftUIFlow framework.
-/// Clients register a single error handler that receives all errors from the framework.
+///
+/// Register a custom error handler to receive and handle all navigation errors from
+/// coordinators throughout your app. This is useful for logging, analytics, or displaying
+/// error messages to users.
+///
+/// ## Usage
+///
+/// Set up the error handler early in your app's lifecycle:
+///
+/// ```swift
+/// @main
+/// struct MyApp: App {
+///     init() {
+///         SwiftUIFlowErrorHandler.shared.setHandler { error in
+///             // Log to analytics
+///             Analytics.logError(error)
+///
+///             // Show user-friendly message
+///             if case .navigationFailed = error {
+///                 ToastManager.show("Navigation error occurred")
+///             }
+///
+///             // Development debugging
+///             #if DEBUG
+///             print("SwiftUIFlow Error: \(error)")
+///             #endif
+///         }
+///     }
+/// }
+/// ```
+///
+/// ## Default Behavior
+///
+/// If no handler is set, errors are logged to the console via `NavigationLogger`.
 public final class SwiftUIFlowErrorHandler {
     /// Shared singleton instance
     public static let shared = SwiftUIFlowErrorHandler()

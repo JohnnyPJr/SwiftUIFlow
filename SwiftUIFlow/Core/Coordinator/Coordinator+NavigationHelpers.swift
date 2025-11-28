@@ -92,7 +92,7 @@ extension Coordinator {
 
         // Check if this navigation type can be executed
         switch navigationType(for: typedRoute) {
-        case .push, .replace, .tabSwitch:
+        case .push, .replace:
             return .success
         case .modal:
             // Can we execute modal navigation?
@@ -248,12 +248,6 @@ extension Coordinator {
                     _ = child.navigate(to: route, from: self)
                     NavigationLogger.debug("👶 \(Self.self): Child handled modal navigation for \(route.identifier)")
                     return true
-
-                case .tabSwitch:
-                    // Tab switching doesn't make sense for child delegation, just delegate
-                    _ = child.navigate(to: route, from: self)
-                    NavigationLogger.debug("👶 \(Self.self): Child handled tab switch for \(route.identifier)")
-                    return true
                 }
             }
         }
@@ -287,8 +281,6 @@ extension Coordinator {
 
     func isAlreadyAt(route: R) -> Bool {
         switch navigationType(for: route) {
-        case let .tabSwitch(index):
-            return router.state.selectedTab == index
         case .push, .replace:
             let currentRoute = router.state.currentRoute
             let isAt = currentRoute == route
@@ -327,16 +319,13 @@ extension Coordinator {
             presentModal(modalChild, presenting: route, detentConfiguration: detents)
             _ = modalChild.navigate(to: route, from: self)
             return true
-        case let .tabSwitch(index):
-            router.selectTab(index)
-            return true
         }
     }
 
     // MARK: - Navigation Stack Control
 
     /// Pop one screen from the navigation stack
-    public func pop() {
+    func pop() {
         // Pushed childs pop handling
         if let lastChild = router.state.pushedChildren.last {
             if lastChild.allRoutes.count > 1 {
@@ -366,12 +355,12 @@ extension Coordinator {
     }
 
     /// Pop all screens and return to the root of this coordinator's flow
-    public func popToRoot() {
+    func popToRoot() {
         router.popToRoot()
     }
 
     /// Pop to a specific route in the stack (if it exists)
-    public func popTo(_ route: R) {
+    func popTo(_ route: R) {
         guard let index = router.state.stack.firstIndex(where: { $0 == route }) else {
             return
         }

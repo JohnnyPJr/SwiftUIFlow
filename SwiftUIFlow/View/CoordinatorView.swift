@@ -8,21 +8,69 @@
 import Combine
 import SwiftUI
 
-/// A SwiftUI view that renders a coordinator's navigation state.
+/// A SwiftUI view that renders a coordinator's navigation hierarchy.
 ///
-/// This view observes the coordinator's router and automatically updates when navigation changes.
-/// It handles NavigationStack rendering and will support modals/sheets in subsequent updates.
+/// `CoordinatorView` is the bridge between SwiftUIFlow's coordinator pattern and SwiftUI's
+/// declarative view system. It observes the coordinator's router and automatically updates
+/// the UI when navigation changes occur.
 ///
-/// Usage:
+/// ## When to Use This View
+///
+/// **You rarely create `CoordinatorView` directly.** The framework creates it automatically via
+/// `buildCoordinatorView()` for modals, detours, and tab children. You only use it directly in:
+///
+/// 1. **App root with dynamic flow switching** - When your app switches between major flows
+/// 2. **Custom tab bars** - When rendering tabs manually (use `buildCoordinatorView()` instead)
+///
+/// ## App Root with Flow Switching
+///
 /// ```swift
-/// struct MyApp: View {
-///     let coordinator: MyCoordinator
+/// class AppState: ObservableObject {
+///     let appCoordinator: AppCoordinator
+///     // ...
+/// }
+///
+/// struct AppRootView: View {
+///     @ObservedObject var appState: AppState
+///     @ObservedObject private var router: Router<AppRoute>
 ///
 ///     var body: some View {
-///         CoordinatorView(coordinator: coordinator)
+///         switch router.state.root {
+///         case .tabRoot:
+///             if let mainTabCoordinator = appState.appCoordinator.currentFlow as? MainTabCoordinator {
+///                 CustomTabBarView(coordinator: mainTabCoordinator)
+///             }
+///         case .login:
+///             if let loginCoordinator = appState.appCoordinator.currentFlow as? LoginCoordinator {
+///                 CoordinatorView(coordinator: loginCoordinator)  // Direct usage
+///             }
+///         }
 ///     }
 /// }
 /// ```
+///
+/// ## What It Renders
+///
+/// `CoordinatorView` automatically handles:
+/// - **NavigationStack** - Renders the navigation stack with push/pop animations
+/// - **Modal sheets** - Presents modals when navigating to `.modal` routes
+/// - **Detours** - Shows full-screen covers for detour flows
+/// - **Pushed child coordinators** - Flattens child coordinator routes into the stack
+/// - **Back button management** - Automatically shows/hides based on context
+///
+/// ## Reactive Updates
+///
+/// The view observes the router's published state and automatically updates when:
+/// - Routes are pushed or popped
+/// - Modals are presented or dismissed
+/// - Tabs are switched (in TabCoordinator)
+/// - Child coordinators are added or removed
+///
+/// ## See Also
+///
+/// - `Coordinator` - The coordinator whose navigation this view renders
+/// - `Router` - The navigation state being observed
+/// - `TabCoordinatorView` - Specialized view for tab-based navigation
 public struct CoordinatorView<R: Route>: View {
     private let coordinator: Coordinator<R>
     @ObservedObject private var router: Router<R>
