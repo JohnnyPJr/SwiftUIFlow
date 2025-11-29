@@ -178,8 +178,6 @@ public struct CoordinatorView<R: Route>: View {
                                errorType: .viewCreationFailed(viewType: .modal)))
             }
         }
-        #endif
-        #if os(iOS)
         .fullScreenCover(isPresented: hasDetour, onDismiss: {
             // Handle detour dismissal (user swiped down or dismissed)
             coordinator.dismissDetour()
@@ -196,23 +194,6 @@ public struct CoordinatorView<R: Route>: View {
                 }
             }
         }
-        #else
-                // macOS: fullScreenCover is not available, use sheet instead
-        .sheet(isPresented: hasDetour, onDismiss: {
-                    coordinator.dismissDetour()
-                }) {
-                    // Render detour with full coordinator navigation support
-                    if let detourCoordinator = coordinator.detourCoordinator {
-                        let coordinatorView = detourCoordinator.buildCoordinatorView()
-                        eraseToAnyView(coordinatorView)
-                    } else {
-                        if let detourRoute = router.state.detour {
-                            ErrorReportingView(error: coordinator
-                                .makeError(for: detourRoute,
-                                           errorType: .viewCreationFailed(viewType: .detour)))
-                        }
-                    }
-                }
         #endif
     }
 
