@@ -34,7 +34,7 @@ class RedViewFactory: ViewFactory<RedRoute> {
             return view(DarkRedView(coordinator: coord))
         case .info:
             return view(InfoView(title: "Red Tab Info",
-                                 description: "This modal uses .custom detent, automatically sizing to fit its content.",
+                                 description: "This modal has .custom detent, automatically sizing to fit its content.",
                                  detentType: ".custom",
                                  color: .red))
         }
@@ -130,7 +130,7 @@ class PurpleViewFactory: ViewFactory<PurpleRoute> {
             return view(ResultView(success: success, coordinator: coord))
         case .info:
             return view(InfoView(title: "Purple Tab Info",
-                                 description: "This modal uses .fullscreen detent, presenting as a true fullScreenCover!",
+                                 description: "This modal has .fullscreen detent, presenting as a true fullScreenCover",
                                  detentType: ".fullscreen",
                                  color: .purple))
         }

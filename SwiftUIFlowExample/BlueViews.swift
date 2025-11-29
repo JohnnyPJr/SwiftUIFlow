@@ -22,18 +22,18 @@ struct BlueView: View {
                     .foregroundColor(.white)
 
                 Button("Lighten Up") {
-                    let _ = coordinator.navigate(to: BlueRoute.lightBlue)
+                    _ = coordinator.navigate(to: BlueRoute.lightBlue)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 
                 Button("Darken Up") {
-                    let _ = coordinator.navigate(to: BlueRoute.darkBlue)
+                    _ = coordinator.navigate(to: BlueRoute.darkBlue)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }
         }
         .withInfoButton {
-            let _ = coordinator.navigate(to: BlueRoute.info)
+            _ = coordinator.navigate(to: BlueRoute.info)
         }
         .customNavigationBar(title: "Blue",
                              titleColor: .white,
@@ -99,7 +99,7 @@ struct DarkBlueView: View {
                 Button("Push Invalid View") {
                     // This will trigger viewCreationFailed error
                     // The route exists but ViewFactory returns nil
-                    let _ = coordinator.navigate(to: BlueRoute.invalidView)
+                    _ = coordinator.navigate(to: BlueRoute.invalidView)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 

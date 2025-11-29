@@ -22,18 +22,18 @@ struct YellowView: View {
                     .foregroundColor(.black)
 
                 Button("Lighten Up") {
-                    let _ = coordinator.navigate(to: YellowRoute.lightYellow)
+                    _ = coordinator.navigate(to: YellowRoute.lightYellow)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.5)))
 
                 Button("Darken Up") {
-                    let _ = coordinator.navigate(to: YellowRoute.darkYellow)
+                    _ = coordinator.navigate(to: YellowRoute.darkYellow)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }
         }
         .withInfoButton {
-            let _ = coordinator.navigate(to: YellowRoute.info)
+            _ = coordinator.navigate(to: YellowRoute.info)
         }
         .customNavigationBar(title: "Yellow",
                              titleColor: .black,

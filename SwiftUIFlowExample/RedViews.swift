@@ -22,23 +22,23 @@ struct RedView: View {
                     .foregroundColor(.white)
 
                 Button("Lighten Up") {
-                    let _ = coordinator.navigate(to: RedRoute.lightRed)
+                    _ = coordinator.navigate(to: RedRoute.lightRed)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 
                 Button("Darken Up") {
-                    let _ = coordinator.navigate(to: RedRoute.darkRed)
+                    _ = coordinator.navigate(to: RedRoute.darkRed)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
 
                 Button("Test Pushed Children") {
-                    let _ = coordinator.navigate(to: RainbowRoute.red)
+                    _ = coordinator.navigate(to: RainbowRoute.red)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .purple))
             }
         }
         .withInfoButton {
-            let _ = coordinator.navigate(to: RedRoute.info)
+            _ = coordinator.navigate(to: RedRoute.info)
         }
         .customNavigationBar(title: "Red",
                              titleColor: .white,
@@ -68,7 +68,7 @@ struct LightRedView: View {
                 Button("Navigate to Invalid Route") {
                     // This will trigger navigationFailed error
                     // No coordinator in the hierarchy handles UnhandledRoute
-                    let _ = coordinator.navigate(to: UnhandledRoute.invalidRoute)
+                    _ = coordinator.navigate(to: UnhandledRoute.invalidRoute)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 
@@ -103,7 +103,7 @@ struct DarkRedView: View {
                 Spacer().frame(height: 40)
 
                 Button("Jump to Dark Yellow") {
-                    let _ = coordinator.navigate(to: YellowRoute.darkYellow)
+                    _ = coordinator.navigate(to: YellowRoute.darkYellow)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .yellow))
 

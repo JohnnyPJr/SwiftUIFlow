@@ -75,7 +75,10 @@ struct ToastModifier: ViewModifier {
 }
 
 extension View {
-    func errorToast(isPresented: Binding<Bool>, error: SwiftUIFlowError?, autoDismissAfter: TimeInterval = 4.0) -> some View {
+    func errorToast(isPresented: Binding<Bool>,
+                    error: SwiftUIFlowError?,
+                    autoDismissAfter: TimeInterval = 4.0) -> some View
+    {
         modifier(ToastModifier(isPresented: isPresented, error: error, autoDismissAfter: autoDismissAfter))
     }
 }
