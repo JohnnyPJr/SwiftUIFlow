@@ -22,18 +22,18 @@ struct GreenView: View {
                     .foregroundColor(.white)
 
                 Button("Lighten Up") {
-                    _ = coordinator.navigate(to: GreenRoute.lightGreen)
+                    coordinator.navigate(to: GreenRoute.lightGreen)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 
                 Button("Darken Up") {
-                    _ = coordinator.navigate(to: GreenRoute.darkGreen)
+                    coordinator.navigate(to: GreenRoute.darkGreen)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }
         }
         .withInfoButton {
-            _ = coordinator.navigate(to: GreenRoute.info)
+            coordinator.navigate(to: GreenRoute.info)
         }
         .customNavigationBar(title: "Green",
                              titleColor: .white,
@@ -61,7 +61,7 @@ struct LightGreenView: View {
                 Spacer().frame(height: 40)
 
                 Button("Jump to Yellow's Light Screen") {
-                    _ = coordinator.navigate(to: YellowRoute.lightYellow)
+                    coordinator.navigate(to: YellowRoute.lightYellow)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .yellow))
             }
@@ -97,12 +97,12 @@ struct DarkGreenView: View {
                 Spacer().frame(height: 40)
 
                 Button("Go Even Darker") {
-                    _ = coordinator.navigate(to: GreenRoute.evenDarkerGreen)
+                    coordinator.navigate(to: GreenRoute.evenDarkerGreen)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 
                 Button("Present Darkest Green (Modal on Modal)") {
-                    _ = coordinator.navigate(to: GreenRoute.darkestGreen)
+                    coordinator.navigate(to: GreenRoute.darkestGreen)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green.opacity(0.3))

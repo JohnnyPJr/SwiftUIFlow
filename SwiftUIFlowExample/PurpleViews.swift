@@ -22,12 +22,12 @@ struct PurpleView: View {
                     .foregroundColor(.white)
 
                 Button("Lighten Up") {
-                    _ = coordinator.navigate(to: PurpleRoute.lightPurple)
+                    coordinator.navigate(to: PurpleRoute.lightPurple)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 
                 Button("Darken Up") {
-                    _ = coordinator.navigate(to: PurpleRoute.darkPurple)
+                    coordinator.navigate(to: PurpleRoute.darkPurple)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
 
@@ -40,7 +40,7 @@ struct PurpleView: View {
 
                     Button("Logout") {
                         // Navigate to login - bubbles to AppCoordinator via handleFlowChange
-                        _ = coordinator.navigate(to: AppRoute.login)
+                        coordinator.navigate(to: AppRoute.login)
                     }
                     .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.5)))
 
@@ -51,7 +51,7 @@ struct PurpleView: View {
             }
         }
         .withInfoButton {
-            _ = coordinator.navigate(to: PurpleRoute.info)
+            coordinator.navigate(to: PurpleRoute.info)
         }
         .customNavigationBar(title: "Purple",
                              titleColor: .white,
@@ -88,12 +88,12 @@ struct LightPurpleView: View {
 
                 HStack(spacing: 20) {
                     Button("Success ✓") {
-                        _ = coordinator.navigate(to: PurpleRoute.result(success: true))
+                        coordinator.navigate(to: PurpleRoute.result(success: true))
                     }
                     .buttonStyle(NavigationButtonStyle(color: .green))
 
                     Button("Failure ✗") {
-                        _ = coordinator.navigate(to: PurpleRoute.result(success: false))
+                        coordinator.navigate(to: PurpleRoute.result(success: false))
                     }
                     .buttonStyle(NavigationButtonStyle(color: .red))
                 }

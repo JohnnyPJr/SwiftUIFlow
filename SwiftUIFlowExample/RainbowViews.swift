@@ -22,7 +22,7 @@ struct RainbowRedView: View {
                     .foregroundColor(.white)
 
                 Button("Go to Orange") {
-                    _ = coordinator.navigate(to: RainbowRoute.orange)
+                    coordinator.navigate(to: RainbowRoute.orange)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.orange)
@@ -46,7 +46,7 @@ struct RainbowOrangeView: View {
                     .foregroundColor(.white)
 
                 Button("Go to Yellow") {
-                    _ = coordinator.navigate(to: RainbowRoute.yellow)
+                    coordinator.navigate(to: RainbowRoute.yellow)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.yellow)
@@ -70,7 +70,7 @@ struct RainbowYellowView: View {
                     .foregroundColor(.black)
 
                 Button("Go to Green") {
-                    _ = coordinator.navigate(to: RainbowRoute.green)
+                    coordinator.navigate(to: RainbowRoute.green)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
@@ -94,7 +94,7 @@ struct RainbowGreenView: View {
                     .foregroundColor(.white)
 
                 Button("Go to Blue") {
-                    _ = coordinator.navigate(to: RainbowRoute.blue)
+                    coordinator.navigate(to: RainbowRoute.blue)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.blue)
@@ -118,7 +118,7 @@ struct RainbowBlueView: View {
                     .foregroundColor(.white)
 
                 Button("Go to Purple") {
-                    _ = coordinator.navigate(to: RainbowRoute.purple)
+                    coordinator.navigate(to: RainbowRoute.purple)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.purple)
@@ -149,13 +149,13 @@ struct RainbowPurpleView: View {
                     .foregroundColor(.white)
 
                 Button("Back to Red") {
-                    _ = coordinator.navigate(to: RainbowRoute.red)
+                    coordinator.navigate(to: RainbowRoute.red)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.red)
 
                 Button("Go to Dark Blue Tab") {
-                    _ = coordinator.navigate(to: BlueRoute.darkBlue)
+                    coordinator.navigate(to: BlueRoute.darkBlue)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.blue)

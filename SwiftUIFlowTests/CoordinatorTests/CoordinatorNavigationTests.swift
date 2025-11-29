@@ -65,7 +65,7 @@ final class CoordinatorNavigationTests: XCTestCase {
         parent.addModalCoordinator(child)
 
         // Navigate to .details - should present modal and delegate to child
-        _ = parent.navigate(to: MockRoute.details)
+        parent.navigate(to: MockRoute.details)
 
         XCTAssertEqual(parentRouter.state.presented, MockRoute.details, "Parent should present route as modal")
         XCTAssertTrue(parent.currentModalCoordinator === child, "Child should be set as modal coordinator")
@@ -110,7 +110,7 @@ final class CoordinatorNavigationTests: XCTestCase {
         XCTAssertEqual(router.state.currentRoute, .login)
 
         // Navigate to details with replace type - should replace login
-        _ = coordinator.navigate(to: MockRoute.details)
+        coordinator.navigate(to: MockRoute.details)
 
         XCTAssertEqual(router.state.currentRoute, .details, "Should be at details")
         XCTAssertEqual(router.state.stack.last, .details, "Details should be top of stack")
@@ -125,10 +125,10 @@ final class CoordinatorNavigationTests: XCTestCase {
         router.push(.login) // Step 1
         XCTAssertEqual(router.state.stack, [.login])
 
-        _ = coordinator.navigate(to: MockRoute.details) // Step 2 (replace)
+        coordinator.navigate(to: MockRoute.details) // Step 2 (replace)
         XCTAssertEqual(router.state.stack, [.details], "Should replace login with details")
 
-        _ = coordinator.navigate(to: MockRoute.modal) // Step 3 (replace)
+        coordinator.navigate(to: MockRoute.modal) // Step 3 (replace)
         XCTAssertEqual(router.state.stack, [.modal], "Should replace details with modal")
         XCTAssertEqual(router.state.currentRoute, .modal, "Should be at modal")
     }

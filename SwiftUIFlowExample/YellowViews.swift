@@ -22,18 +22,18 @@ struct YellowView: View {
                     .foregroundColor(.black)
 
                 Button("Lighten Up") {
-                    _ = coordinator.navigate(to: YellowRoute.lightYellow)
+                    coordinator.navigate(to: YellowRoute.lightYellow)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.5)))
 
                 Button("Darken Up") {
-                    _ = coordinator.navigate(to: YellowRoute.darkYellow)
+                    coordinator.navigate(to: YellowRoute.darkYellow)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
             }
         }
         .withInfoButton {
-            _ = coordinator.navigate(to: YellowRoute.info)
+            coordinator.navigate(to: YellowRoute.info)
         }
         .customNavigationBar(title: "Yellow",
                              titleColor: .black,
@@ -59,7 +59,7 @@ struct LightYellowView: View {
                     .foregroundColor(.black.opacity(0.7))
 
                 Button("Navigate to Dark Green") {
-                    _ = coordinator.navigate(to: GreenRoute.darkGreen)
+                    coordinator.navigate(to: GreenRoute.darkGreen)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)

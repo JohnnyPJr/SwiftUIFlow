@@ -22,23 +22,23 @@ struct RedView: View {
                     .foregroundColor(.white)
 
                 Button("Lighten Up") {
-                    _ = coordinator.navigate(to: RedRoute.lightRed)
+                    coordinator.navigate(to: RedRoute.lightRed)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 
                 Button("Darken Up") {
-                    _ = coordinator.navigate(to: RedRoute.darkRed)
+                    coordinator.navigate(to: RedRoute.darkRed)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
 
                 Button("Test Pushed Children") {
-                    _ = coordinator.navigate(to: RainbowRoute.red)
+                    coordinator.navigate(to: RainbowRoute.red)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .purple))
             }
         }
         .withInfoButton {
-            _ = coordinator.navigate(to: RedRoute.info)
+            coordinator.navigate(to: RedRoute.info)
         }
         .customNavigationBar(title: "Red",
                              titleColor: .white,
@@ -68,7 +68,7 @@ struct LightRedView: View {
                 Button("Navigate to Invalid Route") {
                     // This will trigger navigationFailed error
                     // No coordinator in the hierarchy handles UnhandledRoute
-                    _ = coordinator.navigate(to: UnhandledRoute.invalidRoute)
+                    coordinator.navigate(to: UnhandledRoute.invalidRoute)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
 
@@ -103,7 +103,7 @@ struct DarkRedView: View {
                 Spacer().frame(height: 40)
 
                 Button("Jump to Dark Yellow") {
-                    _ = coordinator.navigate(to: YellowRoute.darkYellow)
+                    coordinator.navigate(to: YellowRoute.darkYellow)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .yellow))
 

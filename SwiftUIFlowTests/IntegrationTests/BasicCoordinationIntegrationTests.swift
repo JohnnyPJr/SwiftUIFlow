@@ -49,7 +49,7 @@ final class BasicCoordinationIntegrationTests: XCTestCase {
         XCTAssertNil(mainCoordinator.currentModalCoordinator, "Expected modal to be dismissed")
 
         // 5. Navigate (like deeplink) handled by main coordinator - should push
-        _ = mainCoordinator.navigate(to: MockRoute.details)
+        mainCoordinator.navigate(to: MockRoute.details)
         XCTAssertEqual(router.state.currentRoute, MockRoute.details, "Expected to be at details route")
     }
 
@@ -106,7 +106,7 @@ final class BasicCoordinationIntegrationTests: XCTestCase {
         // Create a coordinator that can handle .modal
         let modalCoordinator = TestModalCoordinator(router: modalRouter)
         mainCoordinator.addModalCoordinator(modalCoordinator)
-        _ = mainCoordinator.navigate(to: MockRoute.modal)
+        mainCoordinator.navigate(to: MockRoute.modal)
 
         XCTAssertEqual(modalCoordinator.presentationContext, .modal,
                        "Modal coordinator should have .modal context")
@@ -172,7 +172,7 @@ final class BasicCoordinationIntegrationTests: XCTestCase {
         let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
         let modalCoordinator = TestModalCoordinator(router: modalRouter)
         tab1Coordinator.addModalCoordinator(modalCoordinator)
-        _ = tab1Coordinator.navigate(to: MockRoute.modal)
+        tab1Coordinator.navigate(to: MockRoute.modal)
 
         XCTAssertEqual(modalCoordinator.presentationContext, .modal,
                        "Modal from tab should have .modal context")

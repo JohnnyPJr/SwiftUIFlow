@@ -62,7 +62,7 @@ final class CrossTabNavigationIntegrationTests: XCTestCase {
         let mainCoordinator = MainTabCoordinator(router: router)
 
         // Step 2: Navigate to .enterCode (like a deeplink)
-        _ = mainCoordinator.navigate(to: UnlockRoute.enterCode)
+        mainCoordinator.navigate(to: UnlockRoute.enterCode)
 
         // Expect tab2 to be selected
         XCTAssertEqual(router.state.selectedTab, 1, "Expected tab2 to be selected")
@@ -83,7 +83,7 @@ final class CrossTabNavigationIntegrationTests: XCTestCase {
         XCTAssertTrue(unlock.router.state.stack.isEmpty, "Stack should be empty - we're at the root (.enterCode)")
 
         // Step 3: Navigate to .batteryStatus from current position
-        _ = mainCoordinator.navigate(to: Tab5Route.batteryStatus)
+        mainCoordinator.navigate(to: Tab5Route.batteryStatus)
 
         // Expect tab5 to be selected
         XCTAssertEqual(router.state.selectedTab, 4, "Expected tab5 to be selected")
