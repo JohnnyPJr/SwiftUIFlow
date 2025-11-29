@@ -15,6 +15,15 @@ struct InfoView: View {
     let description: String
     let detentType: String
     let color: Color
+    let isSmall: Bool
+
+    init(title: String, description: String, detentType: String, color: Color, isSmall: Bool = false) {
+        self.title = title
+        self.description = description
+        self.detentType = detentType
+        self.color = color
+        self.isSmall = isSmall
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -24,12 +33,14 @@ struct InfoView: View {
                 .foregroundColor(color)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text(description)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-                .fixedSize(horizontal: false, vertical: true)
+            if !isSmall {
+                Text(description)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             Text("Detent: \(detentType)")
                 .font(.caption)

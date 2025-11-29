@@ -63,7 +63,8 @@ class GreenViewFactory: ViewFactory<GreenRoute> {
             return view(InfoView(title: "Green Tab Info",
                                  description: "This modal uses .small detent, showing only essential content.",
                                  detentType: ".small",
-                                 color: .green))
+                                 color: .green,
+                                 isSmall: true))
         }
     }
 }
