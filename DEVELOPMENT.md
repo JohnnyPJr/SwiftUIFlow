@@ -1,6 +1,6 @@
 # SwiftUIFlow - Development Progress
 
-**Last Updated:** November 24, 2025
+**Last Updated:** November 29, 2025
 
 ---
 
@@ -14,6 +14,37 @@ SwiftUIFlow is a coordinator-based navigation framework for SwiftUI that provide
 - Tab-based navigation support
 - Multiple modal coordinator registration
 - Proper encapsulation (internal framework implementation hidden from clients)
+
+---
+
+## Platform Support
+
+### Primary Platform: iOS ✅
+SwiftUIFlow is **fully tested and supported on iOS**. All features work as expected:
+- Navigation (push, pop, replace)
+- Modals (with custom detents)
+- Detours (fullscreen deeplinks)
+- Tab coordination
+- Pushed child coordinators
+
+**Minimum Version:** iOS 16.0+
+
+### Experimental Platforms: macOS, visionOS ⚠️
+The framework compiles and runs on macOS and visionOS, but these platforms are **not officially tested or supported** in v1.0.
+
+**What works:**
+- Core navigation (push, pop, replace)
+- Regular modals (.sheet presentation)
+- Tab coordination
+- Coordinator hierarchy
+
+**Known limitations:**
+- **Detours are iOS-only** - The `.fullScreenCover` presentation used for detours is guarded with `#if os(iOS)`. On macOS/visionOS, calling `presentDetour()` will compile but have no effect.
+- Modal detents may behave differently
+- Platform-specific UI quirks not tested
+
+**Future Support:**
+macOS and visionOS support may be added in future releases once properly tested. Community contributions for platform-specific enhancements are welcome.
 
 ---
 

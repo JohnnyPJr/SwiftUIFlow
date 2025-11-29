@@ -58,13 +58,6 @@ struct CoordinatorRouteView<R: Route>: View {
                 eraseToAnyView(coordinatorView)
             }
         }
-        #else
-        .sheet(isPresented: hasDetour) {
-                    if let detour = coordinator.detourCoordinator {
-                        let coordinatorView = detour.buildCoordinatorView()
-                        eraseToAnyView(coordinatorView)
-                    }
-                }
         #endif
     }
 
