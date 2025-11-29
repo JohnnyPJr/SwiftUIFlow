@@ -28,7 +28,7 @@ struct RainbowRedView: View {
                 .tint(.orange)
             }
         }
-        .navigationTitle("Rainbow Red")
+        .customNavigationBar(title: "Rainbow Red", backgroundColor: .red)
     }
 }
 
@@ -52,7 +52,7 @@ struct RainbowOrangeView: View {
                 .tint(.yellow)
             }
         }
-        .navigationTitle("Rainbow Orange")
+        .customNavigationBar(title: "Rainbow Orange", backgroundColor: .orange)
     }
 }
 
@@ -76,7 +76,7 @@ struct RainbowYellowView: View {
                 .tint(.green)
             }
         }
-        .navigationTitle("Rainbow Yellow")
+        .customNavigationBar(title: "Rainbow Yellow", backgroundColor: .yellow)
     }
 }
 
@@ -100,7 +100,7 @@ struct RainbowGreenView: View {
                 .tint(.blue)
             }
         }
-        .navigationTitle("Rainbow Green")
+        .customNavigationBar(title: "Rainbow Green", backgroundColor: .green)
     }
 }
 
@@ -131,7 +131,7 @@ struct RainbowBlueView: View {
                 .tint(.yellow)
             }
         }
-        .navigationTitle("Rainbow Blue")
+        .customNavigationBar(title: "Rainbow Blue", backgroundColor: .blue)
     }
 }
 
@@ -161,6 +161,6 @@ struct RainbowPurpleView: View {
                 .tint(.blue)
             }
         }
-        .navigationTitle("Rainbow Purple")
+        .customNavigationBar(title: "Rainbow Purple", backgroundColor: .purple)
     }
 }
