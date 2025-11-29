@@ -1,3 +1,4 @@
 $(SRCROOT)/SwiftUIFlow
 $(SRCROOT)/SwiftUIFlowTests
+$(SRCROOT)/SwiftUIFlowExample
 $(SRCROOT)/swiftlint.yml
