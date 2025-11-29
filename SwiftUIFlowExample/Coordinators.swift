@@ -215,7 +215,7 @@ class GreenCoordinator: Coordinator<GreenRoute> {
         switch greenRoute {
         case .green, .lightGreen, .evenDarkerGreen:
             return .push
-        case .darkGreen, .info:
+        case .darkGreen, .info, .darkestGreen:
             return .modal
         }
     }
@@ -239,11 +239,34 @@ class GreenModalCoordinator: Coordinator<GreenRoute> {
         let factory = GreenViewFactory()
         super.init(router: Router(initial: .darkGreen, factory: factory))
         factory.coordinator = self
+
+        // Add another modal coordinator for modal-upon-modal demo
+        let darkestModalCoord = GreenDarkestModalCoordinator()
+        addModalCoordinator(darkestModalCoord)
     }
 
     override func canHandle(_ route: any Route) -> Bool {
         guard let greenRoute = route as? GreenRoute else { return false }
-        return greenRoute == .darkGreen || greenRoute == .evenDarkerGreen
+        return greenRoute == .darkGreen || greenRoute == .evenDarkerGreen || greenRoute == .darkestGreen
+    }
+
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let greenRoute = route as? GreenRoute else { return .push }
+        // darkestGreen is presented as modal on top of this modal
+        return greenRoute == .darkestGreen ? .modal : .push
+    }
+}
+
+class GreenDarkestModalCoordinator: Coordinator<GreenRoute> {
+    init() {
+        let factory = GreenViewFactory()
+        super.init(router: Router(initial: .darkestGreen, factory: factory))
+        factory.coordinator = self
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let greenRoute = route as? GreenRoute else { return false }
+        return greenRoute == .darkestGreen
     }
 }
 

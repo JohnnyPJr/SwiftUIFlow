@@ -57,6 +57,7 @@ enum GreenRoute: Route {
     case lightGreen
     case darkGreen
     case evenDarkerGreen
+    case darkestGreen // Third level modal - modal upon modal demo
     case info
 
     var identifier: String {
@@ -65,6 +66,7 @@ enum GreenRoute: Route {
         case .lightGreen: return "lightGreen"
         case .darkGreen: return "darkGreen"
         case .evenDarkerGreen: return "evenDarkerGreen"
+        case .darkestGreen: return "darkestGreen"
         case .info: return "info"
         }
     }

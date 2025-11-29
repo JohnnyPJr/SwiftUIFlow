@@ -100,6 +100,12 @@ struct DarkGreenView: View {
                     let _ = coordinator.navigate(to: GreenRoute.evenDarkerGreen)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .white.opacity(0.3)))
+
+                Button("Present Darkest Green (Modal on Modal)") {
+                    let _ = coordinator.navigate(to: GreenRoute.darkestGreen)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green.opacity(0.3))
             }
         }
         .navigationTitle("Dark Green")
@@ -134,5 +140,42 @@ struct EvenDarkerGreenView: View {
         }
         .navigationTitle("Even Darker Green")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct DarkestGreenView: View {
+    @Environment(\.navigationBackAction) var backAction
+    let coordinator: GreenDarkestModalCoordinator
+
+    var body: some View {
+        ZStack {
+            Color(red: 0, green: 0.2, blue: 0).ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Darkest Green")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+
+                Text("Modal Upon Modal! 🎉")
+                    .font(.title2)
+                    .foregroundColor(.green.opacity(0.7))
+
+                Text("This modal is presented on top of another modal")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                    .padding()
+            }
+        }
+        .navigationTitle("Darkest Green")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Close") {
+                    backAction?()
+                }
+            }
+        }
     }
 }

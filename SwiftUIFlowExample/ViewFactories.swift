@@ -56,6 +56,9 @@ class GreenViewFactory: ViewFactory<GreenRoute> {
         case .evenDarkerGreen:
             guard let coord = coordinator as? GreenModalCoordinator else { return nil }
             return view(EvenDarkerGreenView(coordinator: coord))
+        case .darkestGreen:
+            guard let coord = coordinator as? GreenDarkestModalCoordinator else { return nil }
+            return view(DarkestGreenView(coordinator: coord))
         case .info:
             return view(InfoView(title: "Green Tab Info",
                                  description: "This modal uses .small detent, showing only essential content.",
