@@ -511,7 +511,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
             }
         }
 
-        if let modal = currentModalCoordinator {
+        for modal in modalCoordinators {
             if modal.canNavigate(to: route) {
                 return true
             }

@@ -154,11 +154,11 @@ struct RainbowPurpleView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(.red)
 
-                Button("Go to Dark Blue Tab") {
-                    coordinator.navigate(to: BlueRoute.darkBlue)
+                Button("Go to Even Darker Green") {
+                    coordinator.navigate(to: GreenRoute.evenDarkerGreen)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.blue)
+                .tint(.green)
             }
         }
         .customNavigationBar(title: "Rainbow Purple", backgroundColor: .purple)

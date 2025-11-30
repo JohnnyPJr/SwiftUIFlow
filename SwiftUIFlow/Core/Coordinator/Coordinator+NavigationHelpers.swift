@@ -119,6 +119,15 @@ extension Coordinator {
                 return childResult
             }
         }
+
+        // Check if any modal coordinator can handle this route (mirrors delegateToChildren execution)
+        for modal in modalCoordinators where modal !== caller {
+            if let typedRoute = route as? R, modal.canHandle(route) {
+                // Modal coordinator can handle - validation succeeds
+                return .success
+            }
+        }
+
         return nil // No child handled it - continue to next check
     }
 
@@ -251,6 +260,19 @@ extension Coordinator {
                 }
             }
         }
+
+        for modal in modalCoordinators where modal !== caller {
+            if let typedRoute = route as? R, modal.canHandle(route) {
+                // Get detent configuration from parent coordinator
+                let detents = modalDetentConfiguration(for: route)
+
+                // Present modal using internal API
+                presentModal(modal, presenting: typedRoute, detentConfiguration: detents)
+                _ = modal.navigate(to: route, from: self)
+                return true
+            }
+        }
+
         return false
     }
 

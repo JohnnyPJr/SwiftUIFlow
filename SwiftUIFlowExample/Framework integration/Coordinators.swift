@@ -206,7 +206,8 @@ class GreenCoordinator: Coordinator<GreenRoute> {
     }
 
     override func canHandle(_ route: any Route) -> Bool {
-        return route is GreenRoute
+        guard let greenRoute = route as? GreenRoute else { return false }
+        return greenRoute == .darkGreen || greenRoute == .lightGreen || greenRoute == .info
     }
 
     override func navigationType(for route: any Route) -> NavigationType {
