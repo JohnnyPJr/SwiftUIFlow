@@ -13,9 +13,9 @@ final class BasicCoordinationIntegrationTests: XCTestCase {
 
     func test_FullNavigationFlowWithTabsModalsAndDeeplinks() {
         let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
-        let mainCoordinator = TestModalCoordinator(router: router)
-        let modalCoordinator = TestModalCoordinator(router: Router<MockRoute>(initial: .modal,
-                                                                              factory: MockViewFactory()))
+        let mainCoordinator = TestMixedNavigationCoordinator(router: router)
+        let modalCoordinator = Coordinator(router: Router<MockRoute>(initial: .modal,
+                                                                     factory: MockViewFactory()))
 
         // Add modal coordinator using declarative pattern
         mainCoordinator.addModalCoordinator(modalCoordinator)
@@ -84,9 +84,9 @@ final class BasicCoordinationIntegrationTests: XCTestCase {
     // MARK: - PresentationContext Integration Tests
 
     func test_CompleteFlowVerifiesPresentationContexts() {
-        // Setup main coordinator (root) - use TestModalCoordinator to support modal navigation
+        // Setup main coordinator (root) - use TestMixedNavigationCoordinator to support modal navigation
         let mainRouter = Router<MockRoute>(initial: .home, factory: MockViewFactory())
-        let mainCoordinator = TestModalCoordinator(router: mainRouter)
+        let mainCoordinator = TestMixedNavigationCoordinator(router: mainRouter)
 
         XCTAssertEqual(mainCoordinator.presentationContext, .root,
                        "Main coordinator should have .root context")
@@ -103,8 +103,8 @@ final class BasicCoordinationIntegrationTests: XCTestCase {
 
         // Navigate to present modal coordinator (using declarative API)
         let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
-        // Create a coordinator that can handle .modal
-        let modalCoordinator = TestModalCoordinator(router: modalRouter)
+        // Create a modal child coordinator (doesn't handle its own root)
+        let modalCoordinator = Coordinator(router: modalRouter)
         mainCoordinator.addModalCoordinator(modalCoordinator)
         mainCoordinator.navigate(to: MockRoute.modal)
 
@@ -160,9 +160,9 @@ final class BasicCoordinationIntegrationTests: XCTestCase {
         let tabRouter = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
         let tabCoordinator = TestTabCoordinator(router: tabRouter)
 
-        // Tab child (should be .tab) - use TestModalCoordinator to support modal navigation
+        // Tab child (should be .tab) - use TestMixedNavigationCoordinator to support modal navigation
         let tab1Router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
-        let tab1Coordinator = TestModalCoordinator(router: tab1Router)
+        let tab1Coordinator = TestMixedNavigationCoordinator(router: tab1Router)
         tabCoordinator.addChild(tab1Coordinator)
 
         XCTAssertEqual(tab1Coordinator.presentationContext, .tab,
@@ -170,7 +170,7 @@ final class BasicCoordinationIntegrationTests: XCTestCase {
 
         // Navigate to present modal from tab (using declarative API)
         let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
-        let modalCoordinator = TestModalCoordinator(router: modalRouter)
+        let modalCoordinator = Coordinator(router: modalRouter)
         tab1Coordinator.addModalCoordinator(modalCoordinator)
         tab1Coordinator.navigate(to: MockRoute.modal)
 

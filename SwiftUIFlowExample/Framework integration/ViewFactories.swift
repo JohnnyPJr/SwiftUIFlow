@@ -160,3 +160,20 @@ final class RainbowViewFactory: ViewFactory<RainbowRoute> {
         }
     }
 }
+
+class OceanViewFactory: ViewFactory<OceanRoute> {
+    override func buildView(for route: OceanRoute) -> AnyView? {
+        guard let coordinator = coordinator as? OceanCoordinator else { return nil }
+
+        switch route {
+        case .surface:
+            return view(OceanSurfaceView(coordinator: coordinator))
+        case .shallow:
+            return view(OceanShallowView(coordinator: coordinator))
+        case .deep:
+            return view(OceanDeepView(coordinator: coordinator))
+        case .abyss:
+            return view(OceanAbyssView(coordinator: coordinator))
+        }
+    }
+}

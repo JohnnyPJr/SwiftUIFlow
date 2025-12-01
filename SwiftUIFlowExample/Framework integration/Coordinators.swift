@@ -178,11 +178,6 @@ class RedModalCoordinator: Coordinator<RedRoute> {
         super.init(router: Router(initial: .darkRed, factory: factory))
         factory.coordinator = self
     }
-
-    override func canHandle(_ route: any Route) -> Bool {
-        guard let redRoute = route as? RedRoute else { return false }
-        return redRoute == .darkRed
-    }
 }
 
 // MARK: - Green Tab Coordinator
@@ -248,7 +243,8 @@ class GreenModalCoordinator: Coordinator<GreenRoute> {
 
     override func canHandle(_ route: any Route) -> Bool {
         guard let greenRoute = route as? GreenRoute else { return false }
-        return greenRoute == .darkGreen || greenRoute == .evenDarkerGreen || greenRoute == .darkestGreen
+        // Does NOT handle .darkGreen (its root), handles subsequent routes only
+        return greenRoute == .evenDarkerGreen || greenRoute == .darkestGreen
     }
 
     override func navigationType(for route: any Route) -> NavigationType {
@@ -263,11 +259,6 @@ class GreenDarkestModalCoordinator: Coordinator<GreenRoute> {
         let factory = GreenViewFactory()
         super.init(router: Router(initial: .darkestGreen, factory: factory))
         factory.coordinator = self
-    }
-
-    override func canHandle(_ route: any Route) -> Bool {
-        guard let greenRoute = route as? GreenRoute else { return false }
-        return greenRoute == .darkestGreen
     }
 }
 
@@ -321,15 +312,16 @@ class BlueCoordinator: Coordinator<BlueRoute> {
 }
 
 class BlueModalCoordinator: Coordinator<BlueRoute> {
+    private var oceanCoordinator: OceanCoordinator!
+
     init() {
         let factory = BlueViewFactory()
         super.init(router: Router(initial: .darkBlue, factory: factory))
         factory.coordinator = self
-    }
 
-    override func canHandle(_ route: any Route) -> Bool {
-        guard let blueRoute = route as? BlueRoute else { return false }
-        return blueRoute == .darkBlue
+        // Add ocean coordinator as child for deep navigation testing
+        oceanCoordinator = OceanCoordinator()
+        addChild(oceanCoordinator)
     }
 }
 
@@ -387,11 +379,6 @@ class YellowModalCoordinator: Coordinator<YellowRoute> {
         let factory = YellowViewFactory()
         super.init(router: Router(initial: .darkYellow, factory: factory))
         factory.coordinator = self
-    }
-
-    override func canHandle(_ route: any Route) -> Bool {
-        guard let yellowRoute = route as? YellowRoute else { return false }
-        return yellowRoute == .darkYellow
     }
 }
 
@@ -452,11 +439,6 @@ class PurpleModalCoordinator: Coordinator<PurpleRoute> {
         super.init(router: Router(initial: .darkPurple, factory: factory))
         factory.coordinator = self
     }
-
-    override func canHandle(_ route: any Route) -> Bool {
-        guard let purpleRoute = route as? PurpleRoute else { return false }
-        return purpleRoute == .darkPurple
-    }
 }
 
 // MARK: - Info Modal Coordinators
@@ -467,11 +449,6 @@ class RedInfoCoordinator: Coordinator<RedRoute> {
         super.init(router: Router(initial: .info, factory: factory))
         factory.coordinator = self
     }
-
-    override func canHandle(_ route: any Route) -> Bool {
-        guard let redRoute = route as? RedRoute else { return false }
-        return redRoute == .info
-    }
 }
 
 class GreenInfoCoordinator: Coordinator<GreenRoute> {
@@ -479,11 +456,6 @@ class GreenInfoCoordinator: Coordinator<GreenRoute> {
         let factory = GreenViewFactory()
         super.init(router: Router(initial: .info, factory: factory))
         factory.coordinator = self
-    }
-
-    override func canHandle(_ route: any Route) -> Bool {
-        guard let greenRoute = route as? GreenRoute else { return false }
-        return greenRoute == .info
     }
 }
 
@@ -493,11 +465,6 @@ class BlueInfoCoordinator: Coordinator<BlueRoute> {
         super.init(router: Router(initial: .info, factory: factory))
         factory.coordinator = self
     }
-
-    override func canHandle(_ route: any Route) -> Bool {
-        guard let blueRoute = route as? BlueRoute else { return false }
-        return blueRoute == .info
-    }
 }
 
 class YellowInfoCoordinator: Coordinator<YellowRoute> {
@@ -506,11 +473,6 @@ class YellowInfoCoordinator: Coordinator<YellowRoute> {
         super.init(router: Router(initial: .info, factory: factory))
         factory.coordinator = self
     }
-
-    override func canHandle(_ route: any Route) -> Bool {
-        guard let yellowRoute = route as? YellowRoute else { return false }
-        return yellowRoute == .info
-    }
 }
 
 class PurpleInfoCoordinator: Coordinator<PurpleRoute> {
@@ -518,11 +480,6 @@ class PurpleInfoCoordinator: Coordinator<PurpleRoute> {
         let factory = PurpleViewFactory()
         super.init(router: Router(initial: .info, factory: factory))
         factory.coordinator = self
-    }
-
-    override func canHandle(_ route: any Route) -> Bool {
-        guard let purpleRoute = route as? PurpleRoute else { return false }
-        return purpleRoute == .info
     }
 }
 
@@ -537,5 +494,19 @@ final class RainbowCoordinator: Coordinator<RainbowRoute> {
 
     override func canHandle(_ route: any Route) -> Bool {
         return route is RainbowRoute
+    }
+}
+
+// MARK: - Ocean Coordinator (Testing Deep Cross-Coordinator Navigation)
+
+final class OceanCoordinator: Coordinator<OceanRoute> {
+    init() {
+        let factory = OceanViewFactory()
+        super.init(router: Router(initial: .surface, factory: factory))
+        factory.coordinator = self
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is OceanRoute
     }
 }

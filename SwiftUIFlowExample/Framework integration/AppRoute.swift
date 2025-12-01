@@ -90,6 +90,23 @@ enum BlueRoute: Route {
     }
 }
 
+// Ocean routes - child coordinator of BlueModalCoordinator for testing deep navigation
+enum OceanRoute: Route {
+    case surface
+    case shallow
+    case deep
+    case abyss
+
+    var identifier: String {
+        switch self {
+        case .surface: return "ocean_surface"
+        case .shallow: return "ocean_shallow"
+        case .deep: return "ocean_deep"
+        case .abyss: return "ocean_abyss"
+        }
+    }
+}
+
 enum YellowRoute: Route {
     case yellow
     case lightYellow
