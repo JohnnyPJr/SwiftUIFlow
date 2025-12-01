@@ -3388,7 +3388,114 @@ override func navigationPath(for route: any Route) -> [any Route]? {
 
 ---
 
-**Last Task Completed:** Deep cross-coordinator navigation with `canNavigate()` + modal pattern enforcement + optional path building (section 21)
+## Section 22: SwiftUI Navigation Path Building - Known Issues
+
+**Date:** December 1, 2025
+**Status:** Documented ✅
+**Context:** Investigation of title duplication bug during navigation path building
+
+### Problem Discovery
+
+When using `navigationPath(for:)` to build sequential navigation stacks (e.g., surface → shallow → deep → abyss), we discovered a SwiftUI rendering bug with `.navigationBarTitleDisplayMode(.automatic)`:
+
+**Symptoms:**
+- Title appears duplicated (both large title AND inline title render simultaneously)
+- Only happens during deeplink navigation (path building), NOT manual button navigation
+- The duplicate title is "floating" and mispositioned
+- Dragging the modal forces layout recalculation and the duplicate disappears
+
+**Root Cause:**
+SwiftUI's `.automatic` mode attempts to infer the correct title display mode from navigation context. During rapid synchronous pushes (path building), it becomes confused and **renders BOTH `.large` and `.inline` titles simultaneously**.
+
+### Investigation Results
+
+Testing showed:
+- ❌ `.navigationBarTitleDisplayMode(.automatic)` - Causes duplication bug
+- ✅ `.navigationBarTitleDisplayMode(.large)` - Works perfectly, no bug
+- ✅ `.navigationBarTitleDisplayMode(.inline)` - Works perfectly, no bug
+- ❌ Adding delays (even 250ms) - Does NOT fix the bug
+- ✅ Custom navigation bars - Works perfectly (bypasses SwiftUI's title system)
+
+### Solution
+
+For views that are part of navigation paths (used with `navigationPath(for:)`), **always explicitly specify** `.navigationBarTitleDisplayMode()`:
+
+```swift
+struct DeepView: View {
+    var body: some View {
+        VStack {
+            Text("Content")
+        }
+        .navigationTitle("Deep View")
+        .navigationBarTitleDisplayMode(.large)  // ✅ Explicit - fixes bug
+        // NOT .automatic - causes duplication during path building
+    }
+}
+```
+
+**Alternative:** Use `.customNavigationBar()` modifier to bypass SwiftUI's navigation title system entirely:
+
+```swift
+struct DeepView: View {
+    var body: some View {
+        VStack {
+            Text("Content")
+        }
+        .customNavigationBar(title: "Deep View", backgroundColor: .cyan)
+    }
+}
+```
+
+### When This Matters
+
+This bug **only affects** views that:
+1. Are part of a `navigationPath(for:)` array
+2. Use `.navigationBarTitleDisplayMode(.automatic)` (the default)
+3. Are navigated to via deeplink (not manual button press)
+
+**Regular navigation** (button taps, single pushes) works fine with `.automatic` because SwiftUI has time to settle between each navigation event.
+
+### Recommendation
+
+**Best Practice:** Always explicitly specify `.navigationBarTitleDisplayMode()` for any view that might be reached via deeplink or path building. Don't rely on `.automatic` mode in coordinator-based navigation.
+
+```swift
+// ❌ DON'T - Relies on .automatic (default)
+.navigationTitle("My Screen")
+
+// ✅ DO - Explicit display mode
+.navigationTitle("My Screen")
+.navigationBarTitleDisplayMode(.large)
+
+// ✅ ALTERNATIVE - Custom navigation bar
+.customNavigationBar(title: "My Screen", backgroundColor: .blue)
+```
+
+### Technical Notes
+
+- This is a **known SwiftUI bug**, not an issue with the navigation framework
+- The bug exists in iOS 17+ (tested on iOS 18)
+- Affects NavigationStack with rapid state changes
+- SwiftUI's large title layout engine assumes gradual, human-paced navigation
+- Programmatic rapid pushes violate SwiftUI's assumptions about navigation timing
+
+### Confirmation from SwiftUI Community
+
+This issue is well-documented in the SwiftUI community:
+
+1. **`.automatic` mode inconsistency**: The `.automatic` option for `navigationBarTitleDisplayMode` behaves differently across iOS versions (iOS 17 vs 18) and cannot be relied upon for consistent UI. [Stack Overflow](https://stackoverflow.com/questions/79075633/different-navigationbartitledisplaymode-behaviour-between-ios-17-and-ios-18)
+
+2. **Title duplication during navigation**: Multiple reports of navigation titles appearing duplicated or overlapping during swipe gestures and programmatic navigation. [Stack Overflow](https://stackoverflow.com/questions/78731026/swiftui-navigationstack-title-is-duplicated-during-swipe-down-gesture)
+
+3. **Overlapping titles with `.large` mode**: When views have `.large` title mode, dismissed view titles can accumulate and overlap. The recommended fix is explicitly using `.inline` mode. [Dabbling Badger](https://www.dabblingbadger.com/blog/2020/12/11/a-quick-fix-for-overlapping-navigation-titles-in-swiftui)
+
+4. **Broken title animations**: UIHostingController navigation title animations can break during programmatic pushes, with titles "appearing out of nothing" instead of animating smoothly. [Stack Overflow](https://stackoverflow.com/questions/69537578/swiftui-uihostingcontroller-navigation-title-animation-broken)
+
+**Conclusion:** Explicitly setting `.navigationBarTitleDisplayMode(.large)` or `.navigationBarTitleDisplayMode(.inline)` is the recommended best practice to avoid SwiftUI's automatic mode inference bugs.
+
+---
+
+**Last Task Completed:** SwiftUI navigation path building bug investigation and documentation (section 22)
 **Next Task:** Code review and prepare merge to main
 **Branch:** feature/Pushed-Childs-FullScreen-Approach
-**Key Insight:** `canNavigate()` enables true deep navigation by checking entire descendant tree; path building provides declarative sequential flows for deeplink scenarios
+**Key Insight:** SwiftUI's `.automatic` title mode breaks during path building; always use explicit `.large` or `.inline` for deeplink-reachable views
