@@ -92,7 +92,9 @@ final class NavigationPathIntegrationTests: XCTestCase {
         // Then: Should switch to child coordinator and build path
         XCTAssertTrue(success, "Navigation should succeed")
 
-        guard let childCoordinator = mainCoordinator.children.first(where: { $0 is PathTestCoordinator }) as? PathTestCoordinator else {
+        guard let childCoordinator = mainCoordinator.children
+            .first(where: { $0 is PathTestCoordinator }) as? PathTestCoordinator
+        else {
             XCTFail("Expected PathTestCoordinator as child")
             return
         }

@@ -3495,7 +3495,66 @@ This issue is well-documented in the SwiftUI community:
 
 ---
 
-**Last Task Completed:** SwiftUI navigation path building bug investigation and documentation (section 22)
+## Section 23: Navigation Path Integration Tests
+
+**Date:** December 1, 2025
+**Status:** Completed ✅
+**Context:** Comprehensive test coverage for navigationPath(for:) functionality
+
+### Test Coverage Added
+
+Created `NavigationPathIntegrationTests.swift` with 9 comprehensive tests covering all path building scenarios:
+
+1. **`test_navigationPath_BuildsSequentialStack`** - Verifies basic 3-step path building (step1 → step2 → finalDestination)
+2. **`test_navigationPath_OnlyBuildsWhenStackEmpty`** - Confirms path building only happens during deeplink (empty stack), not manual navigation
+3. **`test_navigationPath_WithSingleIntermediateStep`** - Tests single intermediate step path (step1 → step2)
+4. **`test_navigationPath_RouteWithoutPath_NavigatesDirectly`** - Verifies routes without paths navigate directly
+5. **`test_navigationPath_CrossCoordinatorDeeplink`** - Tests path building when deeplinking across coordinator boundaries
+6. **`test_navigationPath_AfterPopToRoot_RebuildsPath`** - Confirms path rebuilds after popping to root
+7. **`test_navigationPath_EmptyPathArray_NavigatesDirectly`** - Tests empty array handling (direct navigation)
+8. **`test_navigationPath_NilPath_NavigatesDirectly`** - Tests nil path handling (direct navigation)
+9. **`test_navigationPath_LongPath_BuildsEfficiently`** - Performance test with 10-step path (< 100ms)
+
+### Test Helpers Organization
+
+Created `NavigationPathTestHelpers.swift` with:
+- **Routes**: `PathRoute`, `MainPathRoute`, `EmptyPathRoute`, `LongPathRoute`
+- **Coordinators**: `PathTestCoordinator`, `MainPathCoordinator`, `EmptyPathCoordinator`, `LongPathCoordinator`
+- **Factory**: `DummyPathFactory<R: Route>`
+
+All test helpers moved to dedicated helper file following existing test architecture pattern.
+
+### Key Test Scenarios
+
+**Deeplink Detection:**
+```swift
+// Stack empty = deeplink scenario → build path
+coordinator.navigate(to: .finalDestination)
+// Builds: [.step1, .step2, .finalDestination]
+
+// Stack NOT empty = manual navigation → direct push
+coordinator.navigate(to: .step1)
+coordinator.navigate(to: .finalDestination)
+// Direct push only (no path building)
+```
+
+**Cross-Coordinator Path Building:**
+```swift
+mainCoordinator.navigate(to: PathRoute.finalDestination)
+// Delegates to child, child builds path
+```
+
+**Performance:**
+10-step path builds in < 100ms, confirming efficient implementation.
+
+---
+
+**Last Task Completed:** Integration tests for navigationPath() functionality (section 23)
 **Next Task:** Code review and prepare merge to main
 **Branch:** feature/Pushed-Childs-FullScreen-Approach
-**Key Insight:** SwiftUI's `.automatic` title mode breaks during path building; always use explicit `.large` or `.inline` for deeplink-reachable views
+**Key Changes Summary:**
+- Deep cross-coordinator navigation with `canNavigate()` delegation
+- Modal coordinator pattern enforcement (parent handles entry, child handles subsequent)
+- Optional navigation path building for deeplink scenarios
+- SwiftUI `.automatic` title mode bug workaround documented
+- Comprehensive integration test coverage
