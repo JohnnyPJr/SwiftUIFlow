@@ -159,6 +159,12 @@ struct RainbowPurpleView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
+
+                Button("🌊 Dive to the Abyss") {
+                    coordinator.navigate(to: OceanRoute.abyss)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.cyan)
             }
         }
         .customNavigationBar(title: "Rainbow Purple", backgroundColor: .purple)

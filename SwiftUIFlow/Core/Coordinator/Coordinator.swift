@@ -70,6 +70,11 @@ open class Coordinator<R: Route>: AnyCoordinator {
         [router.state.root] + router.state.stack
     }
 
+    /// The root/initial route for this coordinator (type-erased)
+    var rootRoute: any Route {
+        router.state.root
+    }
+
     /// Publisher that emits when this coordinator's routes change
     /// Type-erased so parent coordinators can subscribe without knowing route type
     var routesDidChange: AnyPublisher<[any Route], Never> {

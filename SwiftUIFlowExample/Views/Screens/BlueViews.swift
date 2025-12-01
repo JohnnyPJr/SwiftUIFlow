@@ -96,6 +96,11 @@ struct DarkBlueView: View {
 
                 Spacer().frame(height: 40)
 
+                Button("🌊 Explore the Ocean") {
+                    coordinator.navigate(to: OceanRoute.surface)
+                }
+                .buttonStyle(NavigationButtonStyle(color: .cyan))
+
                 Button("Push Invalid View") {
                     // This will trigger viewCreationFailed error
                     // The route exists but ViewFactory returns nil

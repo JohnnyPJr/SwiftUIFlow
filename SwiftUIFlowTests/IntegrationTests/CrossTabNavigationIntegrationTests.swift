@@ -191,4 +191,91 @@ final class CrossTabNavigationIntegrationTests: XCTestCase {
 
         XCTAssertTrue(tab5.didHandleBatteryStatus, "Tab5 should have handled battery status")
     }
+
+    // MARK: - Modal with Pushed Screen Tests
+
+    func test_CrossTabNavigation_ToModalThatPushesScreen() {
+        // Scenario: From tab1 -> navigate to tab2 -> present modal (.success) -> push screen (.details)
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        // Start at tab1
+        XCTAssertEqual(router.state.selectedTab, 0, "Should start at tab1")
+
+        // Navigate from tab1 to .details (which is in tab2's modal)
+        let success = mainCoordinator.navigate(to: UnlockRoute.details)
+
+        XCTAssertTrue(success, "Navigation should succeed")
+        XCTAssertEqual(router.state.selectedTab, 1, "Should switch to tab2")
+
+        // Get tab2 coordinator
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator at index 1")
+            return
+        }
+
+        // Get unlock coordinator
+        guard let unlock = tab2.children.first(where: { $0 is UnlockCoordinator }) as? UnlockCoordinator else {
+            XCTFail("Expected UnlockCoordinator")
+            return
+        }
+
+        // Verify modal (.success) is presented
+        XCTAssertNotNil(unlock.currentModalCoordinator, "Expected success modal to be presented")
+        guard let resultModal = unlock.currentModalCoordinator as? UnlockResultCoordinator else {
+            XCTFail("Expected UnlockResultCoordinator")
+            return
+        }
+
+        // Verify .details is pushed within the modal
+        XCTAssertEqual(resultModal.router.state.currentRoute.identifier, "details",
+                       "Should be at .details route within modal")
+        XCTAssertEqual(resultModal.router.state.stack.count, 1,
+                       "Should have 1 item in modal's stack (.details)")
+    }
+
+    func test_CrossTabNavigation_ToModalThatPresentsNestedModal() {
+        // Scenario: From tab1 -> navigate to tab2 -> present modal (.success) -> present nested modal (.settings)
+        let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let mainCoordinator = MainTabCoordinator(router: router)
+
+        // Start at tab1
+        XCTAssertEqual(router.state.selectedTab, 0, "Should start at tab1")
+
+        // Navigate from tab1 to .settings (which is nested modal in tab2's modal)
+        let success = mainCoordinator.navigate(to: UnlockRoute.settings)
+
+        XCTAssertTrue(success, "Navigation should succeed")
+        XCTAssertEqual(router.state.selectedTab, 1, "Should switch to tab2")
+
+        // Get tab2 coordinator
+        guard let tab2 = mainCoordinator.children[1] as? Tab2Coordinator else {
+            XCTFail("Expected Tab2Coordinator at index 1")
+            return
+        }
+
+        // Get unlock coordinator
+        guard let unlock = tab2.children.first(where: { $0 is UnlockCoordinator }) as? UnlockCoordinator else {
+            XCTFail("Expected UnlockCoordinator")
+            return
+        }
+
+        // Verify first modal (.success) is presented
+        XCTAssertNotNil(unlock.currentModalCoordinator, "Expected success modal to be presented")
+        guard let resultModal = unlock.currentModalCoordinator as? UnlockResultCoordinator else {
+            XCTFail("Expected UnlockResultCoordinator")
+            return
+        }
+
+        // Verify nested modal (.settings) is presented within the first modal
+        XCTAssertNotNil(resultModal.currentModalCoordinator, "Expected nested modal to be presented")
+        guard let settingsModal = resultModal.currentModalCoordinator as? UnlockSettingsModalCoordinator else {
+            XCTFail("Expected UnlockSettingsModalCoordinator")
+            return
+        }
+
+        // Verify .settings is the presented route
+        XCTAssertEqual(resultModal.router.state.presented?.identifier, "settings",
+                       "Settings should be presented as nested modal")
+    }
 }

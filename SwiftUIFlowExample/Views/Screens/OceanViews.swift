@@ -1,0 +1,128 @@
+//
+//  OceanViews.swift
+//  SwiftUIFlowExample
+//
+//  Created for testing deep cross-coordinator navigation
+//
+
+import SwiftUI
+import SwiftUIFlow
+
+// MARK: - Ocean Surface View
+
+struct OceanSurfaceView: View {
+    let coordinator: OceanCoordinator
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("🌊 Ocean Surface")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+
+            Text("You are at the surface of the ocean")
+                .font(.body)
+                .foregroundColor(.secondary)
+
+            Spacer()
+
+            Button("Dive to Shallow Water") {
+                coordinator.navigate(to: OceanRoute.shallow)
+            }
+            .buttonStyle(NavigationButtonStyle(color: .cyan))
+
+            Spacer()
+        }
+        .padding()
+        .customNavigationBar(title: "Ocean Surface", backgroundColor: .cyan)
+    }
+}
+
+// MARK: - Ocean Shallow View
+
+struct OceanShallowView: View {
+    let coordinator: OceanCoordinator
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("🐠 Shallow Water")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+
+            Text("Sunlight still reaches here")
+                .font(.body)
+                .foregroundColor(.secondary)
+
+            Spacer()
+
+            Button("Dive Deeper") {
+                coordinator.navigate(to: OceanRoute.deep)
+            }
+            .buttonStyle(NavigationButtonStyle(color: .cyan))
+
+            Spacer()
+        }
+        .padding()
+        .customNavigationBar(title: "Shallow Water", backgroundColor: .cyan)
+    }
+}
+
+// MARK: - Ocean Deep View
+
+struct OceanDeepView: View {
+    let coordinator: OceanCoordinator
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("🐙 Deep Water")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+
+            Text("The pressure is intense")
+                .font(.body)
+                .foregroundColor(.secondary)
+
+            Spacer()
+
+            Button("Descend to the Abyss") {
+                coordinator.navigate(to: OceanRoute.abyss)
+            }
+            .buttonStyle(NavigationButtonStyle(color: .cyan))
+
+            Spacer()
+        }
+        .padding()
+        .customNavigationBar(title: "Deep Water", backgroundColor: .cyan)
+    }
+}
+
+// MARK: - Ocean Abyss View
+
+struct OceanAbyssView: View {
+    let coordinator: OceanCoordinator
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("🦑 The Abyss")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+
+            Text("The deepest point - complete darkness")
+                .font(.body)
+                .foregroundColor(.secondary)
+
+            Text("Navigation Path:")
+                .font(.headline)
+                .padding(.top, 20)
+
+            Text("Red Tab → Rainbow (pushed child) → Purple → Blue Tab → Dark Blue (modal) → Ocean Surface → Shallow → Deep → Abyss")
+                .font(.caption)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.cyan)
+                .padding()
+
+            Spacer()
+        }
+        .padding()
+        .customNavigationBar(title: "The Abyss", backgroundColor: .cyan)
+    }
+}
