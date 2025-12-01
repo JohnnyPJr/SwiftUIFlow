@@ -249,6 +249,38 @@ open class Coordinator<R: Route>: AnyCoordinator {
         return .push
     }
 
+    /// Defines the intermediate navigation steps required to reach a route.
+    ///
+    /// Override this method to specify that certain routes require building a navigation stack
+    /// through intermediate steps rather than navigating directly. This is useful for flows that
+    /// represent a journey or sequential process.
+    ///
+    /// ## Behavior
+    ///
+    /// - Return `nil` (default) - Navigate directly to the route
+    /// - Return an array - Navigate through each route in sequence
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// override func navigationPath(for route: any Route) -> [any Route]? {
+    ///     guard let oceanRoute = route as? OceanRoute else { return nil }
+    ///
+    ///     switch oceanRoute {
+    ///     case .shallow: return [.shallow]
+    ///     case .deep: return [.shallow, .deep]
+    ///     case .abyss: return [.shallow, .deep, .abyss]
+    ///     default: return nil
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// - Parameter route: The destination route
+    /// - Returns: An array of routes to navigate through sequentially, or `nil` for direct navigation
+    open func navigationPath(for route: any Route) -> [any Route]? {
+        return nil
+    }
+
     /// Configure modal presentation detents (size options) for a route.
     ///
     /// Override this method to customize how modals are presented. The framework calls this when

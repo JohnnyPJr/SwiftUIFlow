@@ -325,6 +325,33 @@ extension Coordinator {
     }
 
     func executeNavigation(for route: R) -> Bool {
+        // Check if this route requires building a navigation path
+        // Only build path if we're at the root (stack is empty) - meaning this is a deeplink scenario
+        // If stack has items, we're already navigating within this coordinator, so navigate normally
+        if let path = navigationPath(for: route), !path.isEmpty, router.state.stack.isEmpty {
+            NavigationLogger.debug("🗺️ \(Self.self): Building navigation path to \(route.identifier)")
+
+            // Navigate through each route in the path sequentially
+            for intermediateRoute in path {
+                guard let typedRoute = intermediateRoute as? R else {
+                    NavigationLogger.error("❌ \(Self.self): Navigation path contains invalid route type")
+                    return false
+                }
+                // Execute navigation for each step (direct push/replace, no path building to avoid infinite loop)
+                switch navigationType(for: typedRoute) {
+                case .push:
+                    router.push(typedRoute)
+                case .replace:
+                    router.replace(typedRoute)
+                case .modal:
+                    NavigationLogger.error("❌ \(Self.self): Navigation path cannot contain modal routes")
+                    return false
+                }
+            }
+            return true
+        }
+
+        // Default behavior - direct navigation
         switch navigationType(for: route) {
         case .push:
             router.push(route)

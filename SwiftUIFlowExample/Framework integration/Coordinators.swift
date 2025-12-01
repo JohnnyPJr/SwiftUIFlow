@@ -509,4 +509,28 @@ final class OceanCoordinator: Coordinator<OceanRoute> {
     override func canHandle(_ route: any Route) -> Bool {
         return route is OceanRoute
     }
+
+    override func navigationPath(for route: any Route) -> [any Route]? {
+        guard let oceanRoute = route as? OceanRoute else { return nil }
+
+        // Define the sequential path for each ocean depth
+        // This is only called when stack is empty (deeplink scenario)
+        // You can check current state to determine which path to build
+        switch oceanRoute {
+        case .surface:
+            return [OceanRoute.surface]
+        case .shallow:
+            return [OceanRoute.shallow]
+        case .deep:
+            // Example: Could have multiple paths based on some condition
+            // if someCondition {
+            //     return [OceanRoute.shallow, OceanRoute.deep] // Scenic route
+            // } else {
+            //     return [OceanRoute.deep] // Direct route
+            // }
+            return [OceanRoute.shallow, OceanRoute.deep]
+        case .abyss:
+            return [OceanRoute.shallow, OceanRoute.deep, OceanRoute.abyss]
+        }
+    }
 }

@@ -269,7 +269,7 @@ final class CrossTabNavigationIntegrationTests: XCTestCase {
 
         // Verify nested modal (.settings) is presented within the first modal
         XCTAssertNotNil(resultModal.currentModalCoordinator, "Expected nested modal to be presented")
-        guard let settingsModal = resultModal.currentModalCoordinator as? UnlockSettingsModalCoordinator else {
+        guard resultModal.currentModalCoordinator is UnlockSettingsModalCoordinator else {
             XCTFail("Expected UnlockSettingsModalCoordinator")
             return
         }
