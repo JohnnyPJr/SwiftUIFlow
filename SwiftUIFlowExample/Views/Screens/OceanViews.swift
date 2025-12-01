@@ -114,7 +114,7 @@ struct OceanAbyssView: View {
                 .font(.headline)
                 .padding(.top, 20)
 
-            Text("Red Tab → Rainbow (pushed child) → Purple → Blue Tab → Dark Blue (modal) → Ocean Surface → Shallow → Deep → Abyss")
+            Text("Dark Blue → Ocean Surface → Shallow → Deep → Abyss")
                 .font(.caption)
                 .multilineTextAlignment(.center)
                 .foregroundColor(.cyan)
