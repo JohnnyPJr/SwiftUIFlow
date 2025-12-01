@@ -3108,7 +3108,287 @@ Although custom transitions were not implemented, the investigation validated ou
 
 ---
 
-**Last Task Completed:** Custom transitions investigation and future v2 planning documentation (section 20)
+## 21. Deep Cross-Coordinator Navigation & Modal Pattern Enforcement ✅
+
+**Date:** December 2025
+**Status:** ✅ COMPLETE
+**Branch:** feature/Pushed-Childs-FullScreen-Approach
+
+### Problem Statement
+
+The navigation engine had several critical gaps preventing deep cross-coordinator navigation:
+
+1. **Modal Coordinator Pattern Inconsistency**: Both parent and modal child coordinators were returning `canHandle() = true` for modal entry routes, causing ambiguity in modal selection
+2. **Limited Descendant Discovery**: `delegateToChildren()` only checked if immediate children could handle routes, missing routes handled by descendants (e.g., modal coordinator's children)
+3. **Validation/Execution Mismatch**: Validation logic didn't mirror execution logic for descendant checks
+4. **No Path Building**: Deep linking to routes requiring sequential steps (e.g., journey flows) would jump directly to destination, skipping intermediate screens
+
+**Example Failure Case:**
+- Navigate from `RainbowPurple` to `OceanAbyss` (which lives in `BlueModalCoordinator` → `OceanCoordinator`)
+- Navigation would fail because `BlueCoordinator` couldn't handle `OceanRoute` directly
+- The route lived 3 levels deep: Blue Tab → BlueModalCoordinator (modal) → OceanCoordinator (child) → .abyss
+
+### Solution: Deep Navigation with `canNavigate()` + Pattern Enforcement
+
+#### 1. Modal Coordinator Pattern Enforcement
+
+**Rule Established:**
+- **Parent coordinator** handles modal entry routes (returns `canHandle() = true`, `navigationType() = .modal`)
+- **Modal child coordinator** does NOT handle its root/entry route (returns `canHandle() = false` for root)
+- Modal child handles subsequent routes within the modal flow
+
+**Example:**
+```swift
+// Parent
+class UnlockCoordinator: Coordinator<UnlockRoute> {
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? UnlockRoute else { return false }
+        return route == .success  // Handles modal entry route
+    }
+
+    override func navigationType(for route: any Route) -> NavigationType {
+        return route == .success ? .modal : .push
+    }
+}
+
+// Modal Child
+class UnlockResultCoordinator: Coordinator<UnlockRoute> {
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? UnlockRoute else { return false }
+        return route == .details || route == .settings  // NOT .success (its root)
+    }
+}
+```
+
+**Changes Required:**
+- Updated all example app modal coordinators to follow pattern
+- Removed `canHandle()` overrides from simple modal children (use base implementation returning `false`)
+
+#### 2. Deep Descendant Discovery with `canNavigate()`
+
+**Changed `delegateToChildren()` to use `canNavigate()` instead of `canHandle()`:**
+
+```swift
+// BEFORE (only checked immediate child)
+for child in internalChildren where child !== caller {
+    if child.canHandle(route) {
+        // Delegate...
+    }
+}
+
+// AFTER (checks child AND all descendants recursively)
+for child in internalChildren where child !== caller {
+    if child.canNavigate(to: route) {  // ← Changed
+        // Delegate...
+    }
+}
+```
+
+**`canNavigate()` checks:**
+1. Can this coordinator handle the route? (`canHandle()`)
+2. Can any of its children handle it? (recursive check)
+3. Can any of its modal coordinators handle it? (recursive check)
+
+**Also applied to modal coordinators loop:**
+```swift
+for modal in modalCoordinators where modal !== caller {
+    if modal.canNavigate(to: route) {  // ← Changed from canHandle()
+        // Present modal and navigate...
+    }
+}
+```
+
+This enables navigation to routes living in modal coordinator's descendants.
+
+#### 3. Validation Mirroring Execution
+
+Updated `validateChildrenCanHandle()` to mirror execution logic:
+
+```swift
+// Check if child or its descendants can handle (mirrors execution)
+if child.canNavigate(to: route) {
+    let childResult = child.validateNavigationPath(to: route, from: self)
+    if childResult.isSuccess {
+        return childResult
+    }
+}
+```
+
+**Critical:** Validation must check `canNavigate()` BEFORE calling `validateNavigationPath()`, just like execution checks `canNavigate()` before delegating.
+
+#### 4. Optional Navigation Path Building
+
+**Added `navigationPath(for:)` method** for routes requiring sequential navigation:
+
+```swift
+class Coordinator {
+    /// Defines intermediate steps to reach a route
+    /// Return nil (default) for direct navigation
+    /// Return array for sequential navigation through steps
+    open func navigationPath(for route: any Route) -> [any Route]? {
+        return nil
+    }
+}
+```
+
+**Implementation Example:**
+```swift
+class OceanCoordinator: Coordinator<OceanRoute> {
+    override func navigationPath(for route: any Route) -> [any Route]? {
+        guard let oceanRoute = route as? OceanRoute else { return nil }
+
+        switch oceanRoute {
+        case .surface: return [OceanRoute.surface]
+        case .shallow: return [OceanRoute.shallow]
+        case .deep: return [OceanRoute.shallow, OceanRoute.deep]
+        case .abyss: return [OceanRoute.shallow, OceanRoute.deep, OceanRoute.abyss]
+        }
+    }
+}
+```
+
+**Path Building Logic:**
+- Only applies when **stack is empty** (deeplink scenario)
+- When navigating within coordinator (stack has items), uses normal direct navigation
+- Prevents path rebuilding on backward navigation (pop)
+
+**Benefits:**
+- Journey flows (onboarding, tutorials, multi-step processes)
+- Context building (show intermediate screens for proper UX)
+- Flexible: coordinator can choose different paths based on state/conditions
+
+#### 5. Modal Navigation Type in Internal Children
+
+**Clarified `.modal` case in pushed children loop:**
+
+The `.modal` navigation type in `delegateToChildren()` is **valid** - it means the child coordinator will present its own modal internally.
+
+```swift
+case .modal:
+    // Child handles modal presentation internally - just delegate
+    _ = child.navigate(to: route, from: self)
+    return true
+```
+
+**Example:** UnlockCoordinator (pushed child) presents UnlockResultCoordinator (its own modal) for `.success` route.
+
+### Implementation Details
+
+#### Added `rootRoute` Property to AnyCoordinator
+
+```swift
+protocol AnyCoordinator: AnyObject {
+    var rootRoute: any Route { get }
+}
+```
+
+Needed for modal coordinator selection by root identifier matching.
+
+#### Execution Flow Changes
+
+**File:** `Coordinator+NavigationHelpers.swift`
+
+**`delegateToChildren()` changes:**
+- Line 237: Use `canNavigate()` for pushed children check
+- Line 275: Use `canNavigate()` for modal coordinators check
+
+**`executeNavigation()` changes:**
+- Lines 328-359: Path building logic (only when stack is empty)
+
+**Validation Flow Changes:**
+
+**`validateChildrenCanHandle()` changes:**
+- Line 120: Use `canNavigate()` before validating
+- Line 131: Use `canNavigate()` for modal coordinators
+
+### Testing
+
+**Added Integration Tests:**
+1. `test_CrossTabNavigation_ToModalThatPushesScreen` - Navigate to modal's pushed route
+2. `test_CrossTabNavigation_ToModalThatPresentsNestedModal` - Navigate to nested modal
+
+**Example App Testing:**
+- Created `OceanCoordinator` with 4-level depth flow
+- Added as child of `BlueModalCoordinator`
+- Tests navigation from `RainbowPurple` → `OceanAbyss` (crosses tabs, modals, children)
+- Path: Red Tab → Rainbow (child) → Purple → Blue Tab → DarkBlue (modal) → Ocean (child) → Abyss
+
+### Key Decisions & Edge Cases
+
+#### Multiple Paths for One Route
+
+`navigationPath()` can return different paths based on coordinator state:
+
+```swift
+override func navigationPath(for route: any Route) -> [any Route]? {
+    if userPreferences.skipIntro {
+        return [destination]  // Direct
+    } else {
+        return [step1, step2, destination]  // Full journey
+    }
+}
+```
+
+Coordinator has full control - can check user preferences, feature flags, time of day, etc.
+
+#### Modal Routes in Paths Not Supported
+
+Paths can only contain `.push` or `.replace` routes. Modal routes in paths will fail with error.
+
+**Reason:** Path building is for sequential stack navigation. Modals are presentation, not path progression.
+
+### Benefits
+
+1. **True Deep Navigation**: Navigate anywhere in coordinator hierarchy from anywhere
+2. **Declarative Path Building**: Define sequential flows for proper UX
+3. **Pattern Enforcement**: Clear rules for modal coordinator ownership
+4. **Validation Reliability**: Validation perfectly mirrors execution
+5. **Example App Showcase**: Demonstrates complex real-world navigation scenarios
+
+### Migration Guide
+
+**For Modal Coordinators:**
+
+Remove `canHandle()` override that returns `true` for root route:
+
+```swift
+// BEFORE
+class MyModalCoordinator: Coordinator<MyRoute> {
+    override func canHandle(_ route: any Route) -> Bool {
+        return route == .myModalRoot  // ❌ Remove this
+    }
+}
+
+// AFTER
+class MyModalCoordinator: Coordinator<MyRoute> {
+    // No canHandle override - uses base implementation (returns false)
+    // OR override to handle subsequent routes only
+    override func canHandle(_ route: any Route) -> Bool {
+        return route == .subsequentRoute  // ✅ Subsequent routes only
+    }
+}
+```
+
+**For Path Building:**
+
+Add `navigationPath()` only if routes need sequential navigation:
+
+```swift
+override func navigationPath(for route: any Route) -> [any Route]? {
+    guard let myRoute = route as? MyRoute else { return nil }
+
+    switch myRoute {
+    case .finalStep:
+        return [MyRoute.step1, MyRoute.step2, MyRoute.finalStep]
+    default:
+        return nil  // Direct navigation
+    }
+}
+```
+
+---
+
+**Last Task Completed:** Deep cross-coordinator navigation with `canNavigate()` + modal pattern enforcement + optional path building (section 21)
 **Next Task:** Code review and prepare merge to main
 **Branch:** feature/Pushed-Childs-FullScreen-Approach
-**Key Insight:** SwiftUI's navigation primitives don't support custom transitions - focus on modal presentation enhancements instead
+**Key Insight:** `canNavigate()` enables true deep navigation by checking entire descendant tree; path building provides declarative sequential flows for deeplink scenarios
