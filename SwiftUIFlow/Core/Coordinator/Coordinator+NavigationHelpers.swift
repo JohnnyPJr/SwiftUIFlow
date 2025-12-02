@@ -111,9 +111,8 @@ extension Coordinator {
 
     private func validateChildrenCanHandle(route: any Route, caller: AnyCoordinator?) -> ValidationResult? {
         for child in internalChildren where child !== caller {
-            // CRITICAL: Only delegate to children whose parent is actually us
-            // (A child might be in our children array but have its parent temporarily changed,
-            // e.g., when presented as a detour elsewhere)
+            // Safety check: Ensure parent relationship is consistent
+            // This should always be true, but we verify to maintain invariants
             guard child.parent === self else { continue }
 
             // Check if child or its descendants can handle this route (mirrors execution with canNavigate)
@@ -261,9 +260,12 @@ extension Coordinator {
                     return true
 
                 case .modal:
-                    // Delegate modal navigation to child - let child handle its own modal presentation
+                    // Push child coordinator first, then let child present modal
+                    router.pushChild(child)
+                    child.parent = self
+                    child.presentationContext = .pushed
                     _ = child.navigate(to: route, from: self)
-                    NavigationLogger.debug("👶 \(Self.self): Child handled modal navigation for \(route.identifier)")
+                    NavigationLogger.debug("👶 \(Self.self): Pushed child coordinator for modal \(route.identifier)")
                     return true
                 }
             }
@@ -370,7 +372,12 @@ extension Coordinator {
                     return false
                 }
             }
-            return true
+
+            // If the target route is in the path, we're done (path includes destination)
+            // If not, fall through to execute the target route (e.g., modal presentation)
+            if path.contains(where: { $0.identifier == route.identifier }) {
+                return true
+            }
         }
 
         // Default behavior - direct navigation

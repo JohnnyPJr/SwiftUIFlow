@@ -340,7 +340,10 @@ final class DeepBlueCoordinator: Coordinator<DeepBlueRoute> {
     }
 
     override func canHandle(_ route: any Route) -> Bool {
-        return route is DeepBlueRoute
+        guard let deepBlueRoute = route as? DeepBlueRoute else { return false }
+        // Only handle routes up to level3Modal
+        // level3NestedModal is handled by level3ModalCoordinator (not in our modalCoordinators)
+        return deepBlueRoute != .level3NestedModal
     }
 
     override func navigationType(for route: any Route) -> NavigationType {
