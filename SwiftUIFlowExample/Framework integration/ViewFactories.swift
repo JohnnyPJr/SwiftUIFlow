@@ -161,6 +161,30 @@ final class RainbowViewFactory: ViewFactory<RainbowRoute> {
     }
 }
 
+// MARK: - DeepBlue View Factory (Testing Complex Nested Navigation)
+
+final class DeepBlueViewFactory: ViewFactory<DeepBlueRoute> {
+    override func buildView(for route: DeepBlueRoute) -> AnyView? {
+        switch route {
+        case .level1:
+            guard let coordinator = coordinator as? DeepBlueCoordinator else { return nil }
+            return view(DeepBlueLevel1View(coordinator: coordinator))
+        case .level2:
+            guard let coordinator = coordinator as? DeepBlueCoordinator else { return nil }
+            return view(DeepBlueLevel2View(coordinator: coordinator))
+        case .level3:
+            guard let coordinator = coordinator as? DeepBlueCoordinator else { return nil }
+            return view(DeepBlueLevel3View(coordinator: coordinator))
+        case .level3Modal:
+            guard let coordinator = coordinator as? DeepBlueLevel3ModalCoordinator else { return nil }
+            return view(DeepBlueLevel3ModalView(coordinator: coordinator))
+        case .level3NestedModal:
+            guard let coordinator = coordinator as? DeepBlueNestedModalCoordinator else { return nil }
+            return view(DeepBlueNestedModalView(coordinator: coordinator))
+        }
+    }
+}
+
 class OceanViewFactory: ViewFactory<OceanRoute> {
     override func buildView(for route: OceanRoute) -> AnyView? {
         guard let coordinator = coordinator as? OceanCoordinator else { return nil }

@@ -33,7 +33,8 @@ struct OceanSurfaceView: View {
             Spacer()
         }
         .padding()
-        .customNavigationBar(title: "Ocean Surface", backgroundColor: .cyan)
+        .navigationTitle("Ocean Surface")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -62,7 +63,8 @@ struct OceanShallowView: View {
             Spacer()
         }
         .padding()
-        .customNavigationBar(title: "Shallow Water", backgroundColor: .cyan)
+        .navigationTitle("Shallow Water")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -91,7 +93,8 @@ struct OceanDeepView: View {
             Spacer()
         }
         .padding()
-        .customNavigationBar(title: "Deep Water", backgroundColor: .cyan)
+        .navigationTitle("Deep Water")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -123,6 +126,7 @@ struct OceanAbyssView: View {
             Spacer()
         }
         .padding()
-        .customNavigationBar(title: "The Abyss", backgroundColor: .cyan)
+        .navigationTitle("The Abyss")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -273,9 +273,31 @@ extension Coordinator {
         // Parent doesn't handle this route, but modal child or its descendants might (e.g., .evenDarkerGreen)
         for modal in modalCoordinators where modal !== caller {
             if modal.canNavigate(to: route) {
+                // Check if we need to build a navigation path before presenting the modal
+                // This handles cases where the route is handled by a descendant (e.g., OceanRoute)
+                // but the parent coordinator needs to build a path to the correct state first
+                if let path = navigationPath(for: route), !path.isEmpty, router.state.stack.isEmpty {
+                    NavigationLogger.debug("🗺️ \(Self.self): Build path before presenting modal for \(route.identifier)")
+                    // Build the path first
+                    for intermediateRoute in path {
+                        guard let typedRoute = intermediateRoute as? R else {
+                            NavigationLogger.error("❌ \(Self.self): Navigation path contains invalid route type")
+                            return false
+                        }
+                        switch navigationType(for: typedRoute) {
+                        case .push:
+                            router.push(typedRoute)
+                        case .replace:
+                            router.replace(typedRoute)
+                        case .modal:
+                            NavigationLogger.error("❌ \(Self.self): Navigation path cannot contain modal routes")
+                            return false
+                        }
+                    }
+                }
+
                 // Modal or its descendants can handle subsequent navigation - present modal with its root route first
                 let initialRoute = modal.router.state.root
-
                 let detents = modalDetentConfiguration(for: initialRoute)
                 presentModal(modal, presenting: initialRoute, detentConfiguration: detents)
                 _ = modal.navigate(to: route, from: self)

@@ -30,6 +30,24 @@ struct BlueView: View {
                     coordinator.navigate(to: BlueRoute.darkBlue)
                 }
                 .buttonStyle(NavigationButtonStyle(color: .black.opacity(0.3)))
+
+                Divider()
+                    .background(Color.white)
+                    .padding(.vertical)
+
+                Text("🧪 Complex Navigation Test")
+                    .font(.headline)
+                    .foregroundColor(.white)
+
+                Button("Go Deep Blue (Pushed Child)") {
+                    coordinator.navigate(to: DeepBlueRoute.level1)
+                }
+                .buttonStyle(NavigationButtonStyle(color: .cyan))
+
+                Text("Pushed child → 3 levels → modal → ocean pushed child")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
             }
         }
         .withInfoButton {
@@ -95,11 +113,6 @@ struct DarkBlueView: View {
                     .foregroundColor(.white.opacity(0.8))
 
                 Spacer().frame(height: 40)
-
-                Button("🌊 Explore the Ocean") {
-                    coordinator.navigate(to: OceanRoute.surface)
-                }
-                .buttonStyle(NavigationButtonStyle(color: .cyan))
 
                 Button("Push Invalid View") {
                     // This will trigger viewCreationFailed error
