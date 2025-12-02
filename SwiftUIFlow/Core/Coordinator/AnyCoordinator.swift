@@ -42,6 +42,8 @@ protocol AnyCoordinator: CoordinatorUISupport {
 
     var allRoutes: [any Route] { get }
     var routesDidChange: AnyPublisher<[any Route], Never> { get }
+
+    var rootRoute: any Route { get }
 }
 
 // MARK: - Child Route Wrapper (Internal)

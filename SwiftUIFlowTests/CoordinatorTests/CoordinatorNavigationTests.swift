@@ -49,25 +49,25 @@ final class CoordinatorNavigationTests: XCTestCase {
 
     func test_CoordinatorCanOverrideNavigationType() {
         let router = Router<MockRoute>(initial: .home, factory: MockViewFactory())
-        let modalCoordinator = TestModalCoordinator(router: router)
+        let modalCoordinator = TestMixedNavigationCoordinator(router: router)
 
-        XCTAssertEqual(modalCoordinator.navigationType(for: MockRoute.details), .modal,
-                       "Modal coordinator should have modal navigation type")
+        XCTAssertEqual(modalCoordinator.navigationType(for: MockRoute.modal), .modal,
+                       "Modal coordinator should have modal navigation type for .modal route")
     }
 
     func test_NavigateExecutesBasedOnNavigationType() {
         let parentRouter = Router<MockRoute>(initial: .home, factory: MockViewFactory())
-        let parent = TestModalCoordinator(router: parentRouter)
+        let parent = TestMixedNavigationCoordinator(router: parentRouter)
 
-        // Create a modal navigator that handles .details
-        let childRouter = Router<MockRoute>(initial: .details, factory: MockViewFactory())
-        let child = TestCoordinator(router: childRouter)
+        // Create a modal child with .modal as root
+        let childRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
+        let child = Coordinator(router: childRouter)
         parent.addModalCoordinator(child)
 
-        // Navigate to .details - should present modal and delegate to child
-        parent.navigate(to: MockRoute.details)
+        // Navigate to .modal - should present modal and delegate to child
+        parent.navigate(to: MockRoute.modal)
 
-        XCTAssertEqual(parentRouter.state.presented, MockRoute.details, "Parent should present route as modal")
+        XCTAssertEqual(parentRouter.state.presented, MockRoute.modal, "Parent should present route as modal")
         XCTAssertTrue(parent.currentModalCoordinator === child, "Child should be set as modal coordinator")
         XCTAssertTrue(child.parent === parent, "Parent relationship should be set")
     }

@@ -90,6 +90,42 @@ enum BlueRoute: Route {
     }
 }
 
+// DeepBlue routes - pushed child coordinator of BlueCoordinator for testing complex nested navigation
+enum DeepBlueRoute: Route {
+    case level1
+    case level2
+    case level3
+    case level3Modal // First modal
+    case level3NestedModal // Second modal (presented on top of first modal, contains Ocean as pushed child)
+
+    var identifier: String {
+        switch self {
+        case .level1: return "deepblue_level1"
+        case .level2: return "deepblue_level2"
+        case .level3: return "deepblue_level3"
+        case .level3Modal: return "deepblue_level3_modal"
+        case .level3NestedModal: return "deepblue_level3_nested_modal"
+        }
+    }
+}
+
+// Ocean routes - child coordinator of BlueModalCoordinator for testing deep navigation
+enum OceanRoute: Route {
+    case surface
+    case shallow
+    case deep
+    case abyss
+
+    var identifier: String {
+        switch self {
+        case .surface: return "ocean_surface"
+        case .shallow: return "ocean_shallow"
+        case .deep: return "ocean_deep"
+        case .abyss: return "ocean_abyss"
+        }
+    }
+}
+
 enum YellowRoute: Route {
     case yellow
     case lightYellow
