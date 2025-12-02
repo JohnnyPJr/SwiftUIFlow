@@ -96,10 +96,12 @@ extension Coordinator {
             return .success
         case .modal:
             // Can we execute modal navigation?
-            if let currentModal = currentModalCoordinator, currentModal.canHandle(route) {
+            // Check if modal is already presented with this root route
+            if let currentModal = currentModalCoordinator, currentModal.rootRoute.identifier == route.identifier {
                 return .success
             }
-            if modalCoordinators.contains(where: { $0.canHandle(route) }) {
+            // Check if we have a modal coordinator configured with this root route
+            if modalCoordinators.contains(where: { $0.router.state.root.identifier == route.identifier }) {
                 return .success
             }
             // Modal navigation type but no coordinator configured
@@ -114,11 +116,26 @@ extension Coordinator {
             // e.g., when presented as a detour elsewhere)
             guard child.parent === self else { continue }
 
-            let childResult = child.validateNavigationPath(to: route, from: self)
-            if childResult.isSuccess {
-                return childResult
+            // Check if child or its descendants can handle this route (mirrors execution with canNavigate)
+            if child.canNavigate(to: route) {
+                let childResult = child.validateNavigationPath(to: route, from: self)
+                if childResult.isSuccess {
+                    return childResult
+                }
             }
         }
+
+        // Check if any modal coordinator can handle this route for subsequent navigation
+        // (mirrors delegateToChildren execution)
+        for modal in modalCoordinators where modal !== caller {
+            if modal.canNavigate(to: route) {
+                // Modal coordinator or its descendants can handle subsequent navigation
+                // In execution, we'd present modal with its root route, then navigate
+                // Here we just validate that the modal can handle it
+                return .success
+            }
+        }
+
         return nil // No child handled it - continue to next check
     }
 
@@ -220,7 +237,7 @@ extension Coordinator {
 
     func delegateToChildren(route: any Route, caller: AnyCoordinator?) -> Bool {
         for child in internalChildren where child !== caller {
-            if child.canHandle(route) {
+            if child.canNavigate(to: route) {
                 // Get the navigation type the child coordinator expects for this route
                 let navType = child.navigationType(for: route)
 
@@ -251,6 +268,44 @@ extension Coordinator {
                 }
             }
         }
+
+        // Check if any modal coordinator can handle this route (for subsequent navigation)
+        // Parent doesn't handle this route, but modal child or its descendants might (e.g., .evenDarkerGreen)
+        for modal in modalCoordinators where modal !== caller {
+            if modal.canNavigate(to: route) {
+                // Check if we need to build a navigation path before presenting the modal
+                // This handles cases where the route is handled by a descendant (e.g., OceanRoute)
+                // but the parent coordinator needs to build a path to the correct state first
+                if let path = navigationPath(for: route), !path.isEmpty, router.state.stack.isEmpty {
+                    NavigationLogger.debug("🗺️ \(Self.self): Build path before presenting modal for \(route.identifier)")
+                    // Build the path first
+                    for intermediateRoute in path {
+                        guard let typedRoute = intermediateRoute as? R else {
+                            NavigationLogger.error("❌ \(Self.self): Navigation path contains invalid route type")
+                            return false
+                        }
+                        switch navigationType(for: typedRoute) {
+                        case .push:
+                            router.push(typedRoute)
+                        case .replace:
+                            router.replace(typedRoute)
+                        case .modal:
+                            NavigationLogger.error("❌ \(Self.self): Navigation path cannot contain modal routes")
+                            return false
+                        }
+                    }
+                }
+
+                // Modal or its descendants can handle subsequent navigation - present modal with its root route first
+                let initialRoute = modal.router.state.root
+                let detents = modalDetentConfiguration(for: initialRoute)
+                presentModal(modal, presenting: initialRoute, detentConfiguration: detents)
+                _ = modal.navigate(to: route, from: self)
+                NavigationLogger.debug("📲 \(Self.self): Presented modal -> navigating to \(route.identifier)")
+                return true
+            }
+        }
+
         return false
     }
 
@@ -292,6 +347,33 @@ extension Coordinator {
     }
 
     func executeNavigation(for route: R) -> Bool {
+        // Check if this route requires building a navigation path
+        // Only build path if we're at the root (stack is empty) - meaning this is a deeplink scenario
+        // If stack has items, we're already navigating within this coordinator, so navigate normally
+        if let path = navigationPath(for: route), !path.isEmpty, router.state.stack.isEmpty {
+            NavigationLogger.debug("🗺️ \(Self.self): Building navigation path to \(route.identifier)")
+
+            // Navigate through each route in the path sequentially
+            for intermediateRoute in path {
+                guard let typedRoute = intermediateRoute as? R else {
+                    NavigationLogger.error("❌ \(Self.self): Navigation path contains invalid route type")
+                    return false
+                }
+                // Execute navigation for each step (direct push/replace, no path building to avoid infinite loop)
+                switch navigationType(for: typedRoute) {
+                case .push:
+                    router.push(typedRoute)
+                case .replace:
+                    router.replace(typedRoute)
+                case .modal:
+                    NavigationLogger.error("❌ \(Self.self): Navigation path cannot contain modal routes")
+                    return false
+                }
+            }
+            return true
+        }
+
+        // Default behavior - direct navigation
         switch navigationType(for: route) {
         case .push:
             router.push(route)
@@ -300,13 +382,16 @@ extension Coordinator {
             router.replace(route)
             return true
         case .modal:
-            if let currentModal = currentModalCoordinator, currentModal.canHandle(route) {
-                // Modal is already presented - let it handle navigation internally
-                _ = currentModal.navigate(to: route, from: self)
+            if let currentModal = currentModalCoordinator, currentModal.rootRoute.identifier == route.identifier {
+                // Modal is already presented with this root route - already at destination
                 return true
             }
 
-            guard let modalChild = modalCoordinators.first(where: { $0.canHandle(route) }) else {
+            // Find modal coordinator by matching root identifier (not canHandle)
+            // Parent handles the modal's entry route, child handles subsequent routes
+            guard let modalChild = modalCoordinators
+                .first(where: { $0.router.state.root.identifier == route.identifier })
+            else {
                 NavigationLogger
                     .error("❌ \(Self.self): Modal coordinator not found - validation should have caught this")
                 return false

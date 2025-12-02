@@ -23,6 +23,8 @@ enum Tab2Route: Route {
 
 enum UnlockRoute: Route {
     case enterCode, loading, success, failure
+    case details // Pushed within success modal
+    case settings // Nested modal within success modal
     var identifier: String { "\(self)" }
 }
 
@@ -174,10 +176,13 @@ final class UnlockCoordinator: Coordinator<UnlockRoute> {
     override func canHandle(_ route: any Route) -> Bool {
         guard let route = route as? UnlockRoute else { return false }
 
-        // Can handle all UnlockRoute cases
+        // Can handle UnlockRoute cases except .details and .settings
+        // (those are handled by UnlockResultCoordinator after .success modal is presented)
         switch route {
         case .enterCode, .loading, .failure, .success:
             return true
+        case .details, .settings:
+            return false
         }
     }
 
@@ -188,7 +193,7 @@ final class UnlockCoordinator: Coordinator<UnlockRoute> {
         switch unlockRoute {
         case .success:
             return .modal
-        case .enterCode, .loading, .failure:
+        case .enterCode, .loading, .failure, .details, .settings:
             return .push
         }
     }
@@ -204,10 +209,41 @@ final class UnlockCoordinator: Coordinator<UnlockRoute> {
 }
 
 final class UnlockResultCoordinator: Coordinator<UnlockRoute> {
+    private var settingsModal: UnlockSettingsModalCoordinator?
+
+    override init(router: Router<UnlockRoute>) {
+        super.init(router: router)
+
+        // Add nested modal coordinator for .settings
+        settingsModal = UnlockSettingsModalCoordinator(router: Router(initial: .settings, factory: DummyFactory()))
+        addModalCoordinator(settingsModal!)
+    }
+
     override func canHandle(_ route: any Route) -> Bool {
         guard let route = route as? UnlockRoute else { return false }
-        // Modal coordinator handles .success route
-        return route == .success
+        // Modal child coordinator - does NOT handle its entry route (.success)
+        // Parent (UnlockCoordinator) handles that
+        // Handles subsequent routes: .details (push) and .settings (modal)
+        return route == .details || route == .settings
+    }
+
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let route = route as? UnlockRoute else { return .push }
+        // .settings is presented as nested modal, .details is pushed
+        return route == .settings ? .modal : .push
+    }
+
+    deinit {
+        print("💀 Deinit: \(Self.self)")
+    }
+}
+
+// Nested modal coordinator for settings within the success modal
+final class UnlockSettingsModalCoordinator: Coordinator<UnlockRoute> {
+    override func canHandle(_ route: any Route) -> Bool {
+        // Nested modal child - does NOT handle its entry route (.settings)
+        // Parent (UnlockResultCoordinator) handles that
+        return false
     }
 
     deinit {

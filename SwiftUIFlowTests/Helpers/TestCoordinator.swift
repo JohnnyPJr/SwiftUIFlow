@@ -52,6 +52,20 @@ final class TestModalCoordinator: Coordinator<MockRoute> {
     }
 }
 
+// Parent coordinator that presents .modal as modal and pushes .details
+final class TestMixedNavigationCoordinator: Coordinator<MockRoute> {
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let route = route as? MockRoute else { return .push }
+        // Only .modal is presented as modal, .details is pushed
+        return route == .modal ? .modal : .push
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? MockRoute else { return false }
+        return route == .details || route == .modal
+    }
+}
+
 final class TestTabCoordinator: TabCoordinator<MainTabRoute> {
     override func canHandle(_ route: any Route) -> Bool {
         // TestTabCoordinator doesn't handle routes directly
