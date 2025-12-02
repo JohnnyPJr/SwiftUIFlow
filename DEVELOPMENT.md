@@ -89,9 +89,9 @@ macOS and visionOS support may be added in future releases once properly tested.
 
 ---
 
-## Phase 2: View Layer Integration 🔄 IN PROGRESS
+## Phase 2: View Layer Integration ✅ COMPLETE
 
-### What's Been Built
+### What Was Built
 
 **Completed Tasks:**
 
@@ -2874,6 +2874,59 @@ Review the example app implementation and document key decisions:
 
 ---
 
+## Phase 3: Documentation & Release Preparation 🔄 IN PROGRESS
+
+### Objectives
+
+The correct order for v1.0 release:
+
+1. **DocC Documentation** 🔄 CURRENT TASK
+   - Add DocC comments to all public APIs
+   - Document Coordinator lifecycle and methods
+   - Document Router and NavigationState
+   - Document CoordinatorView and ViewFactory
+   - Document navigation patterns and best practices
+   - Include code examples in documentation
+   - Build DocC archive for hosting
+
+2. **Swift Package Creation**
+   - Create Package.swift
+   - Verify Swift Package Manager configuration
+   - Test package import in sample project
+   - Verify minimum iOS version (iOS 16.0+)
+   - Ensure all public APIs are properly exported
+
+3. **README.md**
+   - Framework overview and key features
+   - Installation instructions (SPM)
+   - Quick start guide with code examples
+   - Architecture overview
+   - Link to DocC documentation
+   - Example app walkthrough
+   - Contributing guidelines
+
+4. **Final Verification**
+   - Run final SwiftLint pass
+   - Run all tests one final time
+   - Build and test example app
+   - Verify documentation builds correctly
+
+5. **Version 1.0 Release**
+   - Tag v1.0.0 in git
+   - Create GitHub release with notes
+   - Publish DocC documentation
+   - Announce release
+
+### Status
+
+- ✅ Phase 1 Complete: Navigation Engine fully implemented and tested
+- ✅ Phase 2 Complete: View Layer Integration with comprehensive example app
+- ✅ Internal Documentation: DEVELOPMENT.md, NAVIGATION_ENGINE_DETAILED_ANALYSIS.md, VALIDATION_ENGINE_DETAILED_ANALYSIS.md
+- 🔄 **CURRENT**: DocC API documentation
+- ⏳ Pending: Package creation, README.md, final verification, v1.0 release
+
+---
+
 ## Phase 2B: Advanced Features (Future)
 
 Not yet started - postponed until Phase 2A complete:
@@ -4148,6 +4201,280 @@ Future versions could explore more sophisticated solutions if user feedback indi
 
 ---
 
+## Section 27: Path Building + Modal Presentation Bug Fixes
+
+**Date:** December 2, 2025
+**Files Modified:**
+- `SwiftUIFlow/Core/Coordinator/Coordinator+NavigationHelpers.swift` (executeNavigation)
+- `SwiftUIFlowExample/Framework integration/Coordinators.swift` (DeepBlueCoordinator.canHandle)
+
+### Bug 1: Path Building Preventing Modal Presentation
+
+**The Problem:**
+
+When deeplinking to a modal route that requires building a navigation path first (e.g., `DeepBlueRoute.level3Modal`), the `executeNavigation()` function would:
+1. Build the prerequisite path: `[.level1, .level2, .level3]`
+2. Return early with `return true`
+3. NEVER present the modal!
+
+**Example:**
+```swift
+// User navigates to .level3Modal from another tab
+coordinator.navigate(to: DeepBlueRoute.level3Modal)
+
+// What happened:
+// ✅ Builds path: pushes level1, level2, level3
+// ❌ Returns true immediately
+// ❌ Modal never presented!
+```
+
+**Root Cause:**
+
+The code had a commented-out `return true` after path building:
+
+```swift
+if let path = navigationPath(for: route), !path.isEmpty, router.state.stack.isEmpty {
+    // Build path...
+    for intermediateRoute in path {
+        // Push/replace each route
+    }
+    // return true  // ❌ This was causing the bug!
+}
+
+// Default behavior - direct navigation
+switch navigationType(for: route) {
+case .modal:
+    // Present modal... (never reached!)
+}
+```
+
+The issue is that path building serves two purposes:
+
+1. **Path includes target route** (e.g., `.level3`):
+   - Path: `[.level1, .level2, .level3]`
+   - Target: `.level3`
+   - After building, we're DONE ✅
+   - Should return `true`
+
+2. **Path doesn't include target route** (e.g., `.level3Modal`):
+   - Path: `[.level1, .level2, .level3]` (prerequisites only)
+   - Target: `.level3Modal` (modal presented FROM level3)
+   - After building, must CONTINUE to modal presentation ✅
+   - Should fall through, NOT return
+
+**The Fix:**
+
+Check if the target route is in the path:
+
+```swift
+if let path = navigationPath(for: route), !path.isEmpty, router.state.stack.isEmpty {
+    NavigationLogger.debug("🗺️ \(Self.self): Building navigation path to \(route.identifier)")
+
+    // Navigate through each route in the path sequentially
+    for intermediateRoute in path {
+        guard let typedRoute = intermediateRoute as? R else {
+            NavigationLogger.error("❌ \(Self.self): Navigation path contains invalid route type")
+            return false
+        }
+        switch navigationType(for: typedRoute) {
+        case .push:
+            router.push(typedRoute)
+        case .replace:
+            router.replace(typedRoute)
+        case .modal:
+            NavigationLogger.error("❌ \(Self.self): Navigation path cannot contain modal routes")
+            return false
+        }
+    }
+
+    // If the target route is in the path, we're done (path includes destination)
+    // If not, fall through to execute the target route (e.g., modal presentation)
+    if path.contains(where: { $0.identifier == route.identifier }) {
+        return true
+    }
+}
+
+// Default behavior - direct navigation
+switch navigationType(for: route) {
+case .push:
+    router.push(route)
+    return true
+case .replace:
+    router.replace(route)
+    return true
+case .modal:
+    // Present modal...
+    return true
+}
+```
+
+**Result:**
+- ✅ `.level3` deeplink: Path includes destination → Returns after building
+- ✅ `.level3Modal` deeplink: Path doesn't include modal → Falls through to present modal
+
+---
+
+### Bug 2: Incorrect canHandle() for Nested Modal Routes
+
+**The Problem:**
+
+When deeplinking to `DeepBlueRoute.level3NestedModal`:
+1. Validation FAILED
+2. Navigation FAILED
+3. Error: "Modal coordinator not found"
+
+**Coordinator Hierarchy:**
+```swift
+DeepBlueCoordinator
+  └─ modalCoordinators: [level3ModalCoordinator]
+
+level3ModalCoordinator (root: .level3Modal)
+  └─ modalCoordinators: [nestedModalCoordinator]
+
+nestedModalCoordinator (root: .level3NestedModal)
+  └─ children: [oceanCoordinator]
+```
+
+**What Was Happening:**
+
+```swift
+// DeepBlueCoordinator
+override func canHandle(_ route: any Route) -> Bool {
+    return route is DeepBlueRoute  // ❌ Returns true for .level3NestedModal!
+}
+```
+
+When navigating to `.level3NestedModal`:
+1. `DeepBlueCoordinator.canHandle(.level3NestedModal)` → `true`
+2. Goes to `executeNavigation()`
+3. Builds path: `[.level1, .level2, .level3]`
+4. Falls through to modal presentation
+5. Tries to find modal coordinator with root `.level3NestedModal` in `DeepBlueCoordinator.modalCoordinators`
+6. NOT FOUND! (It's in `level3ModalCoordinator.modalCoordinators`)
+7. Error: "Modal coordinator not found"
+
+**Root Cause:**
+
+`DeepBlueCoordinator` claimed it could handle ALL `DeepBlueRoute` cases, but it can't handle `.level3NestedModal` because:
+- `.level3NestedModal` is the root of `nestedModalCoordinator`
+- `nestedModalCoordinator` is NOT in `DeepBlueCoordinator.modalCoordinators`
+- It's in `level3ModalCoordinator.modalCoordinators` (nested modal!)
+
+**The Fix:**
+
+Exclude `.level3NestedModal` from `canHandle()`:
+
+```swift
+override func canHandle(_ route: any Route) -> Bool {
+    guard let deepBlueRoute = route as? DeepBlueRoute else { return false }
+    // Only handle routes up to level3Modal
+    // level3NestedModal is handled by level3ModalCoordinator (not in our modalCoordinators)
+    return deepBlueRoute != .level3NestedModal
+}
+```
+
+**Result:**
+
+When navigating to `.level3NestedModal`:
+1. `DeepBlueCoordinator.canHandle(.level3NestedModal)` → `false`
+2. Goes to `delegateToChildren()`
+3. Checks `modalCoordinators` → Finds `level3ModalCoordinator`
+4. `level3ModalCoordinator.canNavigate(.level3NestedModal)` → `true`
+5. Builds path: `[.level1, .level2, .level3]`
+6. Presents `level3ModalCoordinator` with root `.level3Modal`
+7. Calls `level3ModalCoordinator.navigate(to: .level3NestedModal)`
+8. `level3ModalCoordinator` handles it (presents `nestedModalCoordinator`) ✅
+
+---
+
+### Why OceanRoute.abyss Always Worked
+
+Even before these fixes, navigating to `OceanRoute.abyss` worked perfectly. Why?
+
+**Flow:**
+1. `DeepBlueCoordinator.canHandle(OceanRoute.abyss)` → `false` (not DeepBlueRoute)
+2. Goes to `delegateToChildren()`
+3. No `internalChildren` can handle it
+4. Checks `modalCoordinators` → Finds `level3ModalCoordinator`
+5. `level3ModalCoordinator.canNavigate(.abyss)` → `true`!
+6. Checks if path needed: `DeepBlueCoordinator.navigationPath(for: .abyss)` → `[.level1, .level2, .level3]`
+7. Builds path (lines 281-299 in `delegateToChildren()`)
+8. Presents `level3ModalCoordinator` with root `.level3Modal` (line 304)
+9. Calls `level3ModalCoordinator.navigate(to: .abyss)` (line 305)
+10. `level3ModalCoordinator` delegates to `nestedModalCoordinator`
+11. Presents `nestedModalCoordinator` with root `.level3NestedModal`
+12. Calls `nestedModalCoordinator.navigate(to: .abyss)`
+13. Pushes `oceanCoordinator` and navigates to `.abyss` ✅
+
+The key difference: `DeepBlueCoordinator` never claimed to handle `OceanRoute`, so it correctly delegated to its modal coordinators from the start!
+
+---
+
+### Key Insight: canHandle() vs Modal Coordinator Ownership
+
+**Rule:** A coordinator should only `canHandle()` routes for which it has the modal coordinator configured in its own `modalCoordinators` array.
+
+**Wrong:**
+```swift
+// DeepBlueCoordinator
+override func canHandle(_ route: any Route) -> Bool {
+    return route is DeepBlueRoute  // ❌ Claims to handle .level3NestedModal!
+}
+
+// But nestedModalCoordinator is NOT in DeepBlueCoordinator.modalCoordinators!
+// It's in level3ModalCoordinator.modalCoordinators!
+```
+
+**Correct:**
+```swift
+// DeepBlueCoordinator
+override func canHandle(_ route: any Route) -> Bool {
+    guard let deepBlueRoute = route as? DeepBlueRoute else { return false }
+    return deepBlueRoute != .level3NestedModal  // ✅ Excludes nested modal route
+}
+
+// Now .level3NestedModal will be delegated to level3ModalCoordinator ✅
+```
+
+---
+
+### Testing
+
+Both fixes were tested with the complex navigation hierarchy:
+
+```swift
+Blue (tab)
+  └─ DeepBlue (pushed child)
+      ├─ Level 1, 2, 3 (pushed)
+      └─ level3ModalCoordinator (modal from level 3)
+          ├─ root: .level3Modal
+          └─ nestedModalCoordinator (nested modal)
+              ├─ root: .level3NestedModal
+              └─ oceanCoordinator (pushed child)
+                  └─ surface, shallow, deep, abyss
+```
+
+**Test Cases:**
+1. ✅ Deeplink to `.level3Modal` - Builds path, presents modal
+2. ✅ Deeplink to `.level3NestedModal` - Delegates correctly, presents both modals
+3. ✅ Deeplink to `OceanRoute.abyss` - Builds path, presents both modals, navigates to abyss
+
+---
+
+### Impact
+
+These fixes enable proper deeplink behavior for:
+- Modal routes requiring prerequisite navigation state
+- Nested modal scenarios (modals within modals)
+- Complex multi-level navigation hierarchies with mixed presentation styles
+
+The fixes maintain the framework's invariants:
+- `canHandle()` accurately reflects coordinator capabilities
+- `executeNavigation()` correctly handles path building vs. direct navigation
+- Modal coordinator delegation works for arbitrarily nested scenarios
+
+---
+
 **Last Update:** December 2, 2025
 **Branch:** feature/Pushed-Childs-FullScreen-Approach
 **Status:** Ready for review and merge
@@ -4156,9 +4483,12 @@ Future versions could explore more sophisticated solutions if user feedback indi
 - Deep cross-coordinator navigation with `canNavigate()` delegation
 - Modal coordinator pattern enforcement (parent handles entry, child handles subsequent routes)
 - Optional navigation path building for deeplink scenarios
-- **Modal path building bug fix in `delegateToChildren()`**
-- **Custom navigation bar layout shift bug documented with workarounds**
-- **Modal navigationPath pattern established for nested scenarios**
+- **Modal path building bug fix in `delegateToChildren()`** (Section 24)
+- **Path building + modal presentation bug fixes** (Section 27):
+  - `executeNavigation()` now correctly checks if target route is in path before returning
+  - `canHandle()` in nested modal scenarios fixed to exclude routes owned by descendant modals
+- **Custom navigation bar layout shift bug documented with workarounds** (Section 25)
+- **Modal navigationPath pattern established for nested scenarios** (Section 26)
 - SwiftUI `.automatic` title mode bug workaround documented
 - Comprehensive integration test coverage for `navigationPath()`
 - Complex nested navigation test case: Blue → DeepBlue (3 levels) → modals → Ocean
