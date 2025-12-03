@@ -13,7 +13,7 @@ SwiftUIFlow uses the coordinator pattern to manage navigation in SwiftUI applica
 Add SwiftUIFlow to your project using Swift Package Manager:
 
 1. In Xcode, select **File → Add Package Dependencies**
-2. Enter the repository URL: `https://github.com/yourusername/SwiftUIFlow`
+2. Enter the repository URL: `https://github.com/JohnnyPJr/SwiftUIFlow`
 3. Select the version you want to use
 4. Click **Add Package**
 

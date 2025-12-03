@@ -8,3 +8,7 @@ xcuserdata/
 DerivedData/
 *.xccheckout
 *.moved-aside
+
+# Swift Package Manager
+.build/
+.swiftpm/
