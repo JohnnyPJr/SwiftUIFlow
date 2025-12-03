@@ -9,3 +9,4 @@
 --wraparguments after-first
 --wrapcollections after-first
 --disable blankLinesAroundMark
+--exclude Package.swift
