@@ -35,7 +35,9 @@ struct CoordinatorRouteView<R: Route>: View {
                     }
                     .environment(\.canNavigateBack, true)
             } else {
-                Text("Failed to build view for \(route.identifier)")
+                ErrorReportingView(error: coordinator
+                    .makeError(for: route,
+                               errorType: .viewCreationFailed(viewType: .pushed)))
             }
         }
         // Same modal presentation as CoordinatorView
@@ -95,7 +97,12 @@ struct ChildCoordinatorRouteView: View {
         if let view = wrapper.coordinator.buildCoordinatorRouteView(for: wrapper.route) as? any View {
             AnyView(view)
         } else {
-            AnyView(Text("Failed to build coordinator route view"))
+            let error = SwiftUIFlowError
+                .viewCreationFailed(coordinator: String(describing: type(of: wrapper.coordinator)),
+                                    route: wrapper.route.identifier,
+                                    routeType: String(describing: type(of: wrapper.route)),
+                                    viewType: .pushed)
+            AnyView(ErrorReportingView(error: error))
         }
     }
 }
