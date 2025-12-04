@@ -194,24 +194,57 @@ coordinator.navigate(to: .profile(userId: "123"))
 
 ### Modal Presentation
 
-To present a route as a modal sheet, you need to:
+**When to Use Coordinators for Modals:**
+
+Use coordinator-based modals when you need:
+- **Deep linking** to the modal
+- **Navigation within the modal** (push/pop stack)
+- **Route-based presentation** tracking
+- **Custom modal detents** (automatic content-sized sheets with `.custom` detent)
+
+**When to Use Plain SwiftUI Sheets:**
+
+For simple pickers, selectors, or forms that don't need navigation, use SwiftUI's `.sheet()` directly:
+
+```swift
+struct HomeView: View {
+    let coordinator: AppCoordinator
+    @State private var showThemePicker = false
+
+    var body: some View {
+        VStack {
+            Button("Pick Theme") { showThemePicker = true }
+        }
+        .sheet(isPresented: $showThemePicker) {
+            ThemePickerView(selectedTheme: $theme)
+        }
+    }
+}
+```
+
+**Coordinator-Based Modal Setup:**
+
+To present a route as a coordinator-managed modal:
 
 1. **Create a modal coordinator** with that route as its root
 2. **Register it** using `addModalCoordinator()`
 3. **Return `.modal`** from `navigationType(for:)` for that route
 
 ```swift
-// Modal coordinator for settings - just displays the settings view
-class SettingsCoordinator: Coordinator<AppRoute> {
+// Modal coordinator for settings with its own navigation
+class SettingsCoordinator: Coordinator<SettingsRoute> {
     init() {
-        let factory = AppViewFactory()
-        super.init(router: Router(initial: .settings, factory: factory))
+        let factory = SettingsViewFactory()
+        super.init(router: Router(initial: .main, factory: factory))
         factory.coordinator = self
     }
-    // No need to override anything if no child routes!
+
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is SettingsRoute
+    }
 }
 
-// Parent coordinator handles the route and presents the modal
+// Parent coordinator registers and presents the modal
 class AppCoordinator: Coordinator<AppRoute> {
     let settingsModalCoordinator: SettingsCoordinator
 
@@ -225,16 +258,17 @@ class AppCoordinator: Coordinator<AppRoute> {
         addModalCoordinator(settingsModalCoordinator)
     }
 
-    override func canHandle(_ route: AppRoute) -> Bool {
-        return true // Parent handles ALL AppRoutes (including .settings)
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is AppRoute
     }
 
-    override func navigationType(for route: AppRoute) -> NavigationType {
-        switch route {
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let appRoute = route as? AppRoute else { return .push }
+        switch appRoute {
         case .home, .profile:
-            return .push    // Regular push navigation
+            return .push
         case .settings:
-            return .modal   // Presents settingsModalCoordinator as sheet
+            return .modal
         }
     }
 }
