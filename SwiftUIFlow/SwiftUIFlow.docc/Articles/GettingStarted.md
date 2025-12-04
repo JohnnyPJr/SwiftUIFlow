@@ -198,7 +198,7 @@ coordinator.navigate(to: .profile(userId: "123"))
 
 Use coordinator-based modals when you need:
 - **Deep linking** to the modal
-- **Navigation within the modal** (push/pop stack)
+- **Navigation within the modal** (calling `.navigate()`, not just dismissing)
 - **Route-based presentation** tracking
 - **Custom modal detents** (automatic content-sized sheets with `.custom` detent)
 

@@ -173,6 +173,32 @@ coordinator.navigate(to: .settings) // Automatically presents as modal
 
 ## What You Can Do
 
+### Simple Modals? Use Plain SwiftUI!
+
+**Important:** Not every modal needs a coordinator! For simple pickers, selectors, or forms without navigation, use SwiftUI's `.sheet()` directly:
+
+```swift
+struct HomeView: View {
+    let coordinator: AppCoordinator
+    @State private var showThemePicker = false
+
+    var body: some View {
+        Button("Pick Theme") { showThemePicker = true }
+            .sheet(isPresented: $showThemePicker) {
+                ThemePickerView(selectedTheme: $theme)
+            }
+    }
+}
+```
+
+**Use coordinator-based modals only when you need:**
+- Deep linking to the modal
+- Navigation within the modal (calling `.navigate()`, not just dismissing)
+- Route-based presentation tracking
+- Custom modal detents (automatic content-sizing with `.custom`)
+
+**SwiftUIFlow is for navigation** - if your modal doesn't navigate anywhere, you don't need a coordinator!
+
 ### Navigate from Anywhere in Your App
 
 Call `navigate(to:)` from any view, any coordinator, any level deep. The framework automatically finds the right coordinator to handle the route:
