@@ -45,6 +45,7 @@ struct CustomTabBarView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 10)
         }
+        .withTabCoordinatorModals(coordinator: coordinator)
     }
 
     private var customTabBar: some View {

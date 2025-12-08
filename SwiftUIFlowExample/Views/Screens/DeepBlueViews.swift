@@ -73,25 +73,75 @@ struct DeepBlueLevel3View: View {
         ZStack {
             Color.cyan.opacity(0.7).ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                Text("Deep Blue - Level 3")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
+            ScrollView {
+                VStack(spacing: 20) {
+                    Text("Deep Blue - Level 3")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
 
-                Text("This level can present a modal!")
-                    .foregroundColor(.secondary)
+                    Text("This level can present a modal!")
+                        .foregroundColor(.secondary)
 
-                Text("The modal contains Ocean coordinator as a pushed child")
-                    .font(.caption)
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
+                    Text("The modal contains Ocean coordinator as a pushed child")
+                        .font(.caption)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.secondary)
+                        .padding()
+
+                    Button("Present Level 3 Modal") {
+                        coordinator.navigate(to: DeepBlueRoute.level3Modal)
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Divider()
+                        .padding(.vertical, 20)
+
+                    // Deep Link Testing Section
+                    VStack(spacing: 15) {
+                        Text("🔗 Deep Link Test")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+
+                        Text("You are deep in navigation:")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("Blue Tab → DeepBlue (pushed child) → Level 1 → Level 2 → Level 3")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+
+                        Spacer().frame(height: 10)
+
+                        Button("📲 Simulate NAVIGATE Deep Link") {
+                            DeepLinkHandler.simulateNavigateDeepLink()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.purple)
+
+                        Text("(Dismisses modals, cleans stack, goes to Purple)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+
+                        Spacer().frame(height: 20)
+
+                        Button("🎯 Simulate DETOUR Deep Link") {
+                            DeepLinkHandler.simulateDetourDeepLink()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+
+                        Text("(Preserves context, tap back to return here)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
                     .padding()
-
-                Button("Present Level 3 Modal") {
-                    coordinator.navigate(to: DeepBlueRoute.level3Modal)
                 }
-                .buttonStyle(.borderedProminent)
+                .padding()
             }
         }
         .customNavigationBar(title: "Deep Blue L3", backgroundColor: .cyan.opacity(0.8))

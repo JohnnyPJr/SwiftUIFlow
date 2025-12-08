@@ -65,6 +65,7 @@ import SwiftUI
 ///                 }
 ///             }
 ///         }
+///         .withTabCoordinatorModals(coordinator: coordinator)  // Add modal/detour support
 ///     }
 /// }
 /// ```
@@ -84,6 +85,87 @@ public struct TabCoordinatorView<R: Route>: View {
                     .tag(index)
             }
         }
+        .sheet(item: shouldUseFullScreenCover ? .constant(nil) : presentedRoute) { route in
+            // Render modal sheet with full coordinator navigation support
+            if let modalCoordinator = coordinator.currentModalCoordinator {
+                let coordinatorView = modalCoordinator.buildCoordinatorView()
+                eraseToAnyView(coordinatorView)
+            } else {
+                ErrorReportingView(error: coordinator
+                    .makeError(for: route,
+                               errorType: .viewCreationFailed(viewType: .modal)))
+            }
+        }
+        .sheet(isPresented: hasModalCoordinator, onDismiss: {
+            coordinator.dismissModal()
+        }) {
+            // Render cross-type modal sheet (when coordinator exists but no typed route)
+            if let modalCoordinator = coordinator.currentModalCoordinator {
+                let coordinatorView = modalCoordinator.buildCoordinatorView()
+                eraseToAnyView(coordinatorView)
+            }
+        }
+        #if os(iOS)
+        .fullScreenCover(item: shouldUseFullScreenCover ? presentedRoute : .constant(nil), onDismiss: {
+            coordinator.dismissModal()
+        }) { route in
+            // Render fullscreen modal with full coordinator navigation support
+            if let modalCoordinator = coordinator.currentModalCoordinator {
+                let coordinatorView = modalCoordinator.buildCoordinatorView()
+                eraseToAnyView(coordinatorView)
+            } else {
+                ErrorReportingView(error: coordinator
+                    .makeError(for: route,
+                               errorType: .viewCreationFailed(viewType: .modal)))
+            }
+        }
+        .fullScreenCover(isPresented: hasDetour, onDismiss: {
+            coordinator.dismissDetour()
+        }) {
+            // Render detour with full coordinator navigation support
+            if let detourCoordinator = coordinator.detourCoordinator {
+                let coordinatorView = detourCoordinator.buildCoordinatorView()
+                eraseToAnyView(coordinatorView)
+            }
+        }
+        #endif
+    }
+
+    /// Create a binding to the presented modal route that syncs with the coordinator
+    private var presentedRoute: Binding<R?> {
+        Binding(get: {
+                    // Get presented route from router
+                    router.state.presented
+                },
+                set: { newValue in
+                    // Handle modal dismissal (user swiped down or tapped X)
+                    if newValue == nil, router.state.presented != nil {
+                        coordinator.dismissModal()
+                    }
+                })
+    }
+
+    /// Binding for cross-type modal presentation (when modal coordinator exists but no typed route)
+    private var hasModalCoordinator: Binding<Bool> {
+        Binding(get: {
+                    // Modal coordinator exists but no typed route (cross-type modal)
+                    coordinator.currentModalCoordinator != nil && router.state.presented == nil
+                },
+                set: { _ in
+                    // This is called when sheet is dismissed by user gesture
+                    // The onDismiss closure handles the actual cleanup
+                })
+    }
+
+    /// Binding for detour presentation state
+    private var hasDetour: Binding<Bool> {
+        Binding(get: { coordinator.detourCoordinator != nil },
+                set: { if !$0 { coordinator.dismissDetour() } })
+    }
+
+    /// Check if the current modal should use fullScreenCover
+    private var shouldUseFullScreenCover: Bool {
+        router.state.modalDetentConfiguration?.shouldUseFullScreenCover ?? false
     }
 
     /// Create the content for a single tab
