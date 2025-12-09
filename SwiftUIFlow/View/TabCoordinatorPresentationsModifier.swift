@@ -1,5 +1,5 @@
 //
-//  TabCoordinatorModalsModifier.swift
+//  TabCoordinatorPresentationsModifier.swift
 //  SwiftUIFlow
 //
 //  Created by Ioannis Platsis on 8/12/25.
@@ -7,51 +7,46 @@
 
 import SwiftUI
 
-/// A view modifier that adds modal and detour rendering support to custom tab bar views.
+/// **Advanced modifier** for adding modal and detour presentation support to custom tab bar views.
 ///
-/// This modifier is designed for custom tab bar implementations that replace `TabCoordinatorView`.
-/// It handles all modal and detour presentation/dismissal logic internally, so clients don't need
-/// to access internal framework methods.
+/// ## ⚠️ Most Users Should Use `CustomTabCoordinatorView` Instead
 ///
-/// ## Usage Example
+/// This modifier is for **advanced use cases** where you need fine-grained control over where
+/// presentations are applied in the view hierarchy. For most custom tab bars, use
+/// `CustomTabCoordinatorView` wrapper instead—it's safer and prevents forgetting to add this modifier.
+///
+/// ## When to Use This Modifier
+///
+/// Use this modifier directly only if you need:
+/// - Custom presentation layer ordering
+/// - Multiple presentation modifiers in complex view hierarchies
+/// - Integration with other custom modifiers that must be ordered specifically
+///
+/// ## Standard Usage (Use `CustomTabCoordinatorView` Instead)
 ///
 /// ```swift
-/// struct CustomTabBarView: View {
-///     let coordinator: MainTabCoordinator
-///     @ObservedObject private var router: Router<AppRoute>
+/// // ✅ RECOMMENDED: Use the wrapper
+/// CustomTabCoordinatorView(coordinator: coordinator) {
+///     // Your custom tab UI
+/// }
 ///
-///     init(coordinator: MainTabCoordinator) {
-///         self.coordinator = coordinator
-///         router = coordinator.router
+/// // If Preffered: Manual modifier approach
+/// var body: some View {
+///     ZStack {
+///         // Your custom tab UI
 ///     }
-///
-///     var body: some View {
-///         ZStack(alignment: .bottom) {
-///             // Render selected tab's content
-///             if router.state.selectedTab < coordinator.children.count {
-///                 let child = coordinator.children[router.state.selectedTab]
-///                 let coordinatorView = child.buildCoordinatorView()
-///                 eraseToAnyView(coordinatorView)
-///             }
-///
-///             // Your custom tab bar UI
-///             customTabBar
-///         }
-///         .withTabCoordinatorModals(coordinator: coordinator)  // ✅ Add this modifier
-///     }
+///     .withTabCoordinatorPresentations(coordinator: coordinator)
 /// }
 /// ```
 ///
-/// ## What It Handles
+/// ## What This Handles
 ///
-/// The modifier automatically renders:
-/// - **Modal sheets** - Regular modals with detent support
-/// - **Fullscreen modals** - Fullscreen cover modals
-/// - **Cross-type modals** - Modals with different route types than parent
-/// - **Detours** - Fullscreen detours for deep linking
-///
-/// All dismissal logic is handled internally, including swipe-to-dismiss gestures.
-public struct TabCoordinatorModalsModifier<R: Route>: ViewModifier {
+/// - Modal sheets with detent support
+/// - Fullscreen cover modals
+/// - Cross-type modals (modals with different route types than parent)
+/// - Fullscreen detours for deep linking
+/// - All dismissal logic including swipe-to-dismiss gestures
+public struct TabCoordinatorPresentationsModifier<R: Route>: ViewModifier {
     private let coordinator: TabCoordinator<R>
     @ObservedObject private var router: Router<R>
 
@@ -151,14 +146,14 @@ public struct TabCoordinatorModalsModifier<R: Route>: ViewModifier {
 // MARK: - View Extension
 
 public extension View {
-    /// Adds modal and detour rendering support for custom tab bar implementations.
+    /// Adds modal and detour presentation support for custom tab bar implementations.
     ///
     /// Use this modifier when you create a custom tab bar view to replace `TabCoordinatorView`.
     /// It handles all modal sheets, fullscreen modals, and detours automatically.
     ///
     /// - Parameter coordinator: The `TabCoordinator` managing the tab-based navigation
-    /// - Returns: A view with modal and detour rendering support
-    func withTabCoordinatorModals(coordinator: TabCoordinator<some Route>) -> some View {
-        modifier(TabCoordinatorModalsModifier(coordinator: coordinator))
+    /// - Returns: A view with modal and detour presentation support
+    func withTabCoordinatorPresentations(coordinator: TabCoordinator<some Route>) -> some View {
+        modifier(TabCoordinatorPresentationsModifier(coordinator: coordinator))
     }
 }
