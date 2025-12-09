@@ -23,29 +23,30 @@ struct CustomTabBarView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Main content area - render the selected tab's coordinator
-            if router.state.selectedTab < coordinator.children.count {
-                let selectedChild = coordinator.children[router.state.selectedTab]
-                let coordinatorView = selectedChild.buildCoordinatorView()
-                eraseToAnyView(coordinatorView)
-                    .ignoresSafeArea(edges: .bottom)
-            }
+        CustomTabCoordinatorView(coordinator: coordinator) {
+            ZStack(alignment: .bottom) {
+                // Main content area - render the selected tab's coordinator
+                if router.state.selectedTab < coordinator.children.count {
+                    let selectedChild = coordinator.children[router.state.selectedTab]
+                    let coordinatorView = selectedChild.buildCoordinatorView()
+                    eraseToAnyView(coordinatorView)
+                        .ignoresSafeArea(edges: .bottom)
+                }
 
-            // Custom tab bar at the bottom
-            customTabBar
-                .frame(height: 80)
-                .background(.ultraThinMaterial,
-                            in: RoundedRectangle(cornerRadius: 30, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                )
-                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 10)
+                // Custom tab bar at the bottom
+                customTabBar
+                    .frame(height: 80)
+                    .background(.ultraThinMaterial,
+                                in: RoundedRectangle(cornerRadius: 30, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 30, style: .continuous)
+                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 10)
+            }
         }
-        .withTabCoordinatorModals(coordinator: coordinator)
     }
 
     private var customTabBar: some View {
