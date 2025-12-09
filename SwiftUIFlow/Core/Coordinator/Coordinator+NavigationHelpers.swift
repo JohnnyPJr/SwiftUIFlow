@@ -235,68 +235,54 @@ extension Coordinator {
     }
 
     func delegateToChildren(route: any Route, caller: AnyCoordinator?) -> Bool {
+        // Try delegating to internal children first
+        if delegateToInternalChildren(route: route, caller: caller) {
+            return true
+        }
+
+        // Then try modal coordinators
+        return delegateToModalChildren(route: route, caller: caller)
+    }
+
+    private func delegateToInternalChildren(route: any Route, caller: AnyCoordinator?) -> Bool {
         for child in internalChildren where child !== caller {
             if child.canNavigate(to: route) {
                 // Get the navigation type the child coordinator expects for this route
                 let navType = child.navigationType(for: route)
 
-                switch navType {
-                case .push:
+                // Check if child is already pushed - if so, just navigate without re-pushing
+                let isAlreadyPushed = router.state.pushedChildren.contains(where: { $0 === child })
+
+                if !isAlreadyPushed {
                     // Push child coordinator to parent's navigation stack
                     router.pushChild(child)
                     child.parent = self
                     child.presentationContext = .pushed
-                    _ = child.navigate(to: route, from: self)
-                    NavigationLogger.debug("👶 \(Self.self): Pushed child coordinator for \(route.identifier)")
-                    return true
 
-                case .replace:
-                    // Push child coordinator (first time), child will handle replace internally
-                    router.pushChild(child)
-                    child.parent = self
-                    child.presentationContext = .pushed
-                    _ = child.navigate(to: route, from: self)
-                    NavigationLogger.debug("👶 \(Self.self): Pushed child coordinator (replace) for \(route.identifier)")
-                    return true
+                    let navTypeLabel = navType == .modal ? "for modal" : navType == .replace ? "(replace)" : ""
 
-                case .modal:
-                    // Push child coordinator first, then let child present modal
-                    router.pushChild(child)
-                    child.parent = self
-                    child.presentationContext = .pushed
-                    _ = child.navigate(to: route, from: self)
-                    NavigationLogger.debug("👶 \(Self.self): Pushed child coordinator for modal \(route.identifier)")
-                    return true
+                    NavigationLogger
+                        .debug("👶 \(Self.self): Pushed child coordinator \(navTypeLabel) for \(route.identifier)")
                 }
+
+                // Navigate to the route (whether already pushed or not)
+                _ = child.navigate(to: route, from: self)
+                return true
             }
         }
 
+        return false
+    }
+
+    private func delegateToModalChildren(route: any Route, caller: AnyCoordinator?) -> Bool {
         // Check if any modal coordinator can handle this route (for subsequent navigation)
-        // Parent doesn't handle this route, but modal child or its descendants might (e.g., .evenDarkerGreen)
+        // Parent doesn't handle this route, but modal child or its descendants might
         for modal in modalCoordinators where modal !== caller {
             if modal.canNavigate(to: route) {
-                // Check if we need to build a navigation path before presenting the modal
-                // This handles cases where the route is handled by a descendant (e.g., OceanRoute)
+                // Build navigation path if needed before presenting the modal
+                // This handles cases where the route is handled by a descendant
                 // but the parent coordinator needs to build a path to the correct state first
-                if let path = navigationPath(for: route), !path.isEmpty, router.state.stack.isEmpty {
-                    NavigationLogger.debug("🗺️ \(Self.self): Build path before presenting modal for \(route.identifier)")
-                    // Build the path first
-                    for intermediateRoute in path {
-                        guard let typedRoute = intermediateRoute as? R else {
-                            NavigationLogger.error("❌ \(Self.self): Navigation path contains invalid route type")
-                            return false
-                        }
-                        switch navigationType(for: typedRoute) {
-                        case .push:
-                            router.push(typedRoute)
-                        case .replace:
-                            router.replace(typedRoute)
-                        case .modal:
-                            NavigationLogger.error("❌ \(Self.self): Navigation path cannot contain modal routes")
-                            return false
-                        }
-                    }
-                }
+                _ = buildNavigationPath(for: route)
 
                 // Modal or its descendants can handle subsequent navigation - present modal with its root route first
                 let initialRoute = modal.router.state.root
@@ -309,6 +295,39 @@ extension Coordinator {
         }
 
         return false
+    }
+
+    private func buildNavigationPath(for route: any Route) -> Bool {
+        guard let path = navigationPath(for: route),
+              !path.isEmpty,
+              router.state.stack.isEmpty else { return false }
+
+        NavigationLogger.debug("🗺️ \(Self.self): Building navigation path to \(route.identifier)")
+
+        for intermediateRoute in path {
+            // Skip if this route is the current root (don't push root onto stack)
+            if intermediateRoute.identifier == router.state.root.identifier {
+                NavigationLogger.debug("⏭️ \(Self.self): Skipping root \(intermediateRoute.identifier) in path")
+                continue
+            }
+
+            guard let typedRoute = intermediateRoute as? R else {
+                NavigationLogger.error("❌ \(Self.self): Navigation path contains invalid route type")
+                return false
+            }
+
+            switch navigationType(for: typedRoute) {
+            case .push:
+                router.push(typedRoute)
+            case .replace:
+                router.replace(typedRoute)
+            case .modal:
+                NavigationLogger.error("❌ \(Self.self): Navigation path cannot contain modal routes")
+                return false
+            }
+        }
+
+        return true
     }
 
     func bubbleToParent(route: any Route) -> Bool {
@@ -352,30 +371,12 @@ extension Coordinator {
         // Check if this route requires building a navigation path
         // Only build path if we're at the root (stack is empty) - meaning this is a deeplink scenario
         // If stack has items, we're already navigating within this coordinator, so navigate normally
-        if let path = navigationPath(for: route), !path.isEmpty, router.state.stack.isEmpty {
-            NavigationLogger.debug("🗺️ \(Self.self): Building navigation path to \(route.identifier)")
-
-            // Navigate through each route in the path sequentially
-            for intermediateRoute in path {
-                guard let typedRoute = intermediateRoute as? R else {
-                    NavigationLogger.error("❌ \(Self.self): Navigation path contains invalid route type")
-                    return false
-                }
-                // Execute navigation for each step (direct push/replace, no path building to avoid infinite loop)
-                switch navigationType(for: typedRoute) {
-                case .push:
-                    router.push(typedRoute)
-                case .replace:
-                    router.replace(typedRoute)
-                case .modal:
-                    NavigationLogger.error("❌ \(Self.self): Navigation path cannot contain modal routes")
-                    return false
-                }
-            }
-
+        if buildNavigationPath(for: route) {
             // If the target route is in the path, we're done (path includes destination)
             // If not, fall through to execute the target route (e.g., modal presentation)
-            if path.contains(where: { $0.identifier == route.identifier }) {
+            if let path = navigationPath(for: route),
+               path.contains(where: { $0.identifier == route.identifier })
+            {
                 return true
             }
         }

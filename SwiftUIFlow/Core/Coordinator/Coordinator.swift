@@ -720,6 +720,9 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// Dismiss the currently presented modal
     /// **Framework internal only** - modals are dismissed automatically
     func dismissModal() {
+        // Reset modal to clean state before dismissing
+        currentModalCoordinator?.resetToCleanState()
+
         if currentModalCoordinator?.parent === self {
             currentModalCoordinator?.parent = nil
         }
@@ -786,6 +789,11 @@ open class Coordinator<R: Route>: AnyCoordinator {
         router.resetToRoot()
         dismissModal()
         dismissDetour()
+
+        // Pop all pushed children
+        while !router.state.pushedChildren.isEmpty {
+            router.popChild()
+        }
     }
 
     // MARK: - Admin Operations (Framework Internal)

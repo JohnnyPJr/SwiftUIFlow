@@ -359,18 +359,19 @@ final class DeepBlueCoordinator: Coordinator<DeepBlueRoute> {
 
     override func navigationPath(for route: any Route) -> [any Route]? {
         // Handle DeepBlueRoute paths
+        // Paths should NOT include the root (level1) since we start there
         if let deepBlueRoute = route as? DeepBlueRoute {
             switch deepBlueRoute {
             case .level1:
                 return nil // Already at root level
             case .level2:
-                return [DeepBlueRoute.level1, DeepBlueRoute.level2]
+                return [DeepBlueRoute.level2]
             case .level3:
-                return [DeepBlueRoute.level1, DeepBlueRoute.level2, DeepBlueRoute.level3]
+                return [DeepBlueRoute.level2, DeepBlueRoute.level3]
             case .level3Modal, .level3NestedModal:
                 // Modals require being at level3 first - build path to level3
                 // After path is built, the modal will be presented
-                return [DeepBlueRoute.level1, DeepBlueRoute.level2, DeepBlueRoute.level3]
+                return [DeepBlueRoute.level2, DeepBlueRoute.level3]
             }
         }
 
@@ -378,7 +379,7 @@ final class DeepBlueCoordinator: Coordinator<DeepBlueRoute> {
         // So we need to be at level3 before the modals can be presented
         if route is OceanRoute {
             // Build path to level3, then modals will be presented, then Ocean will be pushed
-            return [DeepBlueRoute.level1, DeepBlueRoute.level2, DeepBlueRoute.level3]
+            return [DeepBlueRoute.level2, DeepBlueRoute.level3]
         }
 
         return nil
@@ -626,17 +627,16 @@ final class OceanCoordinator: Coordinator<OceanRoute> {
         guard let oceanRoute = route as? OceanRoute else { return nil }
 
         // Define the sequential path for each ocean depth
-        // This is only called when stack is empty (deeplink scenario)
-        // You can check current state to determine which path to build
+        // Paths should NOT include the root (surface) since we start there
         switch oceanRoute {
         case .surface:
-            return [OceanRoute.surface]
+            return nil // Already at root
         case .shallow:
             return [OceanRoute.shallow]
         case .deep:
             // Example: Could have multiple paths based on some condition
             // if someCondition {
-            //     return [OceanRoute.shallow, OceanRoute.deep] // Scenic route
+            //     return [OceanRoute.shallow, OceanRoute.deep] // Scenic route through shallow
             // } else {
             //     return [OceanRoute.deep] // Direct route
             // }
