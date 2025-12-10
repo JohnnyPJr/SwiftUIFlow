@@ -21,7 +21,7 @@ import Foundation
 ///
 /// // Check if we're at root
 /// if coordinator.router.state.stack.isEmpty {
-///     print("At root of navigation")
+///     Logger().info("At root of navigation")
 /// }
 ///
 /// // Get navigation depth
@@ -29,7 +29,7 @@ import Foundation
 ///
 /// // Check if modal is presented
 /// if coordinator.router.state.presented != nil {
-///     print("Modal is active")
+///     Logger().info("Modal is active")
 /// }
 /// ```
 ///

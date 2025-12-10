@@ -237,7 +237,7 @@ Send errors to your logging system:
 
 ```swift
 SwiftUIFlowErrorHandler.shared.setHandler { error in
-    print("SwiftUIFlow Error: \(error)")
+    Logger().error("SwiftUIFlow Error: \(error.localizedDescription)")
     // Analytics.logError(error)
 }
 ```

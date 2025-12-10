@@ -413,6 +413,8 @@ Want to see SwiftUIFlow in action? The repository includes a comprehensive examp
 
 ### Tab Coordination
 
+Create a tab coordinator and child coordinators with `tabItem` overrides:
+
 ```swift
 class MainTabCoordinator: TabCoordinator<AppRoute> {
     init() {
@@ -425,7 +427,70 @@ class MainTabCoordinator: TabCoordinator<AppRoute> {
         addChild(ProfileCoordinator())
     }
 }
+
+class HomeCoordinator: Coordinator<HomeRoute> {
+    override var tabItem: (text: String, image: String)? {
+        ("Home", "house.fill")
+    }
+}
 ```
+
+**Rendering Tabs: Choose Your Approach**
+
+**Option 1: Native iOS Tab Bar (Easiest)**
+
+```swift
+TabCoordinatorView(coordinator: mainTabCoordinator)
+```
+
+**Option 2: Custom Tab Bar with Wrapper (Recommended)**
+
+```swift
+CustomTabCoordinatorView(coordinator: mainTabCoordinator) {
+    MyCustomTabBarUI(coordinator: mainTabCoordinator)
+}
+```
+
+**Option 3: Custom Tab Bar with Manual Modifier (Advanced)**
+
+```swift
+ZStack {
+    // Custom tab UI
+}.withTabCoordinatorPresentations(coordinator: mainTabCoordinator)
+```
+
+### Handling External Deep Links
+
+**Handle external triggers (push notifications, universal links, app links, URL schemes) from a central location:**
+
+```swift
+class DeepLinkHandler {
+    // Option 1: Navigate (Cleans State) - User loses their context
+    static func handleNavigateDeepLink(to route: any Route) {
+        guard let mainTab = appCoordinator.currentFlow as? MainTabCoordinator else { return }
+
+        // Dismisses modals, cleans stacks, navigates to destination
+        // Use when: User SHOULD lose their context (e.g., "View this specific page")
+        mainTab.navigate(to: route)
+    }
+
+    // Option 2: Detour (Preserves State) - User keeps their context
+    static func handleDetourDeepLink(to route: any Route) {
+        guard let mainTab = appCoordinator.currentFlow as? MainTabCoordinator else { return }
+
+        // Present fullscreen, preserve ALL context underneath
+        // Use when: User should return to where they were (e.g., "You have a message")
+        let detourCoordinator = MessageCoordinator(root: .message)
+        mainTab.presentDetour(detourCoordinator, presenting: .message)
+
+        // When dismissed: returns to EXACT state before deep link
+    }
+}
+```
+
+**Choose based on user intent:**
+- **Navigate**: "Take me to X" - Clean slate navigation (e.g., marketing deep link)
+- **Detour**: "Show me X, then let me continue" - Temporary interruption (e.g., notification)
 
 ### Modal Coordinators with Shared Route Type
 
