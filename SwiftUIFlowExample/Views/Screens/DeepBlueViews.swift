@@ -119,9 +119,9 @@ struct DeepBlueLevel3View: View {
                             DeepLinkHandler.simulateNavigateDeepLink()
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.purple)
+                        .tint(.green)
 
-                        Text("(Dismisses modals, cleans stack, goes to Purple)")
+                        Text("(Dismisses modals, cleans stack, goes to Green)")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
