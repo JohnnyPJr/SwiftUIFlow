@@ -123,12 +123,15 @@ struct RainbowBlueView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(.purple)
 
-                Button("Detour to Yellow's Light Screen") {
-                    let yellowDetourCoordinator = YellowCoordinator(root: .lightYellow)
-                    coordinator.presentDetour(yellowDetourCoordinator, presenting: YellowRoute.lightYellow)
+                Button("Simulate Detour (Yellow)") {
+                    DeepLinkHandler.simulateDetourDeepLink()
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.yellow)
+
+                Text("(Preserves context, like push notification)")
+                    .font(.caption)
+                    .foregroundColor(.white)
             }
         }
         .customNavigationBar(title: "Rainbow Blue", backgroundColor: .blue)

@@ -29,6 +29,9 @@ class AppState: ObservableObject {
         // It starts at login and manages flow transitions via handleFlowChange
         appCoordinator = AppCoordinator()
 
+        // Configure deep link handler for simulating external events (notifications, URLs, etc.)
+        DeepLinkHandler.configure(with: appCoordinator)
+
         // Set up global error handler to show toast
         SwiftUIFlowErrorHandler.shared.setHandler { [weak self] error in
             DispatchQueue.main.async {

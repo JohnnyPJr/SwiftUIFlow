@@ -78,13 +78,12 @@ struct LightBlueView: View {
 
                 Spacer().frame(height: 40)
 
-                Button("Detour to Red's Light Screen") {
-                    let redDetourCoordinator = RedCoordinator(root: .lightRed)
-                    coordinator.presentDetour(redDetourCoordinator, presenting: RedRoute.lightRed)
+                Button("Simulate Detour (Yellow)") {
+                    DeepLinkHandler.simulateDetourDeepLink()
                 }
-                .buttonStyle(NavigationButtonStyle(color: .red))
+                .buttonStyle(NavigationButtonStyle(color: .yellow))
 
-                Text("(Preserves this context)")
+                Text("(Preserves context, like push notification)")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.7))
             }
