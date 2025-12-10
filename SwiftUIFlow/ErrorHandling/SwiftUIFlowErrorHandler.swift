@@ -30,9 +30,9 @@ import Foundation
 ///                 ToastManager.show("Navigation error occurred")
 ///             }
 ///
-///             // Development debugging
+///             // Development logging
 ///             #if DEBUG
-///             print("SwiftUIFlow Error: \(error)")
+///             Logger().error("SwiftUIFlow Error: \(error.localizedDescription)")
 ///             #endif
 ///         }
 ///     }
@@ -55,7 +55,7 @@ public final class SwiftUIFlowErrorHandler {
     ///
     /// ```swift
     /// SwiftUIFlowErrorHandler.shared.setHandler { error in
-    ///     print("Error: \(error)")
+    ///     Logger().error("Navigation error: \(error.localizedDescription)")
     ///     // Show toast, log to analytics, etc.
     /// }
     /// ```

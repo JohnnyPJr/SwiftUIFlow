@@ -491,12 +491,28 @@ struct MyApp: App {
 - Syncs tab selection with coordinator state
 - Preserves all navigation capabilities (modals, detours, navigation stacks)
 
-### Creating Custom Tab Bars
+### Custom Tab Bar Options
 
-``TabCoordinatorView`` is **completely optional**! You can build custom tab bar UIs with any design:
+``TabCoordinatorView`` is **completely optional**! You can build custom tab bar UIs with any design. Choose your approach:
+
+#### Option 1: CustomTabCoordinatorView Wrapper (Recommended)
+
+Use ``CustomTabCoordinatorView`` for automatic modal/detour support:
 
 ```swift
-struct CustomTabBar: View {
+struct MyApp: App {
+    let coordinator = MainTabCoordinator()
+
+    var body: some Scene {
+        WindowGroup {
+            CustomTabCoordinatorView(coordinator: coordinator) {
+                CustomTabBarUI(coordinator: coordinator)
+            }
+        }
+    }
+}
+
+struct CustomTabBarUI: View {
     let coordinator: MainTabCoordinator
     @ObservedObject private var router: Router<AppRoute>
 
@@ -511,50 +527,75 @@ struct CustomTabBar: View {
             if router.state.selectedTab < coordinator.children.count {
                 let child = coordinator.children[router.state.selectedTab]
                 eraseToAnyView(child.buildCoordinatorView())
-                    .ignoresSafeArea(edges: .bottom)
             }
 
             // Your custom tab bar design
-            HStack(spacing: 0) {
-                ForEach(Array(coordinator.children.enumerated()), id: \.offset) { index, child in
-                    if let item = child.tabItem {
-                        customTabButton(for: item, at: index)
-                    }
-                }
-            }
-            .frame(height: 80)
-            .background(.ultraThinMaterial)
-            .padding()
+            customTabBar
         }
     }
 
-    private func customTabButton(for item: (text: String, image: String), at index: Int) -> some View {
-        let isSelected = router.state.selectedTab == index
-
-        return Button(action: {
-            withAnimation {
-                coordinator.switchToTab(index)
+    private var customTabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(coordinator.children.enumerated()), id: \.offset) { index, child in
+                if let item = child.tabItem {
+                    Button(action: { coordinator.switchToTab(index) }) {
+                        VStack {
+                            Image(systemName: item.image)
+                            Text(item.text)
+                        }
+                    }
+                }
             }
-        }) {
-            VStack {
-                Image(systemName: item.image)
-                    .font(.system(size: isSelected ? 26 : 22))
-                Text(item.text)
-                    .font(.system(size: isSelected ? 12 : 10))
-            }
-            .frame(maxWidth: .infinity)
         }
+        .padding()
+        .background(.ultraThinMaterial)
     }
 }
 ```
 
-**Custom Tab Bar Capabilities:**
-- Access tabs via `coordinator.children` (conforms to `CoordinatorUISupport`)
+**Benefits:**
+- ✅ Automatic modal/detour support - impossible to forget!
+- ✅ Cleaner code - wrapper handles presentation complexity
+- ✅ Full design freedom
+
+#### Option 2: Manual Modifier (Advanced)
+
+For fine-grained control over presentation layering:
+
+```swift
+struct CustomTabBarUI: View {
+    let coordinator: MainTabCoordinator
+    @ObservedObject private var router: Router<AppRoute>
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            // Render selected tab's content
+            if router.state.selectedTab < coordinator.children.count {
+                let child = coordinator.children[router.state.selectedTab]
+                eraseToAnyView(child.buildCoordinatorView())
+            }
+
+            // Your custom tab bar design
+            customTabBar
+        }
+        .withTabCoordinatorPresentations(coordinator: coordinator)
+    }
+}
+```
+
+**When to use:**
+- Need custom presentation layer ordering
+- Complex view hierarchies with multiple modifiers
+- Integration with other custom modifiers that must be ordered specifically
+
+#### Custom Tab Bar Capabilities
+
+Regardless of which option you choose:
+- Access tabs via `coordinator.children`
 - Read selected tab via `coordinator.router.state.selectedTab`
 - Switch tabs via `coordinator.switchToTab(index)`
 - Render each tab using `child.buildCoordinatorView()`
-- Create any design: floating, sidebar, custom animations, etc.
-- All navigation capabilities preserved (modals, detours, stacks)
+- Create any design: floating tabs, sidebars, custom animations, etc.
 
 ### Cross-Tab Navigation
 
@@ -609,32 +650,64 @@ When deep linking to `.level3Modal`:
 2. Builds path: pushes `.level1`, `.level2`, `.level3`
 3. Presents modal from level 3
 
-## Detour Navigation
+## Handling External Deep Links
 
-### Preserving Context with Detours
+External triggers (push notifications, universal links, app links, URL schemes) require special handling. You have two options:
 
-Detours present fullscreen coordinators while preserving underlying navigation context:
+### Option 1: Navigate (Cleans State)
+
+Use `navigate(to:)` when the user should lose their current context:
 
 ```swift
-// User is deep in a flow: Tab2 → Unlock → EnterCode → Loading → Failure
-// Deep link arrives: Navigate to ProfileSettings
+class DeepLinkHandler {
+    static func handleMarketingLink(to route: any Route) {
+        guard let mainTab = appCoordinator.currentFlow as? MainTabCoordinator else { return }
 
-class MainCoordinator: Coordinator<MainRoute> {
-    func handleDeepLink(to route: any Route) {
-        // Present ProfileSettings as detour
-        let profileCoordinator = ProfileCoordinator()
-        presentDetour(profileCoordinator, presenting: .settings)
-
-        // When user taps back, they return to Failure screen
+        // Dismisses modals, cleans stacks, navigates to destination
+        // User loses their previous context
+        mainTab.navigate(to: route)
     }
 }
 ```
 
-Detours:
-- Present as fullscreen cover (slides from right)
-- Preserve underlying navigation state
+**When to use:**
+- Marketing deep links ("View this product")
+- "Take me to X" scenarios
+- User shouldn't return to previous context
+
+### Option 2: Detour (Preserves State)
+
+Use detours when the user should preserve their current context:
+
+```swift
+class DeepLinkHandler {
+    static func handleNotification(to route: any Route) {
+        guard let mainTab = appCoordinator.currentFlow as? MainTabCoordinator else { return }
+
+        // User is deep in a flow: Tab2 → Unlock → EnterCode → Loading
+        // Notification arrives: "You have a message"
+
+        // Present message as detour - preserves ALL context underneath
+        let messageCoordinator = MessageCoordinator(root: .message)
+        mainTab.presentDetour(messageCoordinator, presenting: .message)
+
+        // When user dismisses: returns to EXACT state (Loading screen)
+    }
+}
+```
+
+**When to use:**
+- Push notifications ("You have a message")
+- Temporary interruptions
+- "Show me X, then let me continue" scenarios
+
+**⚠️ Always present detours from a central location** (AppCoordinator or MainTabCoordinator), never from individual view coordinators. This ensures app-wide interruptions work correctly regardless of where the user currently is.
+
+**Detour capabilities:**
+- Present as fullscreen cover
+- Preserve all underlying navigation state (modals, stacks, pushed children)
 - Auto-dismiss during cross-flow navigation
-- Support full navigation stacks
+- Support full navigation stacks within the detour
 
 ## Flow Transitions
 
