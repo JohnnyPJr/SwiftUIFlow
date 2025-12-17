@@ -72,7 +72,7 @@ struct CustomTabBarView: View {
                 Image(systemName: item.image)
                     .font(.system(size: isSelected ? 26 : 22))
                     .foregroundColor(isSelected ? .black : color)
-                    .symbolEffect(.bounce, value: isSelected)
+//                    .symbolEffect(.bounce, value: isSelected)
 
                 Text(item.text)
                     .font(.system(size: isSelected ? 12 : 10, weight: isSelected ? .semibold : .regular))

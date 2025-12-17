@@ -39,7 +39,7 @@ public extension View {
                     .onAppear {
                         closure(geometry.size)
                     }
-                    .onChange(of: geometry.size) { _, newSize in
+                    .onChange(of: geometry.size) { newSize in
                         closure(newSize)
                     }
             }

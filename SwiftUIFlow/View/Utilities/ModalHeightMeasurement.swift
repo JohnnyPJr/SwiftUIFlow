@@ -25,7 +25,7 @@ struct ModalContentMeasurement: ViewModifier {
                     measuredHeight = size.height
                 }
                 .preference(key: IdealHeightPreferenceKey.self, value: measuredHeight)
-                .onChange(of: measuredHeight) { _, newValue in
+                .onChange(of: measuredHeight) { newValue in
                     height = newValue
                 }
         } else {
