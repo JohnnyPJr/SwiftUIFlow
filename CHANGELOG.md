@@ -5,7 +5,7 @@ All notable changes to SwiftUIFlow will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.1] - Unreleased
+## [1.0.1] - 10/12/2024
 
 ### Added
 - **`CustomTabCoordinatorView`** - New wrapper view that automatically handles modal and detour presentations for custom tab bar designs. Provides compile-time safety and eliminates the need to manually add presentation modifiers.
@@ -63,5 +63,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Complete DocC documentation with guides and examples
 - Full-featured example app demonstrating all capabilities
 
-[1.0.1]: https://github.com/JohnnyPJr/SwiftUIFlow/compare/v1.0.0...HEAD
+[1.0.1]: https://github.com/JohnnyPJr/SwiftUIFlow/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/JohnnyPJr/SwiftUIFlow/releases/tag/v1.0.0
