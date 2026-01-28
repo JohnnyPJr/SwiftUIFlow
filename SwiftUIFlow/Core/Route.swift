@@ -43,14 +43,10 @@ import Foundation
 /// For simple enums without associated values, the identifier can match the case name:
 ///
 /// ```swift
-/// enum SettingsRoute: Route {
+/// enum SettingsRoute: String, Route {
 ///     case profile
 ///     case notifications
 ///     case privacy
-///
-///     var identifier: String {
-///         String(describing: self)  // Returns "profile", "notifications", etc.
-///     }
 /// }
 /// ```
 ///
@@ -89,4 +85,25 @@ public protocol Route: Hashable, Identifiable {
 
 public extension Route {
     var id: String { identifier }
+}
+
+/// This extension provides a default implementation of the `identifier` property for types
+/// conforming to `Route` that are also `RawRepresentable` with a `String` raw value.
+/// It lets you define routes as enums backed by string raw values and have the
+/// `identifier` automatically derived from `rawValue`.
+///
+/// ## When to use
+/// - When your route enums explicitly declare `rawValue` of type `String`.
+/// - When you want full control over the identifier (e.g., stable, analytics-friendly strings).
+///
+/// ## Example
+/// ```swift
+/// enum SettingsRoute: String, Route {
+///     case profile
+///     case notifications
+///     case privacy
+/// }
+/// ```
+public extension Route where Self: RawRepresentable, Self.RawValue == String {
+    var identifier: String { rawValue }
 }

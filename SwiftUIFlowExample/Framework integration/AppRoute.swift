@@ -8,32 +8,16 @@
 import Foundation
 import SwiftUIFlow
 
-enum AppRoute: Route {
+enum AppRoute: String, Route {
     case tabRoot
     case login
-
-    var identifier: String {
-        switch self {
-        case .tabRoot: return "tabRoot"
-        case .login: return "login"
-        }
-    }
 }
 
-enum RedRoute: Route {
+enum RedRoute: String, Route {
     case red
     case lightRed
     case darkRed
     case info
-
-    var identifier: String {
-        switch self {
-        case .red: return "red"
-        case .lightRed: return "lightRed"
-        case .darkRed: return "darkRed"
-        case .info: return "info"
-        }
-    }
 }
 
 // Rainbow routes for testing pushed child coordinators
@@ -52,42 +36,21 @@ enum RainbowRoute: Route {
     }
 }
 
-enum GreenRoute: Route {
+enum GreenRoute: String, Route {
     case green
     case lightGreen
     case darkGreen
     case evenDarkerGreen
     case darkestGreen // Third level modal - modal upon modal demo
     case info
-
-    var identifier: String {
-        switch self {
-        case .green: return "green"
-        case .lightGreen: return "lightGreen"
-        case .darkGreen: return "darkGreen"
-        case .evenDarkerGreen: return "evenDarkerGreen"
-        case .darkestGreen: return "darkestGreen"
-        case .info: return "info"
-        }
-    }
 }
 
-enum BlueRoute: Route {
+enum BlueRoute: String, Route {
     case blue
     case lightBlue
     case darkBlue
     case invalidView // Coordinator handles but ViewFactory returns nil
     case info
-
-    var identifier: String {
-        switch self {
-        case .blue: return "blue"
-        case .lightBlue: return "lightBlue"
-        case .darkBlue: return "darkBlue"
-        case .invalidView: return "invalidView"
-        case .info: return "info"
-        }
-    }
 }
 
 // DeepBlue routes - pushed child coordinator of BlueCoordinator for testing complex nested navigation
@@ -126,20 +89,11 @@ enum OceanRoute: Route {
     }
 }
 
-enum YellowRoute: Route {
+enum YellowRoute: String, Route {
     case yellow
     case lightYellow
     case darkYellow
     case info
-
-    var identifier: String {
-        switch self {
-        case .yellow: return "yellow"
-        case .lightYellow: return "lightYellow"
-        case .darkYellow: return "darkYellow"
-        case .info: return "info"
-        }
-    }
 }
 
 enum PurpleRoute: Route {
@@ -161,10 +115,6 @@ enum PurpleRoute: Route {
 }
 
 // Route type that NO coordinator handles - for testing navigationFailed error
-enum UnhandledRoute: Route {
+enum UnhandledRoute: String, Route {
     case invalidRoute
-
-    var identifier: String {
-        return "invalidRoute"
-    }
 }

@@ -10,16 +10,9 @@ import SwiftUI
 
 // MARK: - Test Routes
 
-enum FlowRoute: Route {
+enum FlowRoute: String, Route {
     case flow1
     case flow2
-
-    var identifier: String {
-        switch self {
-        case .flow1: return "flow1"
-        case .flow2: return "flow2"
-        }
-    }
 }
 
 // MARK: - Test View Factory
