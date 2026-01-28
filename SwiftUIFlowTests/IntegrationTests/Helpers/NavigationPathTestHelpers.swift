@@ -11,36 +11,28 @@ import SwiftUI
 
 // MARK: - Routes
 
-enum PathRoute: Route {
+enum PathRoute: String, Route {
     case root
     case step1
     case step2
     case finalDestination
     case noPath
-
-    var identifier: String { "\(self)" }
 }
 
-enum MainPathRoute: Route {
+enum MainPathRoute: String, Route {
     case home
     case pathFlow
-
-    var identifier: String { "\(self)" }
 }
 
-enum EmptyPathRoute: Route {
+enum EmptyPathRoute: String, Route {
     case root
     case destination
-
-    var identifier: String { "\(self)" }
 }
 
-enum LongPathRoute: Route {
+enum LongPathRoute: String, Route {
     case root
     case step1, step2, step3, step4, step5
     case step6, step7, step8, step9, final
-
-    var identifier: String { "\(self)" }
 }
 
 // MARK: - Test Coordinators

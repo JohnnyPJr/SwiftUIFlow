@@ -11,51 +11,42 @@ import SwiftUI
 
 // MARK: - Routes
 
-enum MainTabRoute: Route {
+enum MainTabRoute: String, Route {
     case tab1, tab2, tab3, tab4, tab5
-    var identifier: String { "\(self)" }
 }
 
-enum Tab2Route: Route {
+enum Tab2Route: String, Route {
     case startUnlock
-    var identifier: String { "\(self)" }
 }
 
-enum UnlockRoute: Route {
+enum UnlockRoute: String, Route {
     case enterCode, loading, success, failure
     case details // Pushed within success modal
     case settings // Nested modal within success modal
-    var identifier: String { "\(self)" }
 }
 
-enum Tab5Route: Route {
+enum Tab5Route: String, Route {
     case batteryStatus
-    var identifier: String { "\(self)" }
 }
 
-enum AppFlowRoute: Route {
+enum AppFlowRoute: String, Route {
     case onboarding, login, home
-    var identifier: String { "\(self)" }
 }
 
-enum LoginRoute: Route {
+enum LoginRoute: String, Route {
     case enterEmail, enterPassword, twoFactor
-    var identifier: String { "\(self)" }
 }
 
-enum OnboardingRoute: Route {
+enum OnboardingRoute: String, Route {
     case welcome, step1, step2
-    var identifier: String { "\(self)" }
 }
 
-enum HomeRoute: Route {
+enum HomeRoute: String, Route {
     case dashboard
-    var identifier: String { "\(self)" }
 }
 
-enum PasswordResetRoute: Route {
+enum PasswordResetRoute: String, Route {
     case enterCode, verifying, newPassword, success
-    var identifier: String { "\(self)" }
 }
 
 // MARK: - Factories
