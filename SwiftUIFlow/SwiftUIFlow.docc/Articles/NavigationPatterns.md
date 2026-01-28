@@ -16,20 +16,11 @@ Child coordinators manage sub-flows within your app. Each coordinator has its ow
 
 ```swift
 // Parent routes (Red tab)
-enum RedRoute: Route {
+enum RedRoute: String, Route {
     case red
     case lightRed
     case darkRed
     case info
-
-    var identifier: String {
-        switch self {
-        case .red: return "red"
-        case .lightRed: return "lightRed"
-        case .darkRed: return "darkRed"
-        case .info: return "info"
-        }
-    }
 }
 
 // Child routes (completely separate type!)

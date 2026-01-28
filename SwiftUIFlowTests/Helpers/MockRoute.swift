@@ -13,8 +13,4 @@ enum MockRoute: String, Route {
     case home
     case details
     case modal
-
-    var identifier: String {
-        rawValue
-    }
 }
