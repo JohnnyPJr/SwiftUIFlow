@@ -33,7 +33,7 @@ class DummyFlowFactory: ViewFactory<TestAppRoute> {
 // MARK: - Test Coordinators
 
 class TestAppCoordinator: FlowOrchestrator<TestAppRoute> {
-    // Typed convenience properties for tests
+    /// Typed convenience properties for tests
     var loginCoordinator: TestLoginCoordinator? {
         currentFlow as? TestLoginCoordinator
     }

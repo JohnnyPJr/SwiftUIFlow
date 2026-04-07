@@ -61,7 +61,9 @@ final class NavigationStateTests: XCTestCase {
 
         // Detour is type-erased, so it can hold any Route type
         struct OtherRoute: Route {
-            var identifier: String { "other" }
+            var identifier: String {
+                "other"
+            }
         }
 
         state.detour = OtherRoute()

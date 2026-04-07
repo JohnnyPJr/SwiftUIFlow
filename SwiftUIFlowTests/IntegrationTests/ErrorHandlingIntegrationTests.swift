@@ -233,7 +233,7 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
 
     // MARK: - Error Properties Tests
 
-    func test_ErrorProperties_AreAccessible() {
+    func test_ErrorProperties_AreAccessible() throws {
         // Given: Various error types
         let navError = SwiftUIFlowError.navigationFailed(coordinator: "TestCoord",
                                                          route: "testRoute",
@@ -255,7 +255,7 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         XCTAssertTrue(modalError.recommendedRecoveryAction.contains("addModalCoordinator"))
 
         XCTAssertNotNil(tabError.errorDescription)
-        XCTAssertTrue(tabError.errorDescription!.contains("5"))
+        XCTAssertTrue(try XCTUnwrap(tabError.errorDescription?.contains("5")))
     }
 
     func test_ErrorEquality() {

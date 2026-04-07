@@ -11,7 +11,7 @@ import SwiftUIFlow
 /// Simulates handling deep links from push notifications, URL schemes, etc.
 /// Static methods allow calling from anywhere in the app without needing to pass around an instance
 class DeepLinkHandler {
-    // Store a weak reference to AppCoordinator that can be set once
+    /// Store a weak reference to AppCoordinator that can be set once
     private weak static var appCoordinator: AppCoordinator?
 
     /// Configure the handler with the app coordinator (call once at app startup)

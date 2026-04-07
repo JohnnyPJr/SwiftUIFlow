@@ -52,7 +52,7 @@ final class TestModalCoordinator: Coordinator<MockRoute> {
     }
 }
 
-// Parent coordinator that presents .modal as modal and pushes .details
+/// Parent coordinator that presents .modal as modal and pushes .details
 final class TestMixedNavigationCoordinator: Coordinator<MockRoute> {
     override func navigationType(for route: any Route) -> NavigationType {
         guard let route = route as? MockRoute else { return .push }

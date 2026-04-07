@@ -140,11 +140,4 @@ public struct ModalDetentConfiguration: Equatable {
 
         return nil
     }
-
-    public static func == (lhs: ModalDetentConfiguration, rhs: ModalDetentConfiguration) -> Bool {
-        lhs.detents == rhs.detents &&
-            lhs.selectedDetent == rhs.selectedDetent &&
-            lhs.minHeight == rhs.minHeight &&
-            lhs.idealHeight == rhs.idealHeight
-    }
 }

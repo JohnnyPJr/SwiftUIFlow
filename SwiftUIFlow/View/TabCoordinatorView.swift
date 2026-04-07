@@ -73,9 +73,7 @@ public struct TabCoordinatorView<R: Route>: View {
         } else {
             // Programmer error: tab coordinator didn't provide tabItem
             let coordinatorName = String(describing: type(of: child))
-            let error = SwiftUIFlowError.configurationError(
-                message: "Tab coordinator '\(coordinatorName)' at index \(index) must override 'tabItem' property"
-            )
+            let error = SwiftUIFlowError.configurationError(message: "Tab coordinator '\(coordinatorName)' at index \(index) must override 'tabItem' property")
             ErrorReportingView(error: error)
                 .tabItem {
                     Label("Error", systemImage: "exclamationmark.triangle")

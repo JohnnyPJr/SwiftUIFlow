@@ -13,49 +13,67 @@ import SwiftUI
 
 enum MainTabRoute: Route {
     case tab1, tab2, tab3, tab4, tab5
-    var identifier: String { "\(self)" }
+    var identifier: String {
+        "\(self)"
+    }
 }
 
 enum Tab2Route: Route {
     case startUnlock
-    var identifier: String { "\(self)" }
+    var identifier: String {
+        "\(self)"
+    }
 }
 
 enum UnlockRoute: Route {
     case enterCode, loading, success, failure
     case details // Pushed within success modal
     case settings // Nested modal within success modal
-    var identifier: String { "\(self)" }
+    var identifier: String {
+        "\(self)"
+    }
 }
 
 enum Tab5Route: Route {
     case batteryStatus
-    var identifier: String { "\(self)" }
+    var identifier: String {
+        "\(self)"
+    }
 }
 
 enum AppFlowRoute: Route {
     case onboarding, login, home
-    var identifier: String { "\(self)" }
+    var identifier: String {
+        "\(self)"
+    }
 }
 
 enum LoginRoute: Route {
     case enterEmail, enterPassword, twoFactor
-    var identifier: String { "\(self)" }
+    var identifier: String {
+        "\(self)"
+    }
 }
 
 enum OnboardingRoute: Route {
     case welcome, step1, step2
-    var identifier: String { "\(self)" }
+    var identifier: String {
+        "\(self)"
+    }
 }
 
 enum HomeRoute: Route {
     case dashboard
-    var identifier: String { "\(self)" }
+    var identifier: String {
+        "\(self)"
+    }
 }
 
 enum PasswordResetRoute: Route {
     case enterCode, verifying, newPassword, success
-    var identifier: String { "\(self)" }
+    var identifier: String {
+        "\(self)"
+    }
 }
 
 // MARK: - Factories
@@ -238,7 +256,7 @@ final class UnlockResultCoordinator: Coordinator<UnlockRoute> {
     }
 }
 
-// Nested modal coordinator for settings within the success modal
+/// Nested modal coordinator for settings within the success modal
 final class UnlockSettingsModalCoordinator: Coordinator<UnlockRoute> {
     override func canHandle(_ route: any Route) -> Bool {
         // Nested modal child - does NOT handle its entry route (.settings)
