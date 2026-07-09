@@ -20,9 +20,19 @@ jobs:
       - name: Clear Derived Data
         run: rm -rf ~/Library/Developer/Xcode/DerivedData/*
 
-      # 3️⃣ Verify SwiftLint and SwiftFormat
-      - name: Verify SwiftLint and SwiftFormat
+      # 3️⃣ Ensure SwiftLint and SwiftFormat
+      - name: Ensure SwiftLint and SwiftFormat
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
         run: |
+          if ! command -v swiftformat >/dev/null 2>&1; then
+            brew install swiftformat
+          fi
+
+          if ! command -v swiftlint >/dev/null 2>&1; then
+            brew install swiftlint
+          fi
+
           swiftformat --version
           swiftlint version
 
