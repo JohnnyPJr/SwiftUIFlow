@@ -9,7 +9,7 @@ on:
 jobs:
   macos-test:
     name: Lint, Build, and Test (macOS, Xcode 16.4)
-    runs-on: macos-latest
+    runs-on: macos-15
 
     steps:
       # 1️⃣ Checkout
@@ -20,39 +20,35 @@ jobs:
       - name: Clear Derived Data
         run: rm -rf ~/Library/Developer/Xcode/DerivedData/*
 
-      # 3️⃣ Update Homebrew
-      - name: Update Homebrew
-        run: brew update
-
-      # 4️⃣ Install SwiftLint and SwiftFormat
-      - name: Install SwiftLint and SwiftFormat
+      # 3️⃣ Verify SwiftLint and SwiftFormat
+      - name: Verify SwiftLint and SwiftFormat
         run: |
-          brew install swiftlint
-          brew install swiftformat
+          swiftformat --version
+          swiftlint version
 
-      # 5️⃣ Run SwiftFormat in lint mode
+      # 4️⃣ Run SwiftFormat in lint mode
       - name: Run SwiftFormat (Lint Only)
         run: |
           set -eo pipefail
           swiftformat . --lint
 
-      # 6️⃣ Run SwiftLint
+      # 5️⃣ Run SwiftLint
       - name: Run SwiftLint
         run: |
           set -eo pipefail
           swiftlint lint --config swiftlint.yml --reporter github-actions-logging
 
-      # 7️⃣ Setup Xcode 16.4
+      # 6️⃣ Setup Xcode 16.4
       - name: Setup Xcode 16.4
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: "16.4"
 
-      # 8️⃣ Install xcpretty for nice log output
+      # 7️⃣ Install xcpretty for nice log output
       - name: Install xcpretty
         run: gem install xcpretty
 
-      # 9️⃣ Build & Test the SwiftUIFlow scheme (macOS)
+      # 8️⃣ Build & Test the SwiftUIFlow scheme (macOS)
       - name: Clean & Test SwiftUIFlow
         run: |
           set -eo pipefail
@@ -74,7 +70,7 @@ jobs:
               | xcpretty
           fi
 
-      # 🔟 Save test logs as an artifact (optional)
+      # 9️⃣ Save test logs as an artifact (optional)
       - name: Save Test Results
         if: always()
         uses: actions/upload-artifact@v4
