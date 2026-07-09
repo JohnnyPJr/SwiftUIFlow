@@ -9,7 +9,7 @@
 import XCTest
 
 final class CrossTabNavigationIntegrationTests: XCTestCase {
-    func test_unlockFlowNavigatesToBatteryStatusAutomatically() {
+    func test_unlockFlowNavigatesToBatteryStatusAutomatically() throws {
         let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
         let mainCoordinator = MainTabCoordinator(router: router)
 
@@ -39,7 +39,7 @@ final class CrossTabNavigationIntegrationTests: XCTestCase {
 
         // Navigate to battery status from within the modal
         // This should dismiss modal, clean state, switch tab, and navigate
-        let success = unlock.currentModalCoordinator!.navigate(to: Tab5Route.batteryStatus, from: nil)
+        let success = try XCTUnwrap(unlock.currentModalCoordinator?.navigate(to: Tab5Route.batteryStatus, from: nil))
 
         XCTAssertTrue(success, "Navigation to battery status should succeed")
         XCTAssertEqual(router.state.selectedTab, 4, "Should switch to tab 5 (index 4)")
@@ -97,7 +97,7 @@ final class CrossTabNavigationIntegrationTests: XCTestCase {
         XCTAssertTrue(tab5.didHandleBatteryStatus, "Tab5 should have handled battery status")
     }
 
-    func test_navigateAutomaticallyDismissesModalsDuringTraversal() {
+    func test_navigateAutomaticallyDismissesModalsDuringTraversal() throws {
         let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
         let mainCoordinator = MainTabCoordinator(router: router)
 
@@ -123,7 +123,7 @@ final class CrossTabNavigationIntegrationTests: XCTestCase {
         XCTAssertNotNil(unlock.router.state.presented, "Router should have modal presented")
 
         // Navigate from modal to battery status - should auto-dismiss and switch tabs
-        let modal = unlock.currentModalCoordinator!
+        let modal = try XCTUnwrap(unlock.currentModalCoordinator)
         let success = modal.navigate(to: Tab5Route.batteryStatus, from: nil)
 
         // Now these assertions should PASS with our new implementation
@@ -141,7 +141,7 @@ final class CrossTabNavigationIntegrationTests: XCTestCase {
         XCTAssertTrue(tab5.didHandleBatteryStatus, "Tab5 should have handled battery status")
     }
 
-    func test_complexCrossTabNavigationWithCleanup() {
+    func test_complexCrossTabNavigationWithCleanup() throws {
         let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
         let mainCoordinator = MainTabCoordinator(router: router)
 
@@ -171,7 +171,7 @@ final class CrossTabNavigationIntegrationTests: XCTestCase {
 
         // Navigate to battery status from deep within modal
         // This should trigger full cleanup: dismiss modal, pop stacks, switch tab
-        let success = unlock.currentModalCoordinator!.navigate(to: Tab5Route.batteryStatus, from: nil)
+        let success = try XCTUnwrap(unlock.currentModalCoordinator?.navigate(to: Tab5Route.batteryStatus, from: nil))
 
         XCTAssertTrue(success, "Navigation should succeed")
 

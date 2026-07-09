@@ -36,7 +36,7 @@ enum RedRoute: Route {
     }
 }
 
-// Rainbow routes for testing pushed child coordinators
+/// Rainbow routes for testing pushed child coordinators
 enum RainbowRoute: Route {
     case red, orange, yellow, green, blue, purple
 
@@ -90,7 +90,7 @@ enum BlueRoute: Route {
     }
 }
 
-// DeepBlue routes - pushed child coordinator of BlueCoordinator for testing complex nested navigation
+/// DeepBlue routes - pushed child coordinator of BlueCoordinator for testing complex nested navigation
 enum DeepBlueRoute: Route {
     case level1
     case level2
@@ -109,7 +109,7 @@ enum DeepBlueRoute: Route {
     }
 }
 
-// Ocean routes - child coordinator of BlueModalCoordinator for testing deep navigation
+/// Ocean routes - child coordinator of BlueModalCoordinator for testing deep navigation
 enum OceanRoute: Route {
     case surface
     case shallow
@@ -160,7 +160,7 @@ enum PurpleRoute: Route {
     }
 }
 
-// Route type that NO coordinator handles - for testing navigationFailed error
+/// Route type that NO coordinator handles - for testing navigationFailed error
 enum UnhandledRoute: Route {
     case invalidRoute
 

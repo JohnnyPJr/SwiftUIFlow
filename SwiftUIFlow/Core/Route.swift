@@ -88,5 +88,7 @@ public protocol Route: Hashable, Identifiable {
 }
 
 public extension Route {
-    var id: String { identifier }
+    var id: String {
+        identifier
+    }
 }

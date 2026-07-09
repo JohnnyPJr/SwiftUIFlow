@@ -14,7 +14,7 @@ struct CustomTabBarView: View {
     let coordinator: MainTabCoordinator
     @ObservedObject private var router: Router<AppRoute>
 
-    // Map colors to each tab
+    /// Map colors to each tab
     private let tabColors: [Color] = [.red, .green, .blue, .yellow, .purple]
 
     init(coordinator: MainTabCoordinator) {
@@ -38,10 +38,8 @@ struct CustomTabBarView: View {
                     .frame(height: 80)
                     .background(.ultraThinMaterial,
                                 in: RoundedRectangle(cornerRadius: 30, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 30, style: .continuous)
-                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .stroke(Color.white.opacity(0.2), lineWidth: 1))
                     .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 10)
@@ -80,26 +78,24 @@ struct CustomTabBarView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(
-                isSelected ?
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(color.opacity(0.15))
-                    : nil
-            )
+            .background(isSelected ?
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(color.opacity(0.15))
+                : nil)
             .scaleEffect(isSelected ? 1.05 : 1.0)
         }
         .buttonStyle(.plain)
     }
 }
 
-// Helper for safe array access
+/// Helper for safe array access
 extension Array {
     subscript(safe index: Int) -> Element? {
         return indices.contains(index) ? self[index] : nil
     }
 }
 
-// Helper to erase type
+/// Helper to erase type
 func eraseToAnyView(_ value: Any) -> AnyView {
     if let view = value as? AnyView {
         return view

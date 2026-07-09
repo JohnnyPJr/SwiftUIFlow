@@ -7,7 +7,6 @@
 
 import Foundation
 import SwiftUI
-
 @testable import SwiftUIFlow
 
 final class MockViewFactory: ViewFactory<MockRoute> {

@@ -95,7 +95,9 @@ open class ViewFactory<R: Route>: ObservableObject {
     ///
     /// - Parameter route: The route to build a view for
     /// - Returns: An AnyView containing the view for this route, or `nil` if the route is not recognized
-    open func buildView(for route: R) -> AnyView? { nil }
+    open func buildView(for route: R) -> AnyView? {
+        nil
+    }
 
     /// Helper to wrap any View in AnyView for cleaner syntax
     public func view(_ view: some View) -> AnyView {

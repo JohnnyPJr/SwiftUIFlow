@@ -18,21 +18,27 @@ enum PathRoute: Route {
     case finalDestination
     case noPath
 
-    var identifier: String { "\(self)" }
+    var identifier: String {
+        "\(self)"
+    }
 }
 
 enum MainPathRoute: Route {
     case home
     case pathFlow
 
-    var identifier: String { "\(self)" }
+    var identifier: String {
+        "\(self)"
+    }
 }
 
 enum EmptyPathRoute: Route {
     case root
     case destination
 
-    var identifier: String { "\(self)" }
+    var identifier: String {
+        "\(self)"
+    }
 }
 
 enum LongPathRoute: Route {
@@ -40,7 +46,9 @@ enum LongPathRoute: Route {
     case step1, step2, step3, step4, step5
     case step6, step7, step8, step9, final
 
-    var identifier: String { "\(self)" }
+    var identifier: String {
+        "\(self)"
+    }
 }
 
 // MARK: - Test Coordinators
