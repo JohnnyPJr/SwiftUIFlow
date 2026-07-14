@@ -338,6 +338,10 @@ override func navigationPath(for route: any Route) -> [any Route]? {
 
 **Rule:** Paths can only contain `.push` or `.replace` routes. Modal presentation happens AFTER path building.
 
+SwiftUIFlow validates the whole path before mutating router state. If a path contains a
+route from another coordinator type, or a route whose navigation type is `.modal`,
+navigation fails without partially building the stack.
+
 ## Replace Navigation Type
 
 ### What Replace Does

@@ -35,6 +35,31 @@ enum LongPathRoute: String, Route {
     case step6, step7, step8, step9, final
 }
 
+enum MalformedPathRoute: Route {
+    case root
+    case prerequisite
+    case modalPrerequisite
+    case alias
+    case destination
+
+    var identifier: String {
+        switch self {
+        case .alias, .destination:
+            "malformedPath.collidingDestination"
+        default:
+            "malformedPath.\(self)"
+        }
+    }
+}
+
+enum ForeignPathRoute: Route {
+    case invalid
+
+    var identifier: String {
+        "malformedPath.foreign.invalid"
+    }
+}
+
 // MARK: - Test Coordinators
 
 /// Test coordinator with navigationPath() implementation
@@ -126,6 +151,56 @@ final class LongPathCoordinator: Coordinator<LongPathRoute> {
                     LongPathRoute.final]
         }
         return nil
+    }
+}
+
+/// Test coordinator for regression coverage around malformed navigation paths.
+/// Paths must be fully validated before any stack mutation occurs.
+final class MalformedPathCoordinator: Coordinator<MalformedPathRoute> {
+    enum PathKind {
+        case foreignRoute
+        case modalRoute
+        case validPathIncludingDestination
+        case validPathExcludingDestination
+        case validPathStartingWithRoot
+        case sameIdentifierAsDestination
+    }
+
+    private let pathKind: PathKind
+
+    init(pathKind: PathKind) {
+        self.pathKind = pathKind
+        super.init(router: Router(initial: .root, factory: DummyPathFactory()))
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is MalformedPathRoute
+    }
+
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let route = route as? MalformedPathRoute else { return .push }
+        return route == .modalPrerequisite ? .modal : .push
+    }
+
+    override func navigationPath(for route: any Route) -> [any Route]? {
+        guard route as? MalformedPathRoute == .destination else { return nil }
+
+        switch pathKind {
+        case .foreignRoute:
+            return [MalformedPathRoute.prerequisite, ForeignPathRoute.invalid]
+        case .modalRoute:
+            return [MalformedPathRoute.prerequisite, MalformedPathRoute.modalPrerequisite]
+        case .validPathIncludingDestination:
+            return [MalformedPathRoute.prerequisite, MalformedPathRoute.destination]
+        case .validPathExcludingDestination:
+            return [MalformedPathRoute.prerequisite]
+        case .validPathStartingWithRoot:
+            return [MalformedPathRoute.root,
+                    MalformedPathRoute.prerequisite,
+                    MalformedPathRoute.destination]
+        case .sameIdentifierAsDestination:
+            return [MalformedPathRoute.alias]
+        }
     }
 }
 

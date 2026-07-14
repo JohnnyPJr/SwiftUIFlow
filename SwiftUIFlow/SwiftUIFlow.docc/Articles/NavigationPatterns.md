@@ -641,6 +641,11 @@ When deep linking to `.level3Modal`:
 2. Builds path: pushes `.level1`, `.level2`, `.level3`
 3. Presents modal from level 3
 
+Navigation paths are validated before stack mutation. A path should contain only routes
+owned by that coordinator, and each path route must resolve to `.push` or `.replace`.
+Do not include modal routes in the path; return the prerequisite stack state and let
+SwiftUIFlow present the modal after the path is built.
+
 ## Handling External Deep Links
 
 External triggers (push notifications, universal links, app links, URL schemes) require special handling. You have two options:

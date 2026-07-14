@@ -287,6 +287,11 @@ coordinator.navigate(to: .abyss)
 // User can navigate back through each level
 ```
 
+Navigation paths are validated before the stack is changed. A path should contain only
+routes owned by that coordinator and only routes whose navigation type is `.push` or
+`.replace`. Modal routes belong outside the path; return the prerequisite stack path and
+let the framework present the modal after those prerequisites are built.
+
 ### Cross-Tab Navigation
 
 Navigate to any tab's routes from anywhere in your app:
