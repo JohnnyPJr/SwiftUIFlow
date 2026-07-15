@@ -107,5 +107,7 @@ public extension Route {
 /// }
 /// ```
 public extension Route where Self: RawRepresentable, Self.RawValue == String {
-    var identifier: String { rawValue }
+    var identifier: String {
+        rawValue
+    }
 }
