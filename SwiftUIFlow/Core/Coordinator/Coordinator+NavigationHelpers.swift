@@ -54,8 +54,10 @@ extension Coordinator {
         return false
     }
 
-    private func validateModalAndDetourNavigation(to route: any Route,
-                                                  from caller: AnyCoordinator?) -> ValidationResult?
+    // Internal (not private) so TabCoordinator's validation can reuse the exact same
+    // modal/detour validation stage, keeping validation in lockstep with execution.
+    func validateModalAndDetourNavigation(to route: any Route,
+                                          from caller: AnyCoordinator?) -> ValidationResult?
     {
         // Only check modal/detour if caller is NOT one of our children/modal/detour
         // (If caller is a child, we already checked modal before delegating to children)
