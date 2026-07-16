@@ -23,18 +23,10 @@ SwiftUIFlow provides a powerful yet intuitive navigation system for SwiftUI appl
 
 ```swift
 // Define your routes
-enum AppRoute: Route {
+enum AppRoute: String, Route {
     case home
     case profile
     case settings
-
-    var identifier: String {
-        switch self {
-        case .home: return "home"
-        case .profile: return "profile"
-        case .settings: return "settings"
-        }
-    }
 }
 
 // Create a coordinator

@@ -10,16 +10,9 @@ import SwiftUI
 
 // MARK: - Test Routes
 
-enum TestAppRoute: Route {
+enum TestAppRoute: String, Route {
     case login
     case mainApp
-
-    var identifier: String {
-        switch self {
-        case .login: return "login"
-        case .mainApp: return "mainApp"
-        }
-    }
 }
 
 // MARK: - Test View Factory
