@@ -147,6 +147,10 @@ The framework automatically:
 - Shows RainbowCoordinator's orange view
 - Provides back button to return to RedView
 
+Pushed child coordinators may also contain their own pushed children. SwiftUIFlow recursively
+flattens the pushed-child hierarchy into the active `NavigationStack`, preserving visible order
+without nesting `NavigationStack` views.
+
 ## Modal Coordinators
 
 ### Multiple Modal Coordinators

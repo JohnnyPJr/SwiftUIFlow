@@ -36,6 +36,17 @@ enum RainbowRoute: Route {
     }
 }
 
+/// Nested child route under Rainbow, used to verify pushed child -> pushed grandchild rendering
+enum RainbowDetailRoute: Route {
+    case detail
+
+    var identifier: String {
+        switch self {
+        case .detail: return "rainbow_detail"
+        }
+    }
+}
+
 enum GreenRoute: String, Route {
     case green
     case lightGreen

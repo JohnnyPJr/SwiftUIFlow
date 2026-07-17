@@ -113,12 +113,14 @@ public final class Router<R: Route>: ObservableObject {
     /// **Internal:** Used when delegating navigation to a child coordinator.
     func pushChild(_ coordinator: AnyCoordinator) {
         state.pushedChildren.append(coordinator)
+        notifyRoutesChanged()
     }
 
     /// Pop the top child coordinator from the navigation stack.
     /// **Internal:** Called when NavigationStack pops a child coordinator (user taps back).
     func popChild() {
         _ = state.pushedChildren.popLast()
+        notifyRoutesChanged()
     }
 
     /// Pop the top route from the navigation stack.

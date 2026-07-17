@@ -161,6 +161,17 @@ final class RainbowViewFactory: ViewFactory<RainbowRoute> {
     }
 }
 
+final class RainbowDetailViewFactory: ViewFactory<RainbowDetailRoute> {
+    override func buildView(for route: RainbowDetailRoute) -> AnyView? {
+        guard let coordinator = coordinator as? RainbowDetailCoordinator else { return nil }
+
+        switch route {
+        case .detail:
+            return view(RainbowDetailView(coordinator: coordinator))
+        }
+    }
+}
+
 // MARK: - DeepBlue View Factory (Testing Complex Nested Navigation)
 
 final class DeepBlueViewFactory: ViewFactory<DeepBlueRoute> {

@@ -70,6 +70,10 @@ open class Coordinator<R: Route>: AnyCoordinator {
         [router.state.root] + router.state.stack
     }
 
+    var pushedChildren: [AnyCoordinator] {
+        router.state.pushedChildren
+    }
+
     /// The root/initial route for this coordinator (type-erased)
     var rootRoute: any Route {
         router.state.root

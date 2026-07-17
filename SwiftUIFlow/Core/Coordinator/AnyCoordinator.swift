@@ -41,6 +41,7 @@ protocol AnyCoordinator: CoordinatorUISupport {
     var tabItem: (text: String, image: String)? { get }
 
     var allRoutes: [any Route] { get }
+    var pushedChildren: [AnyCoordinator] { get }
     var routesDidChange: AnyPublisher<[any Route], Never> { get }
 
     var rootRoute: any Route { get }

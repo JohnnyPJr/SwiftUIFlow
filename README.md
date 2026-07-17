@@ -366,6 +366,10 @@ coordinator.navigate(to: RainbowRoute.red)
 // Full navigation support within the child
 ```
 
+Pushed child coordinators can also contain their own pushed children. SwiftUIFlow flattens the
+entire pushed-child hierarchy into the active `NavigationStack`, so nested child flows render in
+order without creating unsupported nested `NavigationStack` views.
+
 ### Comprehensive Error Handling
 
 Set up a global error handler to respond to all framework errors:

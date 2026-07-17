@@ -599,14 +599,31 @@ class PurpleInfoCoordinator: Coordinator<PurpleRoute> {
 // MARK: - Rainbow Coordinator (Testing Pushed Children)
 
 final class RainbowCoordinator: Coordinator<RainbowRoute> {
+    var detailCoordinator: RainbowDetailCoordinator!
+
     init() {
         let factory = RainbowViewFactory()
         super.init(router: Router(initial: .red, factory: factory))
         factory.coordinator = self
+
+        detailCoordinator = RainbowDetailCoordinator()
+        addChild(detailCoordinator)
     }
 
     override func canHandle(_ route: any Route) -> Bool {
         return route is RainbowRoute
+    }
+}
+
+final class RainbowDetailCoordinator: Coordinator<RainbowDetailRoute> {
+    init() {
+        let factory = RainbowDetailViewFactory()
+        super.init(router: Router(initial: .detail, factory: factory))
+        factory.coordinator = self
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is RainbowDetailRoute
     }
 }
 

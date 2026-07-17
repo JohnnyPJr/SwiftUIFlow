@@ -55,7 +55,7 @@ import SwiftUI
 /// - **NavigationStack** - Renders the navigation stack with push/pop animations
 /// - **Modal sheets** - Presents modals when navigating to `.modal` routes
 /// - **Detours** - Shows full-screen covers for detour flows
-/// - **Pushed child coordinators** - Flattens child coordinator routes into the stack
+/// - **Pushed child coordinators** - Recursively flattens child coordinator routes into the stack
 /// - **Back button management** - Automatically shows/hides based on context
 ///
 /// ## Reactive Updates
@@ -78,6 +78,7 @@ public struct CoordinatorView<R: Route>: View {
     // Cached stack of all pushed child routes (flattened)
     @State private var pushedChildStack: [ChildRouteWrapper] = []
     @State private var cancellables: Set<AnyCancellable> = []
+    @State private var subscribedCoordinatorIDs: [ObjectIdentifier] = []
 
     public init(coordinator: Coordinator<R>) {
         self.coordinator = coordinator
@@ -321,12 +322,23 @@ public struct CoordinatorView<R: Route>: View {
         // Clear existing subscriptions
         cancellables.removeAll()
 
-        // Subscribe to each child's routesDidChange publisher
-        for child in router.state.pushedChildren {
+        let children = PushedChildRouteFlattener.coordinators(from: router.state.pushedChildren)
+
+        // Order matters: the flattened coordinator order is the visible NavigationStack order.
+        // Keep this as an Array, not a Set, so reordering forces a subscription refresh.
+        //
+        // This must be assigned before creating the new sinks. The sink callback compares against
+        // this value to decide whether a later route emission changed membership or only routes.
+        subscribedCoordinatorIDs = children.map(ObjectIdentifier.init)
+
+        // Subscribe to each pushed child and descendant route publisher.
+        // Descendant subscriptions are required because SwiftUI uses one flattened
+        // NavigationStack for pushed coordinator hierarchies.
+        for child in children {
             child.routesDidChange
                 .receive(on: DispatchQueue.main)
                 .sink { _ in
-                    rebuildPushedChildStack()
+                    refreshChildSubscriptionsIfNeeded()
                 }
                 .store(in: &cancellables)
         }
@@ -337,10 +349,64 @@ public struct CoordinatorView<R: Route>: View {
 
     /// Rebuild the flattened stack of all pushed child routes
     private func rebuildPushedChildStack() {
-        pushedChildStack = router.state.pushedChildren.flatMap { child in
-            child.allRoutes.map { route in
+        pushedChildStack = PushedChildRouteFlattener.routes(from: router.state.pushedChildren)
+    }
+
+    /// Refresh subscriptions only when pushed coordinator membership or order changes.
+    private func refreshChildSubscriptionsIfNeeded() {
+        let coordinatorIDs = PushedChildRouteFlattener
+            .coordinators(from: router.state.pushedChildren)
+            .map(ObjectIdentifier.init)
+
+        // Array comparison is intentional: order is part of the rendered navigation path.
+        if coordinatorIDs != subscribedCoordinatorIDs {
+            setupChildSubscriptions()
+        } else {
+            rebuildPushedChildStack()
+        }
+    }
+}
+
+enum PushedChildRouteFlattener {
+    /// Recursively collect pushed coordinators in visible navigation order.
+    static func coordinators(from children: [AnyCoordinator]) -> [AnyCoordinator] {
+        coordinators(from: children, visited: [])
+    }
+
+    private static func coordinators(from children: [AnyCoordinator],
+                                     visited: Set<ObjectIdentifier>) -> [AnyCoordinator]
+    {
+        children.flatMap { child -> [AnyCoordinator] in
+            let identifier = ObjectIdentifier(child)
+            guard !visited.contains(identifier) else { return [] }
+
+            var nextVisited = visited
+            nextVisited.insert(identifier)
+
+            return [child] + coordinators(from: child.pushedChildren, visited: nextVisited)
+        }
+    }
+
+    /// Recursively flatten pushed child routes in the same order SwiftUI should render them.
+    static func routes(from children: [AnyCoordinator]) -> [ChildRouteWrapper] {
+        routes(from: children, visited: [])
+    }
+
+    private static func routes(from children: [AnyCoordinator],
+                               visited: Set<ObjectIdentifier>) -> [ChildRouteWrapper]
+    {
+        children.flatMap { child -> [ChildRouteWrapper] in
+            let identifier = ObjectIdentifier(child)
+            guard !visited.contains(identifier) else { return [] }
+
+            var nextVisited = visited
+            nextVisited.insert(identifier)
+
+            let ownRoutes = child.allRoutes.map { route in
                 ChildRouteWrapper(route: route, coordinator: child)
             }
+
+            return ownRoutes + routes(from: child.pushedChildren, visited: nextVisited)
         }
     }
 }

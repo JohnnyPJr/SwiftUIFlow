@@ -168,8 +168,43 @@ struct RainbowPurpleView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.cyan)
+
+                Button("Test Nested Pushed Child") {
+                    coordinator.navigate(to: RainbowDetailRoute.detail)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.yellow)
+
+                Text("Expected: Red → Rainbow → Rainbow Detail")
+                    .font(.caption)
+                    .foregroundColor(.white)
             }
         }
         .customNavigationBar(title: "Rainbow Purple", backgroundColor: .purple)
+    }
+}
+
+struct RainbowDetailView: View {
+    let coordinator: RainbowDetailCoordinator
+
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [.red, .orange, .yellow, .green, .blue, .purple],
+                           startPoint: .topLeading,
+                           endPoint: .bottomTrailing)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Text("Rainbow Detail")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+
+                Text("Nested pushed child rendered successfully")
+                    .font(.headline)
+                    .foregroundColor(.white)
+            }
+        }
+        .customNavigationBar(title: "Rainbow Detail", backgroundColor: .purple)
     }
 }
