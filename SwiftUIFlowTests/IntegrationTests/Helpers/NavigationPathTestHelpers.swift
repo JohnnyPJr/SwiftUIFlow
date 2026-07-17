@@ -60,6 +60,25 @@ enum ForeignPathRoute: Route {
     }
 }
 
+enum DescendantPathParentRoute: Route {
+    case root
+    case context
+    case modalContext
+
+    var identifier: String {
+        "descendantPath.parent.\(self)"
+    }
+}
+
+enum DescendantPathGrandchildRoute: Route {
+    case root
+    case destination
+
+    var identifier: String {
+        "descendantPath.grandchild.\(self)"
+    }
+}
+
 // MARK: - Test Coordinators
 
 /// Test coordinator with navigationPath() implementation
@@ -104,6 +123,73 @@ final class MainPathCoordinator: Coordinator<MainPathRoute> {
 
     override func canHandle(_ route: any Route) -> Bool {
         return route is MainPathRoute
+    }
+}
+
+/// Parent coordinator that needs to build its own route stack before delegating to a pushed child.
+final class DescendantPathParentCoordinator: Coordinator<DescendantPathParentRoute> {
+    init(grandchild: DescendantPathGrandchildCoordinator) {
+        super.init(router: Router(initial: .root, factory: DummyPathFactory()))
+        addChild(grandchild)
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is DescendantPathParentRoute
+    }
+
+    override func navigationPath(for route: any Route) -> [any Route]? {
+        if route is DescendantPathGrandchildRoute {
+            return [DescendantPathParentRoute.context]
+        }
+
+        return nil
+    }
+}
+
+final class MalformedDescendantPathParentCoordinator: Coordinator<DescendantPathParentRoute> {
+    enum PathKind {
+        case modalRoute
+        case foreignRoute
+    }
+
+    private let pathKind: PathKind
+
+    init(grandchild: DescendantPathGrandchildCoordinator, pathKind: PathKind) {
+        self.pathKind = pathKind
+        super.init(router: Router(initial: .root, factory: DummyPathFactory()))
+        addChild(grandchild)
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is DescendantPathParentRoute
+    }
+
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let route = route as? DescendantPathParentRoute else { return .push }
+        return route == .modalContext ? .modal : .push
+    }
+
+    override func navigationPath(for route: any Route) -> [any Route]? {
+        if route is DescendantPathGrandchildRoute {
+            switch pathKind {
+            case .modalRoute:
+                return [DescendantPathParentRoute.modalContext]
+            case .foreignRoute:
+                return [ForeignPathRoute.invalid]
+            }
+        }
+
+        return nil
+    }
+}
+
+final class DescendantPathGrandchildCoordinator: Coordinator<DescendantPathGrandchildRoute> {
+    init() {
+        super.init(router: Router(initial: .root, factory: DummyPathFactory()))
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is DescendantPathGrandchildRoute
     }
 }
 

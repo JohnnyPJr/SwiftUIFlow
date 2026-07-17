@@ -613,6 +613,37 @@ final class RainbowCoordinator: Coordinator<RainbowRoute> {
     override func canHandle(_ route: any Route) -> Bool {
         return route is RainbowRoute
     }
+
+    override func navigationPath(for route: any Route) -> [any Route]? {
+        if route is RainbowDetailRoute {
+            return [RainbowRoute.orange,
+                    RainbowRoute.yellow,
+                    RainbowRoute.green,
+                    RainbowRoute.blue,
+                    RainbowRoute.purple]
+        }
+
+        guard let rainbowRoute = route as? RainbowRoute else { return nil }
+
+        switch rainbowRoute {
+        case .red:
+            return nil
+        case .orange:
+            return [RainbowRoute.orange]
+        case .yellow:
+            return [RainbowRoute.orange, RainbowRoute.yellow]
+        case .green:
+            return [RainbowRoute.orange, RainbowRoute.yellow, RainbowRoute.green]
+        case .blue:
+            return [RainbowRoute.orange, RainbowRoute.yellow, RainbowRoute.green, RainbowRoute.blue]
+        case .purple:
+            return [RainbowRoute.orange,
+                    RainbowRoute.yellow,
+                    RainbowRoute.green,
+                    RainbowRoute.blue,
+                    RainbowRoute.purple]
+        }
+    }
 }
 
 final class RainbowDetailCoordinator: Coordinator<RainbowDetailRoute> {

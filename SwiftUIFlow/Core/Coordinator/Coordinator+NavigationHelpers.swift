@@ -119,6 +119,12 @@ extension Coordinator {
 
             // Check if child or its descendants can handle this route (mirrors execution with canNavigate)
             if child.canNavigate(to: route) {
+                if let pathResult = validateNavigationPathDefinition(for: route),
+                   case .failure = pathResult
+                {
+                    return pathResult
+                }
+
                 let childResult = child.validateNavigationPath(to: route, from: self)
                 if childResult.isSuccess {
                     return childResult
@@ -130,6 +136,12 @@ extension Coordinator {
         // (mirrors delegateToChildren execution)
         for modal in modalCoordinators where modal !== caller {
             if modal.canNavigate(to: route) {
+                if let pathResult = validateNavigationPathDefinition(for: route),
+                   case .failure = pathResult
+                {
+                    return pathResult
+                }
+
                 // Modal coordinator or its descendants can handle subsequent navigation
                 // In execution, we'd present modal with its root route, then navigate
                 // Here we just validate that the modal can handle it
@@ -249,6 +261,13 @@ extension Coordinator {
     private func delegateToInternalChildren(route: any Route, caller: AnyCoordinator?) -> Bool {
         for child in internalChildren where child !== caller {
             if child.canNavigate(to: route) {
+                // Build this coordinator's path before pushing/delegating to the child.
+                // This handles deep links where a child or descendant route requires the parent
+                // coordinator to reach a specific local context first.
+                if case .failed = buildNavigationPath(for: route) {
+                    return false
+                }
+
                 // Get the navigation type the child coordinator expects for this route
                 let navType = child.navigationType(for: route)
 
@@ -380,6 +399,39 @@ extension Coordinator {
         }
 
         return .built(includesDestination: includesDestination)
+    }
+
+    private func validateNavigationPathDefinition(for route: any Route) -> ValidationResult? {
+        guard let path = navigationPath(for: route),
+              !path.isEmpty,
+              router.state.stack.isEmpty else { return nil }
+
+        for intermediateRoute in path {
+            guard let typedRoute = intermediateRoute as? R else {
+                return .failure(makeError(for: route,
+                                          errorType:
+                                          .navigationFailed(context: """
+                                          navigationPath(for:) returned a route of a different type; \
+                                          a path may only contain this coordinator's own routes
+                                          """)))
+            }
+
+            if typedRoute == router.state.root {
+                continue
+            }
+
+            let navType = navigationType(for: typedRoute)
+            guard navType != .modal else {
+                return .failure(makeError(for: route,
+                                          errorType:
+                                          .navigationFailed(context: """
+                                          navigationPath(for:) returned a modal route; \
+                                          a path may only contain pushed/replaced routes
+                                          """)))
+            }
+        }
+
+        return .success
     }
 
     private func reportInvalidPathRouteType(for route: any Route) {

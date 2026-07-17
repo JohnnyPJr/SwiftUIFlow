@@ -172,8 +172,20 @@ struct RainbowPurpleView: View {
                 Button("Test Nested Pushed Child") {
                     coordinator.navigate(to: RainbowDetailRoute.detail)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.yellow)
+                .font(.headline)
+                .foregroundColor(.white)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .background(
+                    LinearGradient(colors: [.red, .orange, .yellow, .green, .blue, .purple],
+                                   startPoint: .leading,
+                                   endPoint: .trailing)
+                )
+                .clipShape(Capsule())
+                .overlay {
+                    Capsule()
+                        .stroke(Color.white.opacity(0.8), lineWidth: 1)
+                }
 
                 Text("Expected: Red → Rainbow → Rainbow Detail")
                     .font(.caption)
@@ -203,6 +215,15 @@ struct RainbowDetailView: View {
                 Text("Nested pushed child rendered successfully")
                     .font(.headline)
                     .foregroundColor(.white)
+
+                Button("Deep Link to Purple Tab") {
+                    coordinator.navigate(to: PurpleRoute.purple)
+                }
+                .buttonStyle(NavigationButtonStyle(color: .purple))
+
+                Text("Rainbow Detail → Purple tab")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.85))
             }
         }
         .customNavigationBar(title: "Rainbow Detail", backgroundColor: .purple)

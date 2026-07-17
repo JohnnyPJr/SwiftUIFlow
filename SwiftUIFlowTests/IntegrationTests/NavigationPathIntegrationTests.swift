@@ -104,6 +104,46 @@ final class NavigationPathIntegrationTests: XCTestCase {
         XCTAssertEqual(childCoordinator.router.state.currentRoute.identifier, "finalDestination")
     }
 
+    func test_navigationPath_BuildsParentPathBeforeDelegatingToPushedChild() {
+        let grandchild = DescendantPathGrandchildCoordinator()
+        let parent = DescendantPathParentCoordinator(grandchild: grandchild)
+
+        let success = parent.navigate(to: DescendantPathGrandchildRoute.destination)
+
+        XCTAssertTrue(success)
+        XCTAssertEqual(parent.router.state.stack, [.context])
+        XCTAssertTrue(parent.router.state.pushedChildren.first === grandchild)
+        XCTAssertEqual(grandchild.router.state.currentRoute, .destination)
+    }
+
+    func test_navigationPath_ModalParentPathToPushedChild_FailsWithoutPushingChild() {
+        let grandchild = DescendantPathGrandchildCoordinator()
+        let parent = MalformedDescendantPathParentCoordinator(grandchild: grandchild,
+                                                              pathKind: .modalRoute)
+        let before = parent.router.state
+
+        let success = parent.navigate(to: DescendantPathGrandchildRoute.destination)
+
+        XCTAssertFalse(success)
+        XCTAssertEqual(parent.router.state, before)
+        XCTAssertTrue(parent.router.state.pushedChildren.isEmpty)
+        XCTAssertEqual(grandchild.router.state.currentRoute, .root)
+    }
+
+    func test_navigationPath_ForeignParentPathToPushedChild_FailsWithoutPushingChild() {
+        let grandchild = DescendantPathGrandchildCoordinator()
+        let parent = MalformedDescendantPathParentCoordinator(grandchild: grandchild,
+                                                              pathKind: .foreignRoute)
+        let before = parent.router.state
+
+        let success = parent.navigate(to: DescendantPathGrandchildRoute.destination)
+
+        XCTAssertFalse(success)
+        XCTAssertEqual(parent.router.state, before)
+        XCTAssertTrue(parent.router.state.pushedChildren.isEmpty)
+        XCTAssertEqual(grandchild.router.state.currentRoute, .root)
+    }
+
     // MARK: - Test: Path Building After Pop
 
     func test_navigationPath_AfterPopToRoot_RebuildsPath() {
