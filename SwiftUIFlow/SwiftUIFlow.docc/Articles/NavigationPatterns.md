@@ -699,6 +699,10 @@ class DeepLinkHandler {
 
 **⚠️ Always present detours from a central location** (AppCoordinator or MainTabCoordinator), never from individual view coordinators. This ensures app-wide interruptions work correctly regardless of where the user currently is.
 
+**Use a fresh detour coordinator.** Do not pass an existing child, tab, or modal coordinator to
+``Coordinator/presentDetour(_:presenting:)``. Already-owned coordinators are rejected and reported
+through ``SwiftUIFlowErrorHandler`` so the permanent coordinator hierarchy is not corrupted.
+
 **Detour capabilities:**
 - Present as fullscreen cover
 - Preserve all underlying navigation state (modals, stacks, pushed children)
@@ -925,6 +929,9 @@ Always present detours explicitly using `presentDetour()`:
 // ✅ Correct
 presentDetour(coordinator, presenting: route)
 ```
+
+The coordinator passed to `presentDetour()` must be fresh and unowned. Create a new coordinator
+for the temporary detour flow instead of borrowing one that already belongs to another hierarchy.
 
 ## See Also
 

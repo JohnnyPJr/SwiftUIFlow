@@ -80,6 +80,8 @@ class AppCoordinator: Coordinator<AppRoute> {
 ```
 
 **Why:** Detours are explicitly presented via `presentDetour()`, not through route matching.
+They still need to be fresh, unowned coordinators. Do not pass an existing child, tab, or modal
+coordinator as a detour.
 
 ## canHandle() vs Modal Coordinator Ownership
 
@@ -414,13 +416,18 @@ class AppCoordinator: Coordinator<AppRoute> {
    presentDetour(coordinator, presenting: route)
    ```
 
-2. **Back button automatically provided:**
+2. **Use a fresh, unowned coordinator:**
+   - Create a new coordinator for the temporary detour flow
+   - Do not reuse an existing child, tab, or modal coordinator
+   - Already-owned coordinators are rejected and reported through `SwiftUIFlowErrorHandler`
+
+3. **Back button automatically provided:**
    - Framework sets `canNavigateBack` environment value to `true`
    - Framework injects `navigationBackAction` to dismiss the detour
    - Custom navigation bars automatically show back buttons based on these environment values
    - Example app's `CustomNavigationBar` demonstrates this pattern
 
-3. **Detours auto-dismiss during cross-flow navigation:**
+4. **Detours auto-dismiss during cross-flow navigation:**
    - No need for manual dismissal logic
    - Framework handles cleanup automatically
 

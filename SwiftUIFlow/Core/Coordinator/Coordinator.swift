@@ -764,10 +764,25 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// Or if a navigation action bubbles back.
     /// Unlike modals, detours don't participate in navigation bubbling.
     ///
+    /// ## Ownership
+    ///
+    /// Pass a fresh, unowned coordinator to `presentDetour`. Do not reuse a coordinator that
+    /// already belongs to another hierarchy, such as an existing tab child. Already-owned
+    /// coordinators are rejected and reported through `SwiftUIFlowErrorHandler`.
+    ///
     /// - Parameters:
     ///   - coordinator: The detour coordinator to present
     ///   - route: The initial route for the detour flow
     public func presentDetour(_ coordinator: Coordinator<some Route>, presenting route: any Route) {
+        guard coordinator.parent == nil else {
+            let message = """
+            Cannot present an already-owned coordinator as a detour. \
+            Create a fresh detour coordinator instead.
+            """
+            reportError(.configurationError(message: message))
+            return
+        }
+
         detourCoordinator = coordinator
         coordinator.parent = self
         coordinator.presentationContext = .detour

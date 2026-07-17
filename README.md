@@ -263,6 +263,10 @@ func handleDeepLink(to route: any Route) {
 }
 ```
 
+Create a fresh coordinator for each detour flow. Do not pass an existing child, tab, or modal
+coordinator to `presentDetour`; already-owned coordinators are rejected and reported through
+`SwiftUIFlowErrorHandler`.
+
 ### Multi-Step Navigation Paths
 
 Build navigation paths that guide users through sequential flows:
@@ -496,6 +500,9 @@ class DeepLinkHandler {
 **Choose based on user intent:**
 - **Navigate**: "Take me to X" - Clean slate navigation (e.g., marketing deep link)
 - **Detour**: "Show me X, then let me continue" - Temporary interruption (e.g., notification)
+
+Detour coordinators should be fresh temporary coordinators. Reusing an existing coordinator that
+already belongs to another hierarchy is rejected as a configuration error.
 
 ### Modal Coordinators with Shared Route Type
 
