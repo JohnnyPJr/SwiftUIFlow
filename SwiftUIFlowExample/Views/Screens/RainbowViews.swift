@@ -206,26 +206,108 @@ struct RainbowDetailView: View {
                            endPoint: .bottomTrailing)
                 .ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                Text("Rainbow Detail")
+            ScrollView {
+                VStack(spacing: 16) {
+                    Text("Rainbow Detail")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+
+                    Text("Nested pushed child rendered successfully")
+                        .font(.headline)
+                        .foregroundColor(.white)
+
+                    Text("Regression playground: pushed child → pushed grandchild → navigation")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.85))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+
+                    Button("Deep Link to Purple Tab") {
+                        coordinator.navigate(to: PurpleRoute.purple)
+                    }
+                    .buttonStyle(NavigationButtonStyle(color: .purple))
+
+                    Text("Rainbow Detail → Purple tab")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.85))
+
+                    Divider()
+                        .background(Color.white.opacity(0.8))
+                        .padding(.vertical, 4)
+
+                    Button("Navigate to This Detail Again") {
+                        coordinator.navigate(to: RainbowDetailRoute.detail)
+                    }
+                    .buttonStyle(NavigationButtonStyle(color: .indigo))
+
+                    Text("Expected: no duplicate push, no visual change")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.85))
+                        .multilineTextAlignment(.center)
+
+                    Button("Present Detail Modal") {
+                        coordinator.navigate(to: RainbowDetailRoute.modal)
+                    }
+                    .buttonStyle(NavigationButtonStyle(color: .pink))
+
+                    Text("Expected: medium modal from pushed grandchild, dismiss returns here")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.85))
+                        .multilineTextAlignment(.center)
+
+                    Button("Present Yellow Detour") {
+                        DeepLinkHandler.simulateDetourDeepLink()
+                    }
+                    .buttonStyle(NavigationButtonStyle(color: .yellow))
+
+                    Text("Expected: detour dismiss returns to Rainbow Detail")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.85))
+                        .multilineTextAlignment(.center)
+
+                    Button("Deep Link to Ocean Abyss") {
+                        coordinator.navigate(to: OceanRoute.abyss)
+                    }
+                    .buttonStyle(NavigationButtonStyle(color: .blue))
+
+                    Text("Expected: Blue tab → DeepBlue → modals → Ocean Abyss")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.85))
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+            }
+        }
+        .customNavigationBar(title: "Rainbow Detail", backgroundColor: .purple)
+    }
+}
+
+struct RainbowDetailModalView: View {
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [.pink, .purple, .blue],
+                           startPoint: .topLeading,
+                           endPoint: .bottomTrailing)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                Text("Rainbow Detail Modal")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
 
-                Text("Nested pushed child rendered successfully")
+                Text("Presented from pushed grandchild")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.white.opacity(0.9))
 
-                Button("Deep Link to Purple Tab") {
-                    coordinator.navigate(to: PurpleRoute.purple)
-                }
-                .buttonStyle(NavigationButtonStyle(color: .purple))
-
-                Text("Rainbow Detail → Purple tab")
+                Text("Expected: medium sheet; closing returns to Rainbow Detail")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.85))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
             }
         }
-        .customNavigationBar(title: "Rainbow Detail", backgroundColor: .purple)
+        .withCloseButton()
     }
 }

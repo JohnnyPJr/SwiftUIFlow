@@ -599,6 +599,7 @@ class PurpleInfoCoordinator: Coordinator<PurpleRoute> {
 // MARK: - Rainbow Coordinator (Testing Pushed Children)
 
 final class RainbowCoordinator: Coordinator<RainbowRoute> {
+    private let detailPath: [RainbowRoute] = [.orange, .yellow, .green, .blue, .purple]
     var detailCoordinator: RainbowDetailCoordinator!
 
     init() {
@@ -616,33 +617,13 @@ final class RainbowCoordinator: Coordinator<RainbowRoute> {
 
     override func navigationPath(for route: any Route) -> [any Route]? {
         if route is RainbowDetailRoute {
-            return [RainbowRoute.orange,
-                    RainbowRoute.yellow,
-                    RainbowRoute.green,
-                    RainbowRoute.blue,
-                    RainbowRoute.purple]
+            return detailPath
         }
 
-        guard let rainbowRoute = route as? RainbowRoute else { return nil }
+        guard let rainbowRoute = route as? RainbowRoute,
+              let index = detailPath.firstIndex(of: rainbowRoute) else { return nil }
 
-        switch rainbowRoute {
-        case .red:
-            return nil
-        case .orange:
-            return [RainbowRoute.orange]
-        case .yellow:
-            return [RainbowRoute.orange, RainbowRoute.yellow]
-        case .green:
-            return [RainbowRoute.orange, RainbowRoute.yellow, RainbowRoute.green]
-        case .blue:
-            return [RainbowRoute.orange, RainbowRoute.yellow, RainbowRoute.green, RainbowRoute.blue]
-        case .purple:
-            return [RainbowRoute.orange,
-                    RainbowRoute.yellow,
-                    RainbowRoute.green,
-                    RainbowRoute.blue,
-                    RainbowRoute.purple]
-        }
+        return Array(detailPath.prefix(index + 1))
     }
 }
 
@@ -650,6 +631,32 @@ final class RainbowDetailCoordinator: Coordinator<RainbowDetailRoute> {
     init() {
         let factory = RainbowDetailViewFactory()
         super.init(router: Router(initial: .detail, factory: factory))
+        factory.coordinator = self
+
+        let modalCoordinator = RainbowDetailModalCoordinator()
+        addModalCoordinator(modalCoordinator)
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is RainbowDetailRoute
+    }
+
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let route = route as? RainbowDetailRoute else { return .push }
+        return route == .modal ? .modal : .push
+    }
+
+    override func modalDetentConfiguration(for route: any Route) -> ModalDetentConfiguration {
+        route as? RainbowDetailRoute == .modal
+            ? ModalDetentConfiguration(detents: [.medium])
+            : ModalDetentConfiguration(detents: [.large])
+    }
+}
+
+final class RainbowDetailModalCoordinator: Coordinator<RainbowDetailRoute> {
+    init() {
+        let factory = RainbowDetailViewFactory()
+        super.init(router: Router(initial: .modal, factory: factory))
         factory.coordinator = self
     }
 

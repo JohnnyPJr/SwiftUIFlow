@@ -163,11 +163,12 @@ final class RainbowViewFactory: ViewFactory<RainbowRoute> {
 
 final class RainbowDetailViewFactory: ViewFactory<RainbowDetailRoute> {
     override func buildView(for route: RainbowDetailRoute) -> AnyView? {
-        guard let coordinator = coordinator as? RainbowDetailCoordinator else { return nil }
-
         switch route {
         case .detail:
+            guard let coordinator = coordinator as? RainbowDetailCoordinator else { return nil }
             return view(RainbowDetailView(coordinator: coordinator))
+        case .modal:
+            return view(RainbowDetailModalView())
         }
     }
 }
