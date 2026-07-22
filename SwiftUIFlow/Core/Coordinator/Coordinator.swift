@@ -715,7 +715,8 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// Called by the framework when navigationType returns .modal
     func presentModal(_ coordinator: AnyCoordinator,
                       presenting route: R,
-                      detentConfiguration: ModalDetentConfiguration) {
+                      detentConfiguration: ModalDetentConfiguration)
+    {
         guard coordinator.parent == nil else {
             let message = """
             Cannot present an already-owned coordinator as a modal. \

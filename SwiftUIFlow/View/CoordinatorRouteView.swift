@@ -25,7 +25,8 @@ struct CoordinatorRouteView<R: Route>: View {
     var body: some View {
         Group {
             if let viewAny = coordinator.buildView(for: route),
-               let view = viewAny as? AnyView {
+               let view = viewAny as? AnyView
+            {
                 view
                     .environment(\.navigationBackAction) {
                         if let parent = coordinator.parent {
