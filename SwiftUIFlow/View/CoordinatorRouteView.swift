@@ -25,8 +25,7 @@ struct CoordinatorRouteView<R: Route>: View {
     var body: some View {
         Group {
             if let viewAny = coordinator.buildView(for: route),
-               let view = viewAny as? AnyView
-            {
+               let view = viewAny as? AnyView {
                 view
                     .environment(\.navigationBackAction) {
                         if let parent = coordinator.parent {
@@ -45,15 +44,41 @@ struct CoordinatorRouteView<R: Route>: View {
             if let modal = coordinator.currentModalCoordinator {
                 let coordinatorView = modal.buildCoordinatorView()
                 eraseToAnyView(coordinatorView)
+                    .onPreferenceChange(IdealHeightPreferenceKey.self) { height in
+                        updateIdealHeight(height)
+                    }
+                    .onPreferenceChange(MinHeightPreferenceKey.self) { height in
+                        updateMinHeight(height)
+                    }
+                    .presentationDetents(presentationDetentsSet,
+                                         selection: presentationDetentSelection)
             }
         }
-        .sheet(item: presentedModalRoute) { _ in
+        .sheet(item: shouldUseFullScreenCover ? .constant(nil) : presentedModalRoute) { _ in
             if let modal = coordinator.currentModalCoordinator {
                 let coordinatorView = modal.buildCoordinatorView()
                 eraseToAnyView(coordinatorView)
+                    .onPreferenceChange(IdealHeightPreferenceKey.self) { height in
+                        updateIdealHeight(height)
+                    }
+                    .onPreferenceChange(MinHeightPreferenceKey.self) { height in
+                        updateMinHeight(height)
+                    }
+                    .presentationDetents(presentationDetentsSet,
+                                         selection: presentationDetentSelection)
             }
         }
         #if os(iOS)
+        .fullScreenCover(item: shouldUseFullScreenCover ? presentedModalRoute : .constant(nil),
+                         onDismiss: {
+                             coordinator.dismissModal()
+                         },
+                         content: { _ in
+                             if let modal = coordinator.currentModalCoordinator {
+                                 let coordinatorView = modal.buildCoordinatorView()
+                                 eraseToAnyView(coordinatorView)
+                             }
+                         })
         .fullScreenCover(isPresented: hasDetour) {
             if let detour = coordinator.detourCoordinator {
                 let coordinatorView = detour.buildCoordinatorView()
@@ -81,6 +106,49 @@ struct CoordinatorRouteView<R: Route>: View {
     private var hasDetour: Binding<Bool> {
         Binding(get: { coordinator.detourCoordinator != nil },
                 set: { if !$0 { coordinator.dismissDetour() } })
+    }
+
+    // MARK: - Modal Detent Support
+
+    /// Check if the current modal should use fullScreenCover
+    private var shouldUseFullScreenCover: Bool {
+        router.state.modalDetentConfiguration?.shouldUseFullScreenCover ?? false
+    }
+
+    /// Convert modal detent configuration to SwiftUI PresentationDetent set
+    private var presentationDetentsSet: Set<PresentationDetent> {
+        guard let config = router.state.modalDetentConfiguration else {
+            return [.large]
+        }
+
+        return Set(config.detents.map { config.toPresentationDetent($0) })
+    }
+
+    /// Create a binding for the currently selected presentation detent
+    private var presentationDetentSelection: Binding<PresentationDetent> {
+        Binding(get: {
+                    guard let config = router.state.modalDetentConfiguration,
+                          let selected = config.selectedDetent
+                    else {
+                        return .large
+                    }
+                    return config.toPresentationDetent(selected)
+                },
+                set: { newDetent in
+                    guard let config = router.state.modalDetentConfiguration else { return }
+                    let modalDetent = config.fromPresentationDetent(newDetent)
+                    router.updateModalSelectedDetent(modalDetent)
+                })
+    }
+
+    /// Update the ideal height in the modal detent configuration
+    private func updateIdealHeight(_ height: CGFloat?) {
+        router.updateModalIdealHeight(height)
+    }
+
+    /// Update the minimum height in the modal detent configuration
+    private func updateMinHeight(_ height: CGFloat?) {
+        router.updateModalMinHeight(height)
     }
 }
 
