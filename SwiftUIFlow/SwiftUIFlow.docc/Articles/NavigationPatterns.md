@@ -193,6 +193,10 @@ The framework:
 - Presents only one modal at a time
 - Auto-dismisses modals during cross-flow navigation
 
+Modal coordinators must be standalone coordinators registered for modal presentation. Do not reuse
+an existing child, tab, or pushed coordinator as a modal; already-owned coordinators are rejected and
+reported through ``SwiftUIFlowErrorHandler``.
+
 ### Modal Detents
 
 Customize sheet height using `modalDetentConfiguration`. SwiftUIFlow supports six detent types:

@@ -536,6 +536,10 @@ class SettingsCoordinator: Coordinator<AppRoute> {
 }
 ```
 
+Modal coordinators must be standalone coordinators registered for modal presentation. Do not reuse
+an existing child, tab, or pushed coordinator as a modal; already-owned coordinators are rejected and
+reported through `SwiftUIFlowErrorHandler`.
+
 ### FlowOrchestrator for Major Transitions
 
 ```swift

@@ -455,6 +455,8 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// ## Important Notes
     ///
     /// - Modal coordinator must use the same route type `R` as the parent coordinator
+    /// - Modal coordinator must be standalone; do not reuse an existing child, tab,
+    ///   or pushed coordinator
     /// - The modal coordinator is presented automatically when navigating to a modal route
     /// - Only one modal can be presented at a time
     ///
@@ -713,8 +715,16 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// Called by the framework when navigationType returns .modal
     func presentModal(_ coordinator: AnyCoordinator,
                       presenting route: R,
-                      detentConfiguration: ModalDetentConfiguration)
-    {
+                      detentConfiguration: ModalDetentConfiguration) {
+        guard coordinator.parent == nil else {
+            let message = """
+            Cannot present an already-owned coordinator as a modal. \
+            Register a standalone modal coordinator instead.
+            """
+            reportError(.configurationError(message: message))
+            return
+        }
+
         currentModalCoordinator = coordinator
         coordinator.parent = self
         coordinator.presentationContext = .modal

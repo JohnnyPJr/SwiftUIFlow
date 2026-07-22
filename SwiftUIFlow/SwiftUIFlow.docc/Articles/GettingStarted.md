@@ -230,6 +230,9 @@ To present a route as a coordinator-managed modal:
 2. **Register it** using `addModalCoordinator()`
 3. **Return `.modal`** from `navigationType(for:)` for that route
 
+Use a standalone modal coordinator. Do not reuse an existing child, tab, or pushed coordinator as a
+modal; already-owned coordinators are rejected and reported through ``SwiftUIFlowErrorHandler``.
+
 ```swift
 // Modal coordinator for settings with its own navigation
 class SettingsCoordinator: Coordinator<SettingsRoute> {

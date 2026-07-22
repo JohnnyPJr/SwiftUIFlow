@@ -9,6 +9,11 @@
 import XCTest
 
 final class CoordinatorPresentationTests: XCTestCase {
+    override func tearDown() {
+        SwiftUIFlowErrorHandler.shared.reset()
+        super.tearDown()
+    }
+
     // MARK: - Modal Handling
 
     func test_CanPresentAndDismissModalCoordinator() {
@@ -23,6 +28,62 @@ final class CoordinatorPresentationTests: XCTestCase {
 
         sut.coordinator.dismissModal()
         XCTAssertNil(sut.coordinator.currentModalCoordinator)
+    }
+
+    func test_CanPresentDismissAndPresentRegisteredModalCoordinatorAgain() {
+        let sut = makeSUT()
+        let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())
+        let modal = TestMixedNavigationCoordinator(router: modalRouter)
+        sut.coordinator.addModalCoordinator(modal)
+
+        sut.coordinator.presentModal(modal,
+                                     presenting: .modal,
+                                     detentConfiguration: ModalDetentConfiguration(detents: [.large]))
+        XCTAssertTrue(sut.coordinator.currentModalCoordinator === modal)
+        XCTAssertTrue(modal.parent === sut.coordinator)
+
+        sut.coordinator.dismissModal()
+        XCTAssertNil(sut.coordinator.currentModalCoordinator)
+        XCTAssertNil(modal.parent)
+
+        sut.coordinator.presentModal(modal,
+                                     presenting: .modal,
+                                     detentConfiguration: ModalDetentConfiguration(detents: [.large]))
+
+        XCTAssertTrue(sut.coordinator.currentModalCoordinator === modal)
+        XCTAssertTrue(modal.parent === sut.coordinator)
+        XCTAssertEqual(sut.router.state.presented, .modal)
+    }
+
+    func test_PresentModalRejectsAlreadyOwnedCoordinatorWithoutMutatingOwnership() {
+        let modalHost = makeSUT()
+        let structuralParent = TestCoordinator(router: Router<MockRoute>(initial: .home,
+                                                                         factory: MockViewFactory()))
+        let ownedChild = TestCoordinator(router: Router<MockRoute>(initial: .modal,
+                                                                   factory: MockViewFactory()))
+        structuralParent.addChild(ownedChild, context: .tab)
+
+        var capturedError: SwiftUIFlowError?
+        SwiftUIFlowErrorHandler.shared.setHandler { capturedError = $0 }
+
+        modalHost.coordinator.presentModal(ownedChild,
+                                           presenting: .modal,
+                                           detentConfiguration: ModalDetentConfiguration(detents: [.large]))
+
+        XCTAssertNil(modalHost.coordinator.currentModalCoordinator,
+                     "Already-owned coordinator should not be presented as modal")
+        XCTAssertNil(modalHost.router.state.presented,
+                     "Rejected modal presentation must not mutate router state")
+        XCTAssertTrue(ownedChild.parent === structuralParent,
+                      "Rejected modal must keep its original parent")
+        XCTAssertEqual(ownedChild.presentationContext, .tab,
+                       "Rejected modal must keep its original presentation context")
+        guard case let .configurationError(message) = capturedError else {
+            XCTFail("Expected configuration error")
+            return
+        }
+        XCTAssertTrue(message.contains("already-owned coordinator"))
+        XCTAssertTrue(message.contains("standalone modal coordinator"))
     }
 
     func test_NavigateDismissesModalWhenModalCantHandle() {

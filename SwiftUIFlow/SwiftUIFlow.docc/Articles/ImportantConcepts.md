@@ -556,7 +556,23 @@ class AppCoordinator: Coordinator<AppRoute> {
 }
 ```
 
-### 2. Modal Coordinator Using Wrong Route Type
+### 2. Reusing Existing Coordinators as Modals
+
+```swift
+// ❌ WRONG - existingTab already belongs to the structural hierarchy
+addChild(existingTab)
+addModalCoordinator(existingTab)
+
+// ✅ CORRECT - create/register a standalone modal coordinator
+let settingsModal = SettingsModalCoordinator()
+addModalCoordinator(settingsModal)
+```
+
+Modal coordinators must be standalone. Reusing an existing child, tab, or pushed coordinator as a
+modal is rejected and reported through ``SwiftUIFlowErrorHandler`` so dismissal cannot corrupt the
+permanent coordinator hierarchy.
+
+### 3. Modal Coordinator Using Wrong Route Type
 
 ```swift
 // ❌ WRONG - Type mismatch
@@ -576,7 +592,7 @@ class SettingsCoordinator: Coordinator<AppRoute> {  // ← Same type!
 }
 ```
 
-### 3. Including Modal Routes in Navigation Paths
+### 4. Including Modal Routes in Navigation Paths
 
 ```swift
 // ❌ WRONG - Path contains modal
@@ -590,7 +606,7 @@ override func navigationPath(for route: any Route) -> [any Route]? {
 }
 ```
 
-### 4. Router Methods Are Internal
+### 5. Router Methods Are Internal
 
 All router mutation methods are **internal** - clients cannot access them:
 
