@@ -134,14 +134,16 @@ class ProductViewFactory: ViewFactory<ProductRoute> {
 
 ## Error Reporting View
 
-When view creation fails, the framework automatically shows ``ErrorReportingView`` in place of the failed view:
+When view creation fails, the framework creates ``ErrorReportingView`` in place of the failed view:
 
 ```swift
-// Framework shows this automatically when buildView() returns nil
+// Framework creates this automatically when buildView() returns nil
 ErrorReportingView(error: error)
 ```
 
-This ensures your app never shows a blank screen - users always see an error indicator while you receive the error through the global handler.
+``ErrorReportingView`` is a report-only placeholder. It intentionally renders no user-facing UI.
+SwiftUIFlow reports the failure through ``SwiftUIFlowErrorHandler``; your app decides whether to
+show a toast, banner, full-screen fallback, log the error, or combine those responses.
 
 ## Displaying Errors to Users
 
