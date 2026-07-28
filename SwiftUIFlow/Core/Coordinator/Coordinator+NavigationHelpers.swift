@@ -92,6 +92,15 @@ extension Coordinator {
             return nil // Can't handle - continue to next check
         }
 
+        // Validate this coordinator's own navigationPath(for:) before accepting direct handling.
+        // This keeps validation in lockstep with executeNavigation/buildNavigationPath, including
+        // when this coordinator is reached through parent delegation with caller != nil.
+        if let pathResult = validateNavigationPathDefinition(for: route) {
+            if case .failure = pathResult {
+                return pathResult
+            }
+        }
+
         // Check if this navigation type can be executed
         switch navigationType(for: typedRoute) {
         case .push, .replace:
@@ -119,16 +128,14 @@ extension Coordinator {
 
             // Check if child or its descendants can handle this route (mirrors execution with canNavigate)
             if child.canNavigate(to: route) {
-                if let pathResult = validateNavigationPathDefinition(for: route),
-                   case .failure = pathResult
-                {
-                    return pathResult
+                if let pathResult = validateNavigationPathDefinition(for: route) {
+                    if case .failure = pathResult {
+                        return pathResult
+                    }
                 }
 
                 let childResult = child.validateNavigationPath(to: route, from: self)
-                if childResult.isSuccess {
-                    return childResult
-                }
+                return childResult
             }
         }
 
@@ -136,16 +143,16 @@ extension Coordinator {
         // (mirrors delegateToChildren execution)
         for modal in modalCoordinators where modal !== caller {
             if modal.canNavigate(to: route) {
-                if let pathResult = validateNavigationPathDefinition(for: route),
-                   case .failure = pathResult
-                {
-                    return pathResult
+                if let pathResult = validateNavigationPathDefinition(for: route) {
+                    if case .failure = pathResult {
+                        return pathResult
+                    }
                 }
 
-                // Modal coordinator or its descendants can handle subsequent navigation
-                // In execution, we'd present modal with its root route, then navigate
-                // Here we just validate that the modal can handle it
-                return .success
+                // Modal coordinator or its descendants can handle subsequent navigation.
+                // Validate the modal's own path before execution presents it.
+                let modalResult = modal.validateNavigationPath(to: route, from: self)
+                return modalResult
             }
         }
 
@@ -261,18 +268,29 @@ extension Coordinator {
     private func delegateToInternalChildren(route: any Route, caller: AnyCoordinator?) -> Bool {
         for child in internalChildren where child !== caller {
             if child.canNavigate(to: route) {
+                if let pathResult = validateNavigationPathDefinition(for: route) {
+                    if case let .failure(error) = pathResult {
+                        reportError(error)
+                        return false
+                    }
+                }
+
                 // Build this coordinator's path before pushing/delegating to the child.
                 // This handles deep links where a child or descendant route requires the parent
                 // coordinator to reach a specific local context first.
-                if case .failed = buildNavigationPath(for: route) {
+                let parentPathResult = buildNavigationPath(for: route)
+                if case .failed = parentPathResult {
                     return false
                 }
+                let didBuildParentPath = parentPathResult.didBuildPath
 
                 // Get the navigation type the child coordinator expects for this route
                 let navType = child.navigationType(for: route)
 
                 // Check if child is already pushed - if so, just navigate without re-pushing
                 let isAlreadyPushed = router.state.pushedChildren.contains(where: { $0 === child })
+                let previousParent = child.parent
+                let previousPresentationContext = child.presentationContext
 
                 if !isAlreadyPushed {
                     // Push child coordinator to parent's navigation stack
@@ -286,8 +304,22 @@ extension Coordinator {
                         .debug("👶 \(Self.self): Pushed child coordinator \(navTypeLabel) for \(route.identifier)")
                 }
 
-                // Navigate to the route (whether already pushed or not)
-                _ = child.navigate(to: route, from: self)
+                // Navigate to the route (whether already pushed or not). Validation should have
+                // caught expected failures; this backstop prevents delegated failures being reported
+                // as parent success and rolls back only state introduced by this call.
+                let didNavigate = child.navigate(to: route, from: self)
+                guard didNavigate else {
+                    if !isAlreadyPushed {
+                        router.popChild()
+                        child.parent = previousParent
+                        child.presentationContext = previousPresentationContext
+                    }
+                    if didBuildParentPath {
+                        router.popToRoot()
+                    }
+                    return false
+                }
+
                 return true
             }
         }
@@ -300,20 +332,41 @@ extension Coordinator {
         // Parent doesn't handle this route, but modal child or its descendants might
         for modal in modalCoordinators where modal !== caller {
             if modal.canNavigate(to: route) {
+                if let pathResult = validateNavigationPathDefinition(for: route) {
+                    if case let .failure(error) = pathResult {
+                        reportError(error)
+                        return false
+                    }
+                }
+
                 // Build navigation path if needed before presenting the modal.
                 // This handles cases where the route is handled by a descendant
                 // but the parent coordinator needs to build a path to the correct state first.
                 // A malformed path is a contract error - abort rather than present the modal on
                 // top of a state that was never correctly built (error already reported).
-                if case .failed = buildNavigationPath(for: route) {
+                let parentPathResult = buildNavigationPath(for: route)
+                if case .failed = parentPathResult {
                     return false
                 }
+                let didBuildParentPath = parentPathResult.didBuildPath
 
                 // Modal or its descendants can handle subsequent navigation - present modal with its root route first
                 let initialRoute = modal.router.state.root
                 let detents = modalDetentConfiguration(for: initialRoute)
+                let wasAlreadyPresented = currentModalCoordinator === modal
                 presentModal(modal, presenting: initialRoute, detentConfiguration: detents)
-                _ = modal.navigate(to: route, from: self)
+
+                let didNavigate = modal.navigate(to: route, from: self)
+                guard didNavigate else {
+                    if !wasAlreadyPresented, currentModalCoordinator === modal {
+                        dismissModal()
+                    }
+                    if didBuildParentPath {
+                        router.popToRoot()
+                    }
+                    return false
+                }
+
                 NavigationLogger.debug("📲 \(Self.self): Presented modal -> navigating to \(route.identifier)")
                 return true
             }
@@ -336,6 +389,11 @@ extension Coordinator {
         case notRequired
         case failed
         case built(includesDestination: Bool)
+
+        var didBuildPath: Bool {
+            if case .built = self { return true }
+            return false
+        }
     }
 
     private func buildNavigationPath(for route: any Route) -> NavigationPathBuildResult {

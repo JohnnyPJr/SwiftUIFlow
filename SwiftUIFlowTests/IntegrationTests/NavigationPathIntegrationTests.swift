@@ -144,6 +144,87 @@ final class NavigationPathIntegrationTests: XCTestCase {
         XCTAssertEqual(grandchild.router.state.currentRoute, .root)
     }
 
+    func test_navigationPath_ForeignChildPathDuringDelegation_FailsWithoutPushingChild() {
+        let child = MalformedPathCoordinator(pathKind: .foreignRoute)
+        let parent = DelegatingPathParentCoordinator(child: child)
+        let before = parent.router.state
+
+        let success = parent.navigate(to: MalformedPathRoute.destination)
+
+        XCTAssertFalse(success)
+        XCTAssertEqual(parent.router.state, before)
+        XCTAssertTrue(parent.router.state.pushedChildren.isEmpty)
+        XCTAssertEqual(child.router.state.currentRoute, .root)
+    }
+
+    func test_navigationPath_ModalChildPathDuringDelegation_FailsWithoutPushingChild() {
+        let child = MalformedPathCoordinator(pathKind: .modalRoute)
+        let parent = DelegatingPathParentCoordinator(child: child)
+        let before = parent.router.state
+
+        let success = parent.navigate(to: MalformedPathRoute.destination)
+
+        XCTAssertFalse(success)
+        XCTAssertEqual(parent.router.state, before)
+        XCTAssertTrue(parent.router.state.pushedChildren.isEmpty)
+        XCTAssertEqual(child.router.state.currentRoute, .root)
+    }
+
+    func test_navigationPath_DelegatedChildFailure_ReturnsFalseAndRollsBackPushedChild() {
+        let child = FailingDelegatedNavigationCoordinator()
+        let parent = DelegatingPathParentCoordinator(child: child)
+        let before = parent.router.state
+
+        let success = parent.navigate(to: MalformedPathRoute.destination)
+
+        XCTAssertFalse(success)
+        XCTAssertEqual(parent.router.state, before)
+        XCTAssertTrue(parent.router.state.pushedChildren.isEmpty)
+        XCTAssertTrue(child.parent === parent)
+        XCTAssertEqual(child.presentationContext, .pushed)
+    }
+
+    func test_navigationPath_ForeignModalChildPathDuringDelegation_FailsWithoutPresentingModal() {
+        let modal = MalformedPathCoordinator(pathKind: .foreignRoute)
+        let parent = ModalDelegatingPathParentCoordinator(modal: modal)
+        let before = parent.router.state
+
+        let success = parent.navigate(to: MalformedPathRoute.destination)
+
+        XCTAssertFalse(success)
+        XCTAssertEqual(parent.router.state, before)
+        XCTAssertNil(parent.currentModalCoordinator)
+        XCTAssertNil(parent.router.state.presented)
+        XCTAssertEqual(modal.router.state.currentRoute, .root)
+    }
+
+    func test_navigationPath_ModalModalChildPathDuringDelegation_FailsWithoutPresentingModal() {
+        let modal = MalformedPathCoordinator(pathKind: .modalRoute)
+        let parent = ModalDelegatingPathParentCoordinator(modal: modal)
+        let before = parent.router.state
+
+        let success = parent.navigate(to: MalformedPathRoute.destination)
+
+        XCTAssertFalse(success)
+        XCTAssertEqual(parent.router.state, before)
+        XCTAssertNil(parent.currentModalCoordinator)
+        XCTAssertNil(parent.router.state.presented)
+        XCTAssertEqual(modal.router.state.currentRoute, .root)
+    }
+
+    func test_navigationPath_DelegatedModalFailure_ReturnsFalseAndDismissesPresentedModal() {
+        let modal = FailingDelegatedNavigationCoordinator()
+        let parent = ModalDelegatingPathParentCoordinator(modal: modal)
+        let before = parent.router.state
+
+        let success = parent.navigate(to: MalformedPathRoute.destination)
+
+        XCTAssertFalse(success)
+        XCTAssertEqual(parent.router.state, before)
+        XCTAssertNil(parent.currentModalCoordinator)
+        XCTAssertNil(parent.router.state.presented)
+    }
+
     // MARK: - Test: Path Building After Pop
 
     func test_navigationPath_AfterPopToRoot_RebuildsPath() {

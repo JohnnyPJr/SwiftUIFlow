@@ -126,6 +126,53 @@ final class MainPathCoordinator: Coordinator<MainPathRoute> {
     }
 }
 
+/// Parent coordinator that delegates to a supplied child coordinator.
+/// Used to verify the delegated child validates its own navigation path before parent mutation.
+final class DelegatingPathParentCoordinator: Coordinator<MainPathRoute> {
+    init(child: Coordinator<some Route>) {
+        super.init(router: Router(initial: .home, factory: DummyPathFactory()))
+        addChild(child)
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is MainPathRoute
+    }
+}
+
+/// Parent coordinator that delegates to a registered modal coordinator of the same route type.
+/// Used to verify modal children validate their own path before presentation.
+final class ModalDelegatingPathParentCoordinator: Coordinator<MalformedPathRoute> {
+    init(modal: Coordinator<MalformedPathRoute>) {
+        super.init(router: Router(initial: .root, factory: DummyPathFactory()))
+        addModalCoordinator(modal)
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? MalformedPathRoute else { return false }
+        return route == .root
+    }
+}
+
+/// Child coordinator that validates successfully but fails during execution.
+/// Used to verify parents do not mask unexpected delegated navigation failures.
+final class FailingDelegatedNavigationCoordinator: Coordinator<MalformedPathRoute> {
+    init() {
+        super.init(router: Router(initial: .root, factory: DummyPathFactory()))
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is MalformedPathRoute
+    }
+
+    override func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
+        .success
+    }
+
+    override func navigate(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+        false
+    }
+}
+
 /// Parent coordinator that needs to build its own route stack before delegating to a pushed child.
 final class DescendantPathParentCoordinator: Coordinator<DescendantPathParentRoute> {
     init(grandchild: DescendantPathGrandchildCoordinator) {
