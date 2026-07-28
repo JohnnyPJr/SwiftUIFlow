@@ -616,7 +616,10 @@ extension Coordinator {
     func pop() {
         // Pushed childs pop handling
         if let lastChild = router.state.pushedChildren.last {
-            if lastChild.allRoutes.count > 1 {
+            // Descend into the deepest pushed descendant first. The flattened NavigationStack
+            // renders a child's own routes before its pushed children, so a pushed grandchild
+            // is the last visible route and must pop before the immediate child is removed.
+            if !lastChild.pushedChildren.isEmpty || lastChild.allRoutes.count > 1 {
                 lastChild.pop()
             } else {
                 router.popChild()

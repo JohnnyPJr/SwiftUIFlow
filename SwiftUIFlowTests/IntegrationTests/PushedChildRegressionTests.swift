@@ -122,6 +122,48 @@ final class PushedChildRegressionTests: XCTestCase {
         cancellable.cancel()
     }
 
+    func test_Pop_FromPushedGrandchildAtRoot_RemovesOnlyGrandchild() {
+        let grandchild = RegressionGrandchildCoordinator()
+        let child = RegressionChildCoordinator(grandchild: grandchild)
+        let parent = RegressionParentCoordinator(child: child)
+
+        XCTAssertTrue(parent.navigate(to: RegressionGrandchildRoute.root))
+        XCTAssertTrue(parent.router.state.pushedChildren.contains(where: { $0 === child }))
+        XCTAssertTrue(child.router.state.pushedChildren.contains(where: { $0 === grandchild }))
+
+        parent.pop()
+
+        XCTAssertTrue(parent.router.state.pushedChildren.contains(where: { $0 === child }))
+        XCTAssertTrue(child.router.state.pushedChildren.isEmpty)
+
+        let flattenedRoutes = PushedChildRouteFlattener.routes(from: parent.router.state.pushedChildren)
+        XCTAssertEqual(flattenedRoutes.map(\.route.identifier), [RegressionChildRoute.root.identifier])
+    }
+
+    func test_Pop_PushedChildWithOwnStackAndGrandchild_PopsGrandchildBeforeOwnStack() {
+        let grandchild = RegressionGrandchildCoordinator()
+        let child = RegressionChildCoordinator(grandchild: grandchild)
+        let parent = RegressionParentCoordinator(child: child)
+
+        XCTAssertTrue(parent.navigate(to: RegressionChildRoute.root))
+        XCTAssertTrue(child.navigate(to: RegressionChildRoute.detail))
+        XCTAssertTrue(child.navigate(to: RegressionGrandchildRoute.root))
+
+        parent.pop()
+
+        XCTAssertTrue(parent.router.state.pushedChildren.contains(where: { $0 === child }))
+        XCTAssertTrue(child.router.state.pushedChildren.isEmpty)
+        XCTAssertEqual(child.router.state.stack, [.detail])
+
+        parent.pop()
+
+        XCTAssertTrue(parent.router.state.pushedChildren.contains(where: { $0 === child }))
+        XCTAssertTrue(child.router.state.stack.isEmpty)
+
+        let flattenedRoutes = PushedChildRouteFlattener.routes(from: parent.router.state.pushedChildren)
+        XCTAssertEqual(flattenedRoutes.map(\.route.identifier), [RegressionChildRoute.root.identifier])
+    }
+
     // MARK: - Double-Push Bug (Regression Test)
 
     func test_DoublePush_ChildNotPushedTwiceAfterTabSwitch() {
@@ -390,8 +432,14 @@ private enum RegressionParentRoute: Route {
 
 private enum RegressionChildRoute: Route {
     case root
+    case detail
 
-    var identifier: String { "regression.child.root" }
+    var identifier: String {
+        switch self {
+        case .root: return "regression.child.root"
+        case .detail: return "regression.child.detail"
+        }
+    }
 }
 
 private enum RegressionSecondChildRoute: Route {
