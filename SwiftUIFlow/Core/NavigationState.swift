@@ -128,9 +128,20 @@ public struct NavigationState<R: Route>: Equatable {
             lhs.stack == rhs.stack &&
             lhs.selectedTab == rhs.selectedTab &&
             lhs.presented == rhs.presented &&
-            lhs.detour?.identifier == rhs.detour?.identifier &&
+            detourRoutesEqual(lhs.detour, rhs.detour) &&
             lhs.pushedChildren.count == rhs.pushedChildren.count &&
             zip(lhs.pushedChildren, rhs.pushedChildren).allSatisfy { $0 === $1 } &&
             lhs.modalDetentConfiguration == rhs.modalDetentConfiguration
+    }
+
+    private static func detourRoutesEqual(_ lhs: (any Route)?, _ rhs: (any Route)?) -> Bool {
+        switch (lhs, rhs) {
+        case (nil, nil):
+            return true
+        case let (lhs?, rhs?):
+            return type(of: lhs) == type(of: rhs) && lhs.identifier == rhs.identifier
+        default:
+            return false
+        }
     }
 }
