@@ -267,6 +267,10 @@ Create a fresh coordinator for each detour flow. Do not pass an existing child, 
 coordinator to `presentDetour`; already-owned coordinators are rejected and reported through
 `SwiftUIFlowErrorHandler`.
 
+If another detour is presented while one is already active, SwiftUIFlow forwards it to the deepest
+active detour. This stacks notification-style interruptions without replacing or orphaning the
+existing detour chain. Dismissing the host detour tears down the nested detour subtree cleanly.
+
 ### Multi-Step Navigation Paths
 
 Build navigation paths that guide users through sequential flows:
@@ -496,6 +500,7 @@ class DeepLinkHandler {
         let detourCoordinator = MessageCoordinator(root: .message)
         mainTab.presentDetour(detourCoordinator, presenting: .message)
 
+        // If another detour arrives while this one is active, it is nested on top.
         // When dismissed: returns to EXACT state before deep link
     }
 }

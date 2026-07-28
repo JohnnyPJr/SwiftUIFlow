@@ -101,6 +101,85 @@ final class DetourNavigationIntegrationTests: XCTestCase {
         XCTAssertEqual(unlock.router.state.detour?.identifier, Tab5Route.batteryStatus.identifier)
     }
 
+    func test_PresentDetour_WhenActiveDetourExists_NestsNewDetourOnActiveDetour() {
+        let host = NestedDetourCoordinator(root: .host)
+        let first = NestedDetourCoordinator(root: .first)
+        let second = NestedDetourCoordinator(root: .second)
+
+        host.presentDetour(first, presenting: NestedDetourRoute.first)
+        host.presentDetour(second, presenting: NestedDetourRoute.second)
+
+        XCTAssertTrue(host.detourCoordinator === first)
+        XCTAssertTrue(first.detourCoordinator === second)
+        XCTAssertTrue(first.parent === host)
+        XCTAssertTrue(second.parent === first)
+        XCTAssertEqual(first.presentationContext, .detour)
+        XCTAssertEqual(second.presentationContext, .detour)
+        XCTAssertEqual(host.router.state.detour?.identifier, NestedDetourRoute.first.identifier)
+        XCTAssertEqual(first.router.state.detour?.identifier, NestedDetourRoute.second.identifier)
+    }
+
+    func test_PresentDetour_WhenMultipleDetoursArrive_NestsToDeepestActiveDetour() {
+        let host = NestedDetourCoordinator(root: .host)
+        let first = NestedDetourCoordinator(root: .first)
+        let second = NestedDetourCoordinator(root: .second)
+        let third = NestedDetourCoordinator(root: .third)
+
+        host.presentDetour(first, presenting: NestedDetourRoute.first)
+        host.presentDetour(second, presenting: NestedDetourRoute.second)
+        host.presentDetour(third, presenting: NestedDetourRoute.third)
+
+        XCTAssertTrue(host.detourCoordinator === first)
+        XCTAssertTrue(first.detourCoordinator === second)
+        XCTAssertTrue(second.detourCoordinator === third)
+        XCTAssertTrue(third.parent === second)
+        XCTAssertEqual(second.router.state.detour?.identifier, NestedDetourRoute.third.identifier)
+    }
+
+    func test_Pop_FromNestedDetour_DismissesOnlyTopDetour() {
+        let host = NestedDetourCoordinator(root: .host)
+        let first = NestedDetourCoordinator(root: .first)
+        let second = NestedDetourCoordinator(root: .second)
+
+        host.presentDetour(first, presenting: NestedDetourRoute.first)
+        host.presentDetour(second, presenting: NestedDetourRoute.second)
+
+        second.pop()
+
+        XCTAssertTrue(host.detourCoordinator === first)
+        XCTAssertNil(first.detourCoordinator)
+        XCTAssertNil(first.router.state.detour)
+        XCTAssertNil(second.parent)
+        XCTAssertTrue(first.parent === host)
+    }
+
+    func test_DismissDetour_FromHost_TearsDownNestedDetourSubtree() {
+        let host = NestedDetourCoordinator(root: .host)
+        let first = NestedDetourCoordinator(root: .first)
+        let second = NestedDetourCoordinator(root: .second)
+        let third = NestedDetourCoordinator(root: .third)
+        trackForMemoryLeaks(host)
+        trackForMemoryLeaks(first)
+        trackForMemoryLeaks(second)
+        trackForMemoryLeaks(third)
+
+        host.presentDetour(first, presenting: NestedDetourRoute.first)
+        host.presentDetour(second, presenting: NestedDetourRoute.second)
+        host.presentDetour(third, presenting: NestedDetourRoute.third)
+
+        host.dismissDetour()
+
+        XCTAssertNil(host.detourCoordinator)
+        XCTAssertNil(host.router.state.detour)
+        XCTAssertNil(first.detourCoordinator)
+        XCTAssertNil(first.router.state.detour)
+        XCTAssertNil(second.detourCoordinator)
+        XCTAssertNil(second.router.state.detour)
+        XCTAssertNil(first.parent)
+        XCTAssertNil(second.parent)
+        XCTAssertNil(third.parent)
+    }
+
     func test_PresentDetourRejectsAlreadyOwnedCoordinatorWithoutMutatingState() {
         let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
         let mainCoordinator = MainTabCoordinator(router: router)
@@ -232,5 +311,20 @@ final class DetourNavigationIntegrationTests: XCTestCase {
 
     private func makeBatteryDetour() -> Tab5Coordinator {
         Tab5Coordinator(router: Router(initial: .batteryStatus, factory: DummyFactory()))
+    }
+}
+
+private enum NestedDetourRoute: String, Route {
+    case host
+    case first
+    case second
+    case third
+
+    var identifier: String { rawValue }
+}
+
+private final class NestedDetourCoordinator: Coordinator<NestedDetourRoute> {
+    init(root: NestedDetourRoute) {
+        super.init(router: Router(initial: root, factory: DummyFactory()))
     }
 }

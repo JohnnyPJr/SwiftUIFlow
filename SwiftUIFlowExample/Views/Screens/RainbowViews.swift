@@ -266,6 +266,16 @@ struct RainbowDetailView: View {
                         .foregroundColor(.white.opacity(0.85))
                         .multilineTextAlignment(.center)
 
+                    Button("Present Two Nested Detours") {
+                        DeepLinkHandler.simulateNestedDetourDeepLink()
+                    }
+                    .buttonStyle(NavigationButtonStyle(color: .orange))
+
+                    Text("Expected: Yellow Tab appears on top of Light Yellow")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.85))
+                        .multilineTextAlignment(.center)
+
                     Button("Deep Link to Ocean Abyss") {
                         coordinator.navigate(to: OceanRoute.abyss)
                     }

@@ -711,9 +711,15 @@ class DeepLinkHandler {
 ``Coordinator/presentDetour(_:presenting:)``. Already-owned coordinators are rejected and reported
 through ``SwiftUIFlowErrorHandler`` so the permanent coordinator hierarchy is not corrupted.
 
+**Multiple active detours are nested.** If a central coordinator receives another detour request
+while a detour is already active, SwiftUIFlow forwards the new detour to the deepest active detour
+instead of replacing the existing one. This supports consecutive notification-style interruptions
+while preserving the full detour ownership chain.
+
 **Detour capabilities:**
 - Present as fullscreen cover
 - Preserve all underlying navigation state (modals, stacks, pushed children)
+- Nest consecutive detours without replacing active detours
 - Auto-dismiss during cross-flow navigation
 - Support full navigation stacks within the detour
 
@@ -940,6 +946,8 @@ presentDetour(coordinator, presenting: route)
 
 The coordinator passed to `presentDetour()` must be fresh and unowned. Create a new coordinator
 for the temporary detour flow instead of borrowing one that already belongs to another hierarchy.
+If a detour is already active on the presenter, the new detour is nested on the deepest active
+one rather than replacing the existing detour.
 
 ## See Also
 

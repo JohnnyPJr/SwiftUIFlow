@@ -58,4 +58,19 @@ class DeepLinkHandler {
         // This is how detours should be used in production apps
         mainTab.presentDetour(detourCoordinator, presenting: YellowRoute.lightYellow)
     }
+
+    /// Scenario 3: Present two detours from the same central host immediately.
+    /// Simulates two push notifications arriving while the first detour is still active.
+    /// Expected: second detour appears on top of the first, not replacing or orphaning it.
+    static func simulateNestedDetourDeepLink() {
+        guard let mainTab = appCoordinator?.currentFlow as? MainTabCoordinator else {
+            return
+        }
+
+        let firstDetour = YellowCoordinator(root: .lightYellow)
+        let secondDetour = YellowCoordinator(root: .yellow)
+
+        mainTab.presentDetour(firstDetour, presenting: YellowRoute.lightYellow)
+        mainTab.presentDetour(secondDetour, presenting: YellowRoute.yellow)
+    }
 }

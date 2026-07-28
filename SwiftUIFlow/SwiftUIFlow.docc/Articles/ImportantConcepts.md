@@ -421,7 +421,12 @@ class AppCoordinator: Coordinator<AppRoute> {
    - Do not reuse an existing child, tab, or modal coordinator
    - Already-owned coordinators are rejected and reported through `SwiftUIFlowErrorHandler`
 
-3. **Back button automatically provided:**
+3. **Consecutive detours nest:**
+   - Presenting a detour while one is already active forwards it to the deepest active detour
+   - This preserves notification-style interruptions without replacing the existing detour chain
+   - Dismissing the host detour recursively tears down the nested detour subtree
+
+4. **Back button automatically provided:**
    - Framework sets `canNavigateBack` environment value to `true`
    - Framework injects `navigationBackAction` to dismiss the detour
    - Custom navigation bars automatically show back buttons based on these environment values

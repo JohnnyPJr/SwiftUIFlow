@@ -785,16 +785,34 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// already belongs to another hierarchy, such as an existing tab child. Already-owned
     /// coordinators are rejected and reported through `SwiftUIFlowErrorHandler`.
     ///
+    /// If this coordinator already has an active detour, the new detour is forwarded to the
+    /// deepest active detour. This supports consecutive notification-style interruptions without
+    /// replacing or orphaning the existing detour chain.
+    ///
     /// - Parameters:
     ///   - coordinator: The detour coordinator to present
     ///   - route: The initial route for the detour flow
     public func presentDetour(_ coordinator: Coordinator<some Route>, presenting route: any Route) {
+        presentDetour(coordinator as AnyCoordinator, presenting: route)
+    }
+
+    /// Present a type-erased detour coordinator.
+    ///
+    /// If this coordinator already has an active detour, the new detour is forwarded to
+    /// the deepest active detour instead of replacing the existing one. This preserves
+    /// each active detour in the ownership chain.
+    func presentDetour(_ coordinator: AnyCoordinator, presenting route: any Route) {
         guard coordinator.parent == nil else {
             let message = """
             Cannot present an already-owned coordinator as a detour. \
             Create a fresh detour coordinator instead.
             """
             reportError(.configurationError(message: message))
+            return
+        }
+
+        if let activeDetour = detourCoordinator {
+            activeDetour.presentDetour(coordinator, presenting: route)
             return
         }
 
@@ -807,6 +825,10 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// Dismiss the currently presented detour
     /// **Framework internal only** - detours are dismissed via back/close button or navigation bubbling
     func dismissDetour() {
+        // Reset the outgoing detour before clearing ownership so nested detour
+        // subtrees are torn down recursively.
+        detourCoordinator?.resetToCleanState()
+
         if detourCoordinator?.parent === self {
             detourCoordinator?.parent = nil
         }
