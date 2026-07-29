@@ -456,7 +456,7 @@ class AppCoordinator: Coordinator<AppRoute> {
 class AppViewFactory: ViewFactory<AppRoute> {
     weak var coordinator: AppCoordinator?  // ← MUST be weak!
 
-    override func buildView(for route: AppRoute) -> AnyView {
+    override func buildView(for route: AppRoute) -> AnyView? {
         guard let coordinator else {
             return AnyView(Text("Error: Coordinator not set"))
         }

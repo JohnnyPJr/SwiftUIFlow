@@ -116,7 +116,7 @@ case .viewCreationFailed(coordinator: "ProductCoordinator",
 
 ```swift
 class ProductViewFactory: ViewFactory<ProductRoute> {
-    override func buildView(for route: ProductRoute) -> AnyView {
+    override func buildView(for route: ProductRoute) -> AnyView? {
         guard let coordinator else {
             return AnyView(Text("Error: Coordinator not set"))
         }
@@ -261,7 +261,7 @@ SwiftUIFlowErrorHandler.shared.setHandler { [weak self] error in
 Ensure your view factories handle all route cases to prevent view creation errors:
 
 ```swift
-override func buildView(for route: AppRoute) -> AnyView {
+override func buildView(for route: AppRoute) -> AnyView? {
     // Handle ALL cases in your enum
     switch route {
     case .home: return AnyView(HomeView(...))
