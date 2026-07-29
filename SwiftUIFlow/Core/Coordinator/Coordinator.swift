@@ -294,8 +294,8 @@ open class Coordinator<R: Route>: AnyCoordinator {
     ///
     /// - `.large` - Full screen height
     /// - `.medium` - Half screen height
-    /// - `.custom` - Specific height or percentage
-    /// - `.height(adaptive:)` - Adaptive height based on content
+    /// - `.custom` - Adaptive height based on measured content
+    /// - `.fullscreen` - True fullscreen presentation using `fullScreenCover`
     ///
     /// ## Example
     ///
@@ -313,8 +313,8 @@ open class Coordinator<R: Route>: AnyCoordinator {
     ///         // Sized by the view's content
     ///         return ModalDetentConfiguration(detents: [.custom])
     ///     case .confirmation:
-    ///         // Custom height modal
-    ///         return ModalDetentConfiguration(detents: [.height(adaptive: true)])
+    ///         // Content-sized modal
+    ///         return ModalDetentConfiguration(detents: [.custom])
     ///     }
     /// }
     /// ```
