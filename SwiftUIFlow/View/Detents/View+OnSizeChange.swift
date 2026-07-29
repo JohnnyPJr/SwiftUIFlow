@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-public extension View {
+extension View {
     /// Observe the size of a view and execute a closure when it changes.
     ///
     /// **Framework internal utility.** This modifier is used internally by SwiftUIFlow
