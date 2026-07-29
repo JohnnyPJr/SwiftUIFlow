@@ -150,7 +150,11 @@ public struct TabCoordinatorPresentationsModifier<R: Route>: ViewModifier {
     /// Binding for detour presentation state
     private var hasDetour: Binding<Bool> {
         Binding(get: { coordinator.detourCoordinator != nil },
-                set: { if !$0 { coordinator.dismissDetour() } })
+                set: {
+                    if !$0 {
+                        coordinator.dismissDetour()
+                    }
+                })
     }
 
     /// Check if the current modal should use fullScreenCover

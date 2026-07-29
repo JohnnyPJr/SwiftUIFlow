@@ -94,19 +94,31 @@ struct CoordinatorRouteView<R: Route>: View {
     /// Binding for cross-type modal presentation (when modal coordinator exists but no typed route)
     private var hasCrossTypeModal: Binding<Bool> {
         Binding(get: { coordinator.currentModalCoordinator != nil && router.state.presented == nil },
-                set: { if !$0 { coordinator.dismissModal() } })
+                set: {
+                    if !$0 {
+                        coordinator.dismissModal()
+                    }
+                })
     }
 
     /// Binding for typed modal route presentation
     private var presentedModalRoute: Binding<R?> {
         Binding(get: { router.state.presented },
-                set: { if $0 == nil { coordinator.dismissModal() } })
+                set: {
+                    if $0 == nil {
+                        coordinator.dismissModal()
+                    }
+                })
     }
 
     /// Binding for detour presentation state
     private var hasDetour: Binding<Bool> {
         Binding(get: { coordinator.detourCoordinator != nil },
-                set: { if !$0 { coordinator.dismissDetour() } })
+                set: {
+                    if !$0 {
+                        coordinator.dismissDetour()
+                    }
+                })
     }
 
     // MARK: - Modal Detent Support

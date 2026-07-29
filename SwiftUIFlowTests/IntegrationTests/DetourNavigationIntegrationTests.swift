@@ -337,7 +337,9 @@ private enum NestedDetourRoute: String, Route {
     case second
     case third
 
-    var identifier: String { rawValue }
+    var identifier: String {
+        rawValue
+    }
 }
 
 private final class NestedDetourCoordinator: Coordinator<NestedDetourRoute> {

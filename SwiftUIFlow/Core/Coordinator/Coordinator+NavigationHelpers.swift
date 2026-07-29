@@ -54,8 +54,8 @@ extension Coordinator {
         return false
     }
 
-    // Internal (not private) so TabCoordinator's validation can reuse the exact same
-    // modal/detour validation stage, keeping validation in lockstep with execution.
+    /// Internal (not private) so TabCoordinator's validation can reuse the exact same
+    /// modal/detour validation stage, keeping validation in lockstep with execution.
     func validateModalAndDetourNavigation(to route: any Route,
                                           from caller: AnyCoordinator?) -> ValidationResult?
     {
@@ -134,8 +134,7 @@ extension Coordinator {
                     }
                 }
 
-                let childResult = child.validateNavigationPath(to: route, from: self)
-                return childResult
+                return child.validateNavigationPath(to: route, from: self)
             }
         }
 
@@ -151,8 +150,7 @@ extension Coordinator {
 
                 // Modal coordinator or its descendants can handle subsequent navigation.
                 // Validate the modal's own path before execution presents it.
-                let modalResult = modal.validateNavigationPath(to: route, from: self)
-                return modalResult
+                return modal.validateNavigationPath(to: route, from: self)
             }
         }
 
@@ -391,7 +389,9 @@ extension Coordinator {
         case built(includesDestination: Bool)
 
         var didBuildPath: Bool {
-            if case .built = self { return true }
+            if case .built = self {
+                return true
+            }
             return false
         }
     }

@@ -437,7 +437,9 @@ final class PushedChildRegressionTests: XCTestCase {
 private enum RegressionParentRoute: Route {
     case root
 
-    var identifier: String { "regression.parent.root" }
+    var identifier: String {
+        "regression.parent.root"
+    }
 }
 
 private enum RegressionChildRoute: Route {
@@ -455,7 +457,9 @@ private enum RegressionChildRoute: Route {
 private enum RegressionSecondChildRoute: Route {
     case root
 
-    var identifier: String { "regression.secondChild.root" }
+    var identifier: String {
+        "regression.secondChild.root"
+    }
 }
 
 private enum RegressionGrandchildRoute: Route {

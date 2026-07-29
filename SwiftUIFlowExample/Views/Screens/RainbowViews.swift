@@ -176,11 +176,9 @@ struct RainbowPurpleView: View {
                 .foregroundColor(.white)
                 .padding(.horizontal, 18)
                 .padding(.vertical, 10)
-                .background(
-                    LinearGradient(colors: [.red, .orange, .yellow, .green, .blue, .purple],
-                                   startPoint: .leading,
-                                   endPoint: .trailing)
-                )
+                .background(LinearGradient(colors: [.red, .orange, .yellow, .green, .blue, .purple],
+                                           startPoint: .leading,
+                                           endPoint: .trailing))
                 .clipShape(Capsule())
                 .overlay {
                     Capsule()

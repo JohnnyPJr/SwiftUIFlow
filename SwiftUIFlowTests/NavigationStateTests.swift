@@ -93,11 +93,15 @@ final class NavigationStateTests: XCTestCase {
 private enum FirstCollisionRoute: Route {
     case details
 
-    var identifier: String { "details" }
+    var identifier: String {
+        "details"
+    }
 }
 
 private enum SecondCollisionRoute: Route {
     case details
 
-    var identifier: String { "details" }
+    var identifier: String {
+        "details"
+    }
 }

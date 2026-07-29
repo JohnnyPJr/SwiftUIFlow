@@ -141,9 +141,8 @@ final class TabCoordinatorTests: XCTestCase {
         let (tab, router) = makeCrossTabSUT()
 
         // Tab-owned detour (tab's own route type) that cannot handle .details.
-        let detour = TabPresentationThatCantHandle(
-            router: Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
-        )
+        let detourRouter = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let detour = TabPresentationThatCantHandle(router: detourRouter)
         tab.presentDetour(detour, presenting: MainTabRoute.tab1)
         XCTAssertNotNil(tab.detourCoordinator, "Precondition: tab owns an active detour")
 
@@ -163,9 +162,8 @@ final class TabCoordinatorTests: XCTestCase {
         let (tab, router) = makeCrossTabSUT()
 
         // Tab-owned modal (tab's own route type) that CAN handle .details.
-        let modal = TabPresentationThatHandlesDetails(
-            router: Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
-        )
+        let modalRouter = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let modal = TabPresentationThatHandlesDetails(router: modalRouter)
         tab.addModalCoordinator(modal)
         tab.presentModal(modal,
                          presenting: .tab1,
@@ -189,9 +187,8 @@ final class TabCoordinatorTests: XCTestCase {
         let (tab, router) = makeCrossTabSUT()
 
         // Tab-owned detour (tab's own route type) that CAN handle .details.
-        let detour = TabPresentationThatHandlesDetails(
-            router: Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
-        )
+        let detourRouter = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let detour = TabPresentationThatHandlesDetails(router: detourRouter)
         tab.presentDetour(detour, presenting: MainTabRoute.tab1)
         XCTAssertNotNil(tab.detourCoordinator, "Precondition: tab owns an active detour")
 
@@ -229,9 +226,7 @@ private final class TabPresentationThatCantHandle: Coordinator<MainTabRoute> {
 /// — mirroring how a real modal handles a descendant's route. It should therefore
 /// keep the route (handled in-place) instead of being dismissed for a tab switch.
 private final class TabPresentationThatHandlesDetails: Coordinator<MainTabRoute> {
-    let detailsChild = TestCoordinator(
-        router: Router<MockRoute>(initial: .home, factory: MockViewFactory())
-    )
+    let detailsChild = TestCoordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
 
     override init(router: Router<MainTabRoute>) {
         super.init(router: router)
