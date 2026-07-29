@@ -30,6 +30,21 @@ final class CoordinatorPresentationTests: XCTestCase {
         XCTAssertNil(sut.coordinator.currentModalCoordinator)
     }
 
+    func test_DismissModal_ResetsPresentationContext() {
+        let sut = makeSUT()
+        let modal = Coordinator(router: sut.router)
+
+        sut.coordinator.presentModal(modal,
+                                     presenting: .home,
+                                     detentConfiguration: ModalDetentConfiguration(detents: [.large]))
+        XCTAssertEqual(modal.presentationContext, .modal, "Precondition: modal context should be set")
+
+        sut.coordinator.dismissModal()
+
+        XCTAssertNil(modal.parent)
+        XCTAssertEqual(modal.presentationContext, .root)
+    }
+
     func test_CanPresentDismissAndPresentRegisteredModalCoordinatorAgain() {
         let sut = makeSUT()
         let modalRouter = Router<MockRoute>(initial: .modal, factory: MockViewFactory())

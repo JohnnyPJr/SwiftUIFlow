@@ -763,6 +763,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
         if currentModalCoordinator?.parent === self {
             currentModalCoordinator?.parent = nil
+            currentModalCoordinator?.presentationContext = .root
         }
         currentModalCoordinator = nil
         router.dismissModal()
@@ -854,6 +855,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
         if detourCoordinator?.parent === self {
             detourCoordinator?.parent = nil
+            detourCoordinator?.presentationContext = .root
         }
         detourCoordinator = nil
         router.dismissDetour()

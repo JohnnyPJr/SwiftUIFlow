@@ -101,6 +101,20 @@ final class DetourNavigationIntegrationTests: XCTestCase {
         XCTAssertEqual(unlock.router.state.detour?.identifier, Tab5Route.batteryStatus.identifier)
     }
 
+    func test_DismissDetour_ResetsPresentationContext() {
+        let host = NestedDetourCoordinator(root: .host)
+        let detour = NestedDetourCoordinator(root: .first)
+
+        host.presentDetour(detour, presenting: NestedDetourRoute.first)
+        XCTAssertEqual(detour.presentationContext, .detour,
+                       "Precondition: detour context should be set")
+
+        host.dismissDetour()
+
+        XCTAssertNil(detour.parent)
+        XCTAssertEqual(detour.presentationContext, .root)
+    }
+
     func test_PresentDetour_WhenActiveDetourExists_NestsNewDetourOnActiveDetour() {
         let host = NestedDetourCoordinator(root: .host)
         let first = NestedDetourCoordinator(root: .first)
@@ -178,6 +192,9 @@ final class DetourNavigationIntegrationTests: XCTestCase {
         XCTAssertNil(first.parent)
         XCTAssertNil(second.parent)
         XCTAssertNil(third.parent)
+        XCTAssertEqual(first.presentationContext, .root)
+        XCTAssertEqual(second.presentationContext, .root)
+        XCTAssertEqual(third.presentationContext, .root)
     }
 
     func test_PresentDetourRejectsAlreadyOwnedCoordinatorWithoutMutatingState() {
