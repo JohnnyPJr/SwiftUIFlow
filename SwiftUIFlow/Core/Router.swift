@@ -40,7 +40,7 @@ import SwiftUI
 /// // Read state
 /// let currentRoute = coordinator.router.state.currentRoute
 /// let stackDepth = coordinator.router.state.stack.count
-///
+/// ```
 ///
 /// ## Observable State
 ///
