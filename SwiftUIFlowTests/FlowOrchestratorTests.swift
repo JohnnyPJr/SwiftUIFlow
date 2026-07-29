@@ -91,6 +91,27 @@ final class FlowOrchestratorTests: XCTestCase {
         XCTAssertNil(firstFlow.parent, "First flow's parent should be cleared")
     }
 
+    func test_TransitionToFlow_ClearsPushedChildStateFromPreviousFlow() {
+        let orchestrator = TestFlowOrchestrator()
+        let firstFlow = TestFlowCoordinator(handles: .flow2)
+
+        orchestrator.transitionToFlow(firstFlow, root: .flow1)
+
+        XCTAssertTrue(orchestrator.navigate(to: FlowRoute.flow2),
+                      "Navigation should push the current flow as a child route")
+        XCTAssertEqual(orchestrator.router.state.pushedChildren.count, 1,
+                       "Precondition: first flow should be in the pushed child stack")
+
+        orchestrator.transitionToFlow(TestFlowCoordinator(handles: .flow1), root: .flow2)
+
+        XCTAssertTrue(orchestrator.router.state.pushedChildren.isEmpty,
+                      "Flow transition should clear pushed child state from the previous flow")
+        XCTAssertNil(firstFlow.parent,
+                     "Removed pushed child should not retain the old parent")
+        XCTAssertEqual(firstFlow.presentationContext, .root,
+                       "Removed pushed child should reset to root context")
+    }
+
     func test_TransitionToFlow_DeallocatesFlowWithNestedChildren() {
         let orchestrator = TestFlowOrchestrator()
 

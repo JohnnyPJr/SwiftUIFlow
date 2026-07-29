@@ -385,6 +385,9 @@ final class PushedChildRegressionTests: XCTestCase {
         XCTAssertTrue(tab2.router.state.pushedChildren.isEmpty, "Pushed children should be empty")
         XCTAssertNil(tab2.router.state.presented, "No modal should be presented")
         XCTAssertNil(tab2.currentModalCoordinator, "Modal coordinator should be nil")
+        XCTAssertNil(unlock.parent, "Removed pushed child should not retain parent")
+        XCTAssertEqual(unlock.presentationContext, .root,
+                       "Removed pushed child should reset to root context")
     }
 
     // MARK: - cleanStateForBubbling Pops Pushed Children
@@ -418,6 +421,13 @@ final class PushedChildRegressionTests: XCTestCase {
                       "Pushed children should be cleared before bubbling")
         XCTAssertTrue(tab2.router.state.stack.isEmpty,
                       "Stack should be cleared before bubbling")
+
+        // Bubbling cleanup is render-state only. The parent chain must remain intact until
+        // the in-flight bubble reaches the coordinator that can handle the route.
+        XCTAssertTrue(unlock.parent === tab2,
+                      "Bubbling cleanup should preserve the in-flight parent chain")
+        XCTAssertEqual(unlock.presentationContext, .pushed,
+                       "Bubbling cleanup should preserve the in-flight presentation context")
 
         // Verify we successfully switched to tab3
         XCTAssertEqual(mainCoordinator.router.state.selectedTab, 2)

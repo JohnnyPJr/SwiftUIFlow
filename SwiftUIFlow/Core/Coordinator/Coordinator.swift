@@ -706,10 +706,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
             router.popToRoot()
         }
 
-        // Pop all pushed children
-        while !router.state.pushedChildren.isEmpty {
-            router.popChild()
-        }
+        clearPushedChildRenderState()
     }
 
     /// Called by the framework when navigationType returns .modal
@@ -842,9 +839,29 @@ open class Coordinator<R: Route>: AnyCoordinator {
         dismissModal()
         dismissDetour()
 
-        // Pop all pushed children
+        removeAllPushedChildren()
+    }
+
+    /// Remove pushed children from the render stack only.
+    /// Ownership is left intact because this is used mid-navigation while bubbling,
+    /// where the caller chain must survive until the navigation finishes.
+    private func clearPushedChildRenderState() {
         while !router.state.pushedChildren.isEmpty {
             router.popChild()
+        }
+    }
+
+    /// Remove pushed children and reset their ownership/context.
+    /// Terminal teardown only: flow transition or full coordinator reset.
+    private func removeAllPushedChildren() {
+        while let child = router.state.pushedChildren.last {
+            router.popChild()
+
+            if child.parent === self {
+                child.parent = nil
+            }
+
+            child.presentationContext = .root
         }
     }
 
@@ -858,6 +875,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         router.setRoot(root)
         dismissModal()
         dismissDetour()
+        removeAllPushedChildren()
     }
 
     // MARK: - Internal Error Reporting
