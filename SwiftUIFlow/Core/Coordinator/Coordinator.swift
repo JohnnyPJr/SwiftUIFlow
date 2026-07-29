@@ -195,7 +195,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     ///
     /// - Parameter route: The route to build a view for
     /// - Returns: A type-erased `CoordinatorRouteView`
-    public func buildCoordinatorRouteView(for route: any Route) -> Any {
+    func buildCoordinatorRouteView(for route: any Route) -> Any {
         return CoordinatorRouteView(coordinator: self, route: route)
     }
 
