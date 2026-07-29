@@ -79,12 +79,14 @@ class AppCoordinator: Coordinator<AppRoute> {
         factory.coordinator = self
     }
 
-    override func canHandle(_ route: AppRoute) -> Bool {
-        return true
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is AppRoute
     }
 
-    override func navigationType(for route: AppRoute) -> NavigationType {
-        switch route {
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let appRoute = route as? AppRoute else { return .push }
+
+        switch appRoute {
         case .home, .profile:
             return .push
         case .settings:
@@ -238,8 +240,12 @@ coordinator.navigate(to: .profile)
 Use the `.custom` detent for modals that automatically size to their content:
 
 ```swift
-override func modalDetentConfiguration(for route: AppRoute) -> ModalDetentConfiguration {
-    switch route {
+override func modalDetentConfiguration(for route: any Route) -> ModalDetentConfiguration {
+    guard let appRoute = route as? AppRoute else {
+        return ModalDetentConfiguration(detents: [.large])
+    }
+
+    switch appRoute {
     case .settings:
         // Modal automatically sizes to content height
         return ModalDetentConfiguration(detents: [.custom, .medium])
@@ -529,8 +535,9 @@ class ParentCoordinator: Coordinator<AppRoute> {
         addModalCoordinator(settingsModal)
     }
 
-    override func navigationType(for route: AppRoute) -> NavigationType {
-        return route == .settings ? .modal : .push
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let appRoute = route as? AppRoute else { return .push }
+        return appRoute == .settings ? .modal : .push
     }
 }
 

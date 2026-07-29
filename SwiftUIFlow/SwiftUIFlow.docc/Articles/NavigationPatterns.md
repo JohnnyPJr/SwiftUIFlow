@@ -175,8 +175,10 @@ class ParentCoordinator: Coordinator<ParentRoute> {
         addModalCoordinator(profileModalCoordinator)
     }
 
-    override func navigationType(for route: ParentRoute) -> NavigationType {
-        switch route {
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let parentRoute = route as? ParentRoute else { return .push }
+
+        switch parentRoute {
         case .settings:
             return .modal // Presents settingsModalCoordinator
         case .profile:
@@ -202,7 +204,7 @@ reported through ``SwiftUIFlowErrorHandler``.
 Customize sheet height using `modalDetentConfiguration`. SwiftUIFlow supports six detent types:
 
 ```swift
-override func modalDetentConfiguration(for route: RedRoute) -> ModalDetentConfiguration {
+override func modalDetentConfiguration(for route: any Route) -> ModalDetentConfiguration {
     guard let redRoute = route as? RedRoute else {
         return ModalDetentConfiguration(detents: [.large])
     }
@@ -914,7 +916,7 @@ Each coordinator should manage a cohesive set of routes:
 Return `true` only for routes this coordinator directly handles:
 
 ```swift
-override func canHandle(_ route: AppRoute) -> Bool {
+override func canHandle(_ route: any Route) -> Bool {
     // Only handle routes with modal coordinators configured
     guard let route = route as? DeepBlueRoute else { return false }
     return route != .nestedModal // Let modal coordinator handle it

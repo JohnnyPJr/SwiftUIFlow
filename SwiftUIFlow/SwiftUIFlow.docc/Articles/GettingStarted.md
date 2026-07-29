@@ -145,12 +145,14 @@ class AppCoordinator: Coordinator<AppRoute> {
         factory.coordinator = self
     }
 
-    override func canHandle(_ route: AppRoute) -> Bool {
+    override func canHandle(_ route: any Route) -> Bool {
         return route is AppRoute // This coordinator handles all AppRoutes
     }
 
-    override func navigationType(for route: AppRoute) -> NavigationType {
-        switch route {
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let appRoute = route as? AppRoute else { return .push }
+
+        switch appRoute {
         case .home, .profile:
             return .push
         case .settings:

@@ -351,8 +351,10 @@ navigation fails without partially building the stack.
 `.replace` pops the current route, then pushes the new route:
 
 ```swift
-override func navigationType(for route: WorkflowRoute) -> NavigationType {
-    switch route {
+override func navigationType(for route: any Route) -> NavigationType {
+    guard let workflowRoute = route as? WorkflowRoute else { return .push }
+
+    switch workflowRoute {
     case .loading:
         return .push
     case .success, .failure:
@@ -542,8 +544,10 @@ struct CustomView: View {
 class AppCoordinator: Coordinator<AppRoute> {
     let modal = ModalCoordinator()
 
-    override func navigationType(for route: AppRoute) -> NavigationType {
-        if route == .settings {
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let appRoute = route as? AppRoute else { return .push }
+
+        if appRoute == .settings {
             return .modal  // Will fail! Modal not registered
         }
         return .push
