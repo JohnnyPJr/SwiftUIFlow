@@ -36,6 +36,22 @@ final class TabCoordinatorTests: XCTestCase {
                        "TabCoordinator should respect explicit context override")
     }
 
+    func test_RemoveChild_FromTabCoordinator_ResetsPresentationContext() {
+        let tabRouter = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())
+        let tabCoordinator = TestTabCoordinator(router: tabRouter)
+        let child = TestCoordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
+
+        tabCoordinator.addChild(child)
+        XCTAssertTrue(child.parent === tabCoordinator)
+        XCTAssertEqual(child.presentationContext, .tab)
+
+        tabCoordinator.removeChild(child)
+
+        XCTAssertNil(child.parent)
+        XCTAssertEqual(child.presentationContext, .root,
+                       "Removed tab child should reset to root presentation context")
+    }
+
     // MARK: - Tab Management
 
     func test_TabCoordinatorCanIdentifyTabForChild() {

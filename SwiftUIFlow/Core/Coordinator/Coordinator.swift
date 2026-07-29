@@ -409,10 +409,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     ///
     /// - Parameter coordinator: The child coordinator to remove
     public func removeChild(_ coordinator: Coordinator<some Route>) {
-        internalChildren.removeAll { $0 === coordinator }
-        if coordinator.parent === self {
-            coordinator.parent = nil
-        }
+        removeChild(coordinator as AnyCoordinator)
     }
 
     /// Remove a child coordinator (internal version for framework use)
@@ -421,6 +418,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         internalChildren.removeAll { $0 === coordinator }
         if coordinator.parent === self {
             coordinator.parent = nil
+            coordinator.presentationContext = .root
         }
     }
 
