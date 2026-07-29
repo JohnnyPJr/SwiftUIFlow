@@ -488,6 +488,33 @@ open class Coordinator<R: Route>: AnyCoordinator {
     ///
     /// - Parameter coordinator: The modal coordinator to register (must have same route type)
     public func addModalCoordinator(_ coordinator: Coordinator<R>) {
+        if coordinator === self {
+            let error = SwiftUIFlowError.circularReference(coordinator: String(describing: type(of: self)))
+            reportError(error)
+            return
+        }
+
+        if modalCoordinators.contains(where: { $0 === coordinator }) {
+            let error = SwiftUIFlowError.duplicateChild(coordinator: String(describing: type(of: coordinator)))
+            reportError(error)
+            return
+        }
+
+        guard coordinator.parent == nil else {
+            let message = """
+            Cannot register an already-owned coordinator as a modal.
+            Register a standalone modal coordinator instead.
+            """
+            reportError(.configurationError(message: message))
+            return
+        }
+
+        guard !hasAncestor(coordinator) else {
+            let error = SwiftUIFlowError.circularReference(coordinator: String(describing: type(of: coordinator)))
+            reportError(error)
+            return
+        }
+
         modalCoordinators.append(coordinator)
     }
 
