@@ -121,7 +121,6 @@ coordinator.navigate(to: .settings) // Presents modal
 
 - <doc:ErrorHandling>
 - ``SwiftUIFlowError``
-- ``ValidationResult``
 - ``SwiftUIFlowErrorHandler``
 
 ### SwiftUI Framework
