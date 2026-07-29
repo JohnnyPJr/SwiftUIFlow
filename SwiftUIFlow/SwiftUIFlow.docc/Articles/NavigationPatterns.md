@@ -147,6 +147,10 @@ The framework automatically:
 - Shows RainbowCoordinator's orange view
 - Provides back button to return to RedView
 
+Pushed child coordinators may also contain their own pushed children. SwiftUIFlow recursively
+flattens the pushed-child hierarchy into the active `NavigationStack`, preserving visible order
+without nesting `NavigationStack` views.
+
 ## Modal Coordinators
 
 ### Multiple Modal Coordinators
@@ -171,8 +175,10 @@ class ParentCoordinator: Coordinator<ParentRoute> {
         addModalCoordinator(profileModalCoordinator)
     }
 
-    override func navigationType(for route: ParentRoute) -> NavigationType {
-        switch route {
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let parentRoute = route as? ParentRoute else { return .push }
+
+        switch parentRoute {
         case .settings:
             return .modal // Presents settingsModalCoordinator
         case .profile:
@@ -189,12 +195,16 @@ The framework:
 - Presents only one modal at a time
 - Auto-dismisses modals during cross-flow navigation
 
+Modal coordinators must be standalone coordinators registered for modal presentation. Do not reuse
+an existing child, tab, or pushed coordinator as a modal; already-owned coordinators are rejected and
+reported through ``SwiftUIFlowErrorHandler``.
+
 ### Modal Detents
 
 Customize sheet height using `modalDetentConfiguration`. SwiftUIFlow supports six detent types:
 
 ```swift
-override func modalDetentConfiguration(for route: RedRoute) -> ModalDetentConfiguration {
+override func modalDetentConfiguration(for route: any Route) -> ModalDetentConfiguration {
     guard let redRoute = route as? RedRoute else {
         return ModalDetentConfiguration(detents: [.large])
     }
@@ -641,6 +651,11 @@ When deep linking to `.level3Modal`:
 2. Builds path: pushes `.level1`, `.level2`, `.level3`
 3. Presents modal from level 3
 
+Navigation paths are validated before stack mutation. A path should contain only routes
+owned by that coordinator, and each path route must resolve to `.push` or `.replace`.
+Do not include modal routes in the path; return the prerequisite stack state and let
+SwiftUIFlow present the modal after the path is built.
+
 ## Handling External Deep Links
 
 External triggers (push notifications, universal links, app links, URL schemes) require special handling. You have two options:
@@ -694,9 +709,19 @@ class DeepLinkHandler {
 
 **⚠️ Always present detours from a central location** (AppCoordinator or MainTabCoordinator), never from individual view coordinators. This ensures app-wide interruptions work correctly regardless of where the user currently is.
 
+**Use a fresh detour coordinator.** Do not pass an existing child, tab, or modal coordinator to
+``Coordinator/presentDetour(_:presenting:)``. Already-owned coordinators are rejected and reported
+through ``SwiftUIFlowErrorHandler`` so the permanent coordinator hierarchy is not corrupted.
+
+**Multiple active detours are nested.** If a central coordinator receives another detour request
+while a detour is already active, SwiftUIFlow forwards the new detour to the deepest active detour
+instead of replacing the existing one. This supports consecutive notification-style interruptions
+while preserving the full detour ownership chain.
+
 **Detour capabilities:**
 - Present as fullscreen cover
 - Preserve all underlying navigation state (modals, stacks, pushed children)
+- Nest consecutive detours without replacing active detours
 - Auto-dismiss during cross-flow navigation
 - Support full navigation stacks within the detour
 
@@ -891,7 +916,7 @@ Each coordinator should manage a cohesive set of routes:
 Return `true` only for routes this coordinator directly handles:
 
 ```swift
-override func canHandle(_ route: AppRoute) -> Bool {
+override func canHandle(_ route: any Route) -> Bool {
     // Only handle routes with modal coordinators configured
     guard let route = route as? DeepBlueRoute else { return false }
     return route != .nestedModal // Let modal coordinator handle it
@@ -920,6 +945,11 @@ Always present detours explicitly using `presentDetour()`:
 // ✅ Correct
 presentDetour(coordinator, presenting: route)
 ```
+
+The coordinator passed to `presentDetour()` must be fresh and unowned. Create a new coordinator
+for the temporary detour flow instead of borrowing one that already belongs to another hierarchy.
+If a detour is already active on the presenter, the new detour is nested on the deepest active
+one rather than replacing the existing detour.
 
 ## See Also
 

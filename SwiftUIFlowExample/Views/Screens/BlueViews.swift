@@ -48,6 +48,24 @@ struct BlueView: View {
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
+
+                Divider()
+                    .background(Color.white)
+                    .padding(.vertical)
+
+                Text("🌈 Cross-Tab Grandchild Deep Link")
+                    .font(.headline)
+                    .foregroundColor(.white)
+
+                Button("Deep Link to Rainbow Detail") {
+                    coordinator.navigate(to: RainbowDetailRoute.detail)
+                }
+                .buttonStyle(NavigationButtonStyle(color: .purple))
+
+                Text("Blue tab → Red tab → Rainbow child → Rainbow Detail")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
             }
         }
         .withInfoButton {

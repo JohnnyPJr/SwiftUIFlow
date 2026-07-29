@@ -156,6 +156,18 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
         }
 
         // Phase 2: Execution (side effects happen here)
+
+        // A TabCoordinator can directly own a modal/detour. Mirror the base cascade: give the
+        // presentation first refusal BEFORE routing to tabs. If it can handle the route it does;
+        // if not, it is dismissed here so we never switch tabs underneath a stale presentation.
+        if handleModalNavigation(to: route, from: caller) {
+            return true
+        }
+
+        if handleDetourNavigation(to: route, from: caller) {
+            return true
+        }
+
         // Try current tab first, but not if it's the caller (prevents infinite loop)
         let currentTabIndex = router.state.selectedTab
         if currentTabIndex < internalChildren.count {
@@ -194,6 +206,12 @@ extension TabCoordinator {
         if let typedRoute = route as? R, canHandle(typedRoute) {
             // Let the base class validate
             return validateNavigationPathBase(to: route, from: caller)
+        }
+
+        // Mirror execution: a TabCoordinator-owned modal/detour gets first refusal before tabs.
+        // Reuses the base validation stage so the two phases can never drift apart.
+        if let modalDetourResult = validateModalAndDetourNavigation(to: route, from: caller) {
+            return modalDetourResult
         }
 
         // Try current tab first, but not if it's the caller (prevents infinite loop)

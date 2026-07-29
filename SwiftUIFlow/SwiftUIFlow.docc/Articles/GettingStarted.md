@@ -110,7 +110,7 @@ import SwiftUIFlow
 class AppViewFactory: ViewFactory<AppRoute> {
     weak var coordinator: AppCoordinator?
 
-    override func buildView(for route: AppRoute) -> AnyView {
+    override func buildView(for route: AppRoute) -> AnyView? {
         guard let coordinator else {
             return AnyView(Text("Error: Coordinator not set"))
         }
@@ -145,12 +145,14 @@ class AppCoordinator: Coordinator<AppRoute> {
         factory.coordinator = self
     }
 
-    override func canHandle(_ route: AppRoute) -> Bool {
+    override func canHandle(_ route: any Route) -> Bool {
         return route is AppRoute // This coordinator handles all AppRoutes
     }
 
-    override func navigationType(for route: AppRoute) -> NavigationType {
-        switch route {
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let appRoute = route as? AppRoute else { return .push }
+
+        switch appRoute {
         case .home, .profile:
             return .push
         case .settings:
@@ -229,6 +231,9 @@ To present a route as a coordinator-managed modal:
 1. **Create a modal coordinator** with that route as its root
 2. **Register it** using `addModalCoordinator()`
 3. **Return `.modal`** from `navigationType(for:)` for that route
+
+Use a standalone modal coordinator. Do not reuse an existing child, tab, or pushed coordinator as a
+modal; already-owned coordinators are rejected and reported through ``SwiftUIFlowErrorHandler``.
 
 ```swift
 // Modal coordinator for settings with its own navigation

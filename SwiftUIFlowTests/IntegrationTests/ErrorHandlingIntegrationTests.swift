@@ -231,6 +231,161 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         XCTAssertEqual(coordinator.children.count, 0, "Coordinator should not be its own child")
     }
 
+    func test_AddChild_RejectsAlreadyOwnedCoordinatorWithoutMutatingOwnership() {
+        let firstParent = TestCoordinator(router: Router<MockRoute>(initial: .home,
+                                                                    factory: MockViewFactory()))
+        let secondParent = TestCoordinator(router: Router<MockRoute>(initial: .login,
+                                                                     factory: MockViewFactory()))
+        let child = TestCoordinator(router: Router<MockRoute>(initial: .details,
+                                                              factory: MockViewFactory()))
+        firstParent.addChild(child)
+
+        var capturedError: SwiftUIFlowError?
+        SwiftUIFlowErrorHandler.shared.setHandler { capturedError = $0 }
+
+        secondParent.addChild(child)
+
+        XCTAssertNotNil(capturedError, "Error handler should be called")
+        if case .configurationError = capturedError {
+            // Success
+        } else {
+            XCTFail("Expected configurationError")
+        }
+        XCTAssertTrue(firstParent.children.contains { $0 === child })
+        XCTAssertFalse(secondParent.children.contains { $0 === child })
+        XCTAssertTrue(child.parent === firstParent)
+        XCTAssertEqual(child.presentationContext, .pushed)
+    }
+
+    func test_AddChild_RejectsAncestorCoordinatorWithoutMutatingHierarchy() {
+        let root = TestCoordinator(router: Router<MockRoute>(initial: .home,
+                                                             factory: MockViewFactory()))
+        let child = TestCoordinator(router: Router<MockRoute>(initial: .login,
+                                                              factory: MockViewFactory()))
+        root.addChild(child)
+
+        var capturedError: SwiftUIFlowError?
+        SwiftUIFlowErrorHandler.shared.setHandler { capturedError = $0 }
+
+        child.addChild(root)
+
+        XCTAssertNotNil(capturedError, "Error handler should be called")
+        if case .circularReference = capturedError {
+            // Success
+        } else {
+            XCTFail("Expected circularReference error")
+        }
+        XCTAssertTrue(root.children.contains { $0 === child })
+        XCTAssertFalse(child.children.contains { $0 === root })
+        XCTAssertTrue(child.parent === root)
+        XCTAssertNil(root.parent)
+    }
+
+    func test_AddModalCoordinator_RejectsDuplicateRegistrationWithoutDuplicatingModal() {
+        let coordinator = TestModalNavigationCoordinator(router: Router<MockRoute>(initial: .home,
+                                                                                   factory: MockViewFactory()))
+        let modal = TestModalChildCoordinator(router: Router<MockRoute>(initial: .modal,
+                                                                        factory: MockViewFactory()))
+        coordinator.addModalCoordinator(modal)
+
+        var capturedError: SwiftUIFlowError?
+        SwiftUIFlowErrorHandler.shared.setHandler { capturedError = $0 }
+
+        coordinator.addModalCoordinator(modal)
+
+        XCTAssertNotNil(capturedError, "Error handler should be called")
+        if case .duplicateChild = capturedError {
+            // Success
+        } else {
+            XCTFail("Expected duplicateChild error")
+        }
+
+        let result = coordinator.navigate(to: MockRoute.modal)
+        XCTAssertTrue(result)
+        XCTAssertTrue(coordinator.currentModalCoordinator === modal)
+        XCTAssertTrue(modal.parent === coordinator)
+    }
+
+    func test_AddModalCoordinator_RejectsSelfRegistrationWithoutMutatingModalConfiguration() {
+        let coordinator = TestModalNavigationCoordinator(router: Router<MockRoute>(initial: .home,
+                                                                                   factory: MockViewFactory()))
+
+        var capturedError: SwiftUIFlowError?
+        SwiftUIFlowErrorHandler.shared.setHandler { capturedError = $0 }
+
+        coordinator.addModalCoordinator(coordinator)
+
+        XCTAssertNotNil(capturedError, "Error handler should be called")
+        if case .circularReference = capturedError {
+            // Success
+        } else {
+            XCTFail("Expected circularReference error")
+        }
+
+        let result = coordinator.navigate(to: MockRoute.modal)
+        XCTAssertFalse(result, "Self-registered modal should not be treated as configured")
+        XCTAssertNil(coordinator.currentModalCoordinator)
+        XCTAssertNil(coordinator.router.state.presented)
+        XCTAssertNil(coordinator.parent)
+        XCTAssertEqual(coordinator.presentationContext, .root)
+    }
+
+    func test_AddModalCoordinator_RejectsAlreadyOwnedCoordinatorWithoutMutatingOwnership() {
+        let structuralParent = TestCoordinator(router: Router<MockRoute>(initial: .home,
+                                                                         factory: MockViewFactory()))
+        let modalHost = TestModalNavigationCoordinator(router: Router<MockRoute>(initial: .login,
+                                                                                 factory: MockViewFactory()))
+        let ownedChild = TestModalChildCoordinator(router: Router<MockRoute>(initial: .modal,
+                                                                             factory: MockViewFactory()))
+        structuralParent.addChild(ownedChild, context: .tab)
+
+        var capturedError: SwiftUIFlowError?
+        SwiftUIFlowErrorHandler.shared.setHandler { capturedError = $0 }
+
+        modalHost.addModalCoordinator(ownedChild)
+
+        XCTAssertNotNil(capturedError, "Error handler should be called")
+        if case .configurationError = capturedError {
+            // Success
+        } else {
+            XCTFail("Expected configurationError")
+        }
+
+        let result = modalHost.navigate(to: MockRoute.modal)
+        XCTAssertFalse(result, "Rejected modal registration should not configure modal navigation")
+        XCTAssertNil(modalHost.currentModalCoordinator)
+        XCTAssertNil(modalHost.router.state.presented)
+        XCTAssertTrue(ownedChild.parent === structuralParent)
+        XCTAssertEqual(ownedChild.presentationContext, .tab)
+    }
+
+    func test_AddModalCoordinator_RejectsAncestorCoordinatorWithoutMutatingHierarchy() {
+        let root = TestModalNavigationCoordinator(router: Router<MockRoute>(initial: .home,
+                                                                            factory: MockViewFactory()))
+        let child = TestModalNavigationCoordinator(router: Router<MockRoute>(initial: .login,
+                                                                             factory: MockViewFactory()))
+        root.addChild(child)
+
+        var capturedError: SwiftUIFlowError?
+        SwiftUIFlowErrorHandler.shared.setHandler { capturedError = $0 }
+
+        child.addModalCoordinator(root)
+
+        XCTAssertNotNil(capturedError, "Error handler should be called")
+        if case .circularReference = capturedError {
+            // Success
+        } else {
+            XCTFail("Expected circularReference error")
+        }
+
+        let result = child.navigate(to: MockRoute.modal)
+        XCTAssertFalse(result, "Rejected ancestor modal should not configure modal navigation")
+        XCTAssertNil(child.currentModalCoordinator)
+        XCTAssertNil(child.router.state.presented)
+        XCTAssertTrue(child.parent === root)
+        XCTAssertNil(root.parent)
+    }
+
     // MARK: - Error Properties Tests
 
     func test_ErrorProperties_AreAccessible() throws {

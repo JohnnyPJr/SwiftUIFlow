@@ -30,6 +30,7 @@ protocol AnyCoordinator: CoordinatorUISupport {
     func canHandle(_ route: any Route) -> Bool
     func canNavigate(to route: any Route) -> Bool
     func resetToCleanState()
+    func presentDetour(_ coordinator: AnyCoordinator, presenting route: any Route)
     func dismissModal()
     func dismissDetour()
     func pop()
@@ -41,6 +42,7 @@ protocol AnyCoordinator: CoordinatorUISupport {
     var tabItem: (text: String, image: String)? { get }
 
     var allRoutes: [any Route] { get }
+    var pushedChildren: [AnyCoordinator] { get }
     var routesDidChange: AnyPublisher<[any Route], Never> { get }
 
     var rootRoute: any Route { get }

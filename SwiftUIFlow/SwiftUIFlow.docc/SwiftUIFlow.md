@@ -37,12 +37,14 @@ class AppCoordinator: Coordinator<AppRoute> {
         factory.coordinator = self
     }
 
-    override func canHandle(_ route: AppRoute) -> Bool {
-        return true
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is AppRoute
     }
 
-    override func navigationType(for route: AppRoute) -> NavigationType {
-        switch route {
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let appRoute = route as? AppRoute else { return .push }
+
+        switch appRoute {
         case .home: return .push
         case .profile: return .push
         case .settings: return .modal
@@ -121,7 +123,6 @@ coordinator.navigate(to: .settings) // Presents modal
 
 - <doc:ErrorHandling>
 - ``SwiftUIFlowError``
-- ``ValidationResult``
 - ``SwiftUIFlowErrorHandler``
 
 ### SwiftUI Framework

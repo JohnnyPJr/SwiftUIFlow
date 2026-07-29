@@ -161,7 +161,7 @@ public enum ViewType: Equatable {
 ///
 /// **Framework internal only.** Used during the validation phase of navigation
 /// to check if a route can be handled before executing navigation with side effects.
-public enum ValidationResult {
+enum ValidationResult {
     case success
     case failure(SwiftUIFlowError)
 

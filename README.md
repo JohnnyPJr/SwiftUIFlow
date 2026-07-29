@@ -79,12 +79,14 @@ class AppCoordinator: Coordinator<AppRoute> {
         factory.coordinator = self
     }
 
-    override func canHandle(_ route: AppRoute) -> Bool {
-        return true
+    override func canHandle(_ route: any Route) -> Bool {
+        return route is AppRoute
     }
 
-    override func navigationType(for route: AppRoute) -> NavigationType {
-        switch route {
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let appRoute = route as? AppRoute else { return .push }
+
+        switch appRoute {
         case .home, .profile:
             return .push
         case .settings:
@@ -100,7 +102,7 @@ class AppCoordinator: Coordinator<AppRoute> {
 class AppViewFactory: ViewFactory<AppRoute> {
     weak var coordinator: AppCoordinator?
 
-    override func buildView(for route: AppRoute) -> AnyView {
+    override func buildView(for route: AppRoute) -> AnyView? {
         guard let coordinator else {
             return AnyView(Text("Error: Coordinator not set"))
         }
@@ -238,8 +240,12 @@ coordinator.navigate(to: .profile)
 Use the `.custom` detent for modals that automatically size to their content:
 
 ```swift
-override func modalDetentConfiguration(for route: AppRoute) -> ModalDetentConfiguration {
-    switch route {
+override func modalDetentConfiguration(for route: any Route) -> ModalDetentConfiguration {
+    guard let appRoute = route as? AppRoute else {
+        return ModalDetentConfiguration(detents: [.large])
+    }
+
+    switch appRoute {
     case .settings:
         // Modal automatically sizes to content height
         return ModalDetentConfiguration(detents: [.custom, .medium])
@@ -262,6 +268,14 @@ func handleDeepLink(to route: any Route) {
     // Their context is preserved!
 }
 ```
+
+Create a fresh coordinator for each detour flow. Do not pass an existing child, tab, or modal
+coordinator to `presentDetour`; already-owned coordinators are rejected and reported through
+`SwiftUIFlowErrorHandler`.
+
+If another detour is presented while one is already active, SwiftUIFlow forwards it to the deepest
+active detour. This stacks notification-style interruptions without replacing or orphaning the
+existing detour chain. Dismissing the host detour tears down the nested detour subtree cleanly.
 
 ### Multi-Step Navigation Paths
 
@@ -286,6 +300,11 @@ coordinator.navigate(to: .abyss)
 // Framework builds: shallow → deep → abyss
 // User can navigate back through each level
 ```
+
+Navigation paths are validated before the stack is changed. A path should contain only
+routes owned by that coordinator and only routes whose navigation type is `.push` or
+`.replace`. Modal routes belong outside the path; return the prerequisite stack path and
+let the framework present the modal after those prerequisites are built.
 
 ### Cross-Tab Navigation
 
@@ -356,6 +375,10 @@ coordinator.navigate(to: RainbowRoute.red)
 // Framework pushes rainbowCoordinator onto the stack
 // Full navigation support within the child
 ```
+
+Pushed child coordinators can also contain their own pushed children. SwiftUIFlow flattens the
+entire pushed-child hierarchy into the active `NavigationStack`, so nested child flows render in
+order without creating unsupported nested `NavigationStack` views.
 
 ### Comprehensive Error Handling
 
@@ -483,6 +506,7 @@ class DeepLinkHandler {
         let detourCoordinator = MessageCoordinator(root: .message)
         mainTab.presentDetour(detourCoordinator, presenting: .message)
 
+        // If another detour arrives while this one is active, it is nested on top.
         // When dismissed: returns to EXACT state before deep link
     }
 }
@@ -491,6 +515,9 @@ class DeepLinkHandler {
 **Choose based on user intent:**
 - **Navigate**: "Take me to X" - Clean slate navigation (e.g., marketing deep link)
 - **Detour**: "Show me X, then let me continue" - Temporary interruption (e.g., notification)
+
+Detour coordinators should be fresh temporary coordinators. Reusing an existing coordinator that
+already belongs to another hierarchy is rejected as a configuration error.
 
 ### Modal Coordinators with Shared Route Type
 
@@ -508,8 +535,9 @@ class ParentCoordinator: Coordinator<AppRoute> {
         addModalCoordinator(settingsModal)
     }
 
-    override func navigationType(for route: AppRoute) -> NavigationType {
-        return route == .settings ? .modal : .push
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let appRoute = route as? AppRoute else { return .push }
+        return appRoute == .settings ? .modal : .push
     }
 }
 
@@ -519,6 +547,10 @@ class SettingsCoordinator: Coordinator<AppRoute> {
     }
 }
 ```
+
+Modal coordinators must be standalone coordinators registered for modal presentation. Do not reuse
+an existing child, tab, or pushed coordinator as a modal; already-owned coordinators are rejected and
+reported through `SwiftUIFlowErrorHandler`.
 
 ### FlowOrchestrator for Major Transitions
 

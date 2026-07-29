@@ -35,6 +35,50 @@ enum LongPathRoute: String, Route {
     case step6, step7, step8, step9, final
 }
 
+enum MalformedPathRoute: Route {
+    case root
+    case prerequisite
+    case modalPrerequisite
+    case alias
+    case destination
+
+    var identifier: String {
+        switch self {
+        case .alias, .destination:
+            "malformedPath.collidingDestination"
+        default:
+            "malformedPath.\(self)"
+        }
+    }
+}
+
+enum ForeignPathRoute: Route {
+    case invalid
+
+    var identifier: String {
+        "malformedPath.foreign.invalid"
+    }
+}
+
+enum DescendantPathParentRoute: Route {
+    case root
+    case context
+    case modalContext
+
+    var identifier: String {
+        "descendantPath.parent.\(self)"
+    }
+}
+
+enum DescendantPathGrandchildRoute: Route {
+    case root
+    case destination
+
+    var identifier: String {
+        "descendantPath.grandchild.\(self)"
+    }
+}
+
 // MARK: - Test Coordinators
 
 /// Test coordinator with navigationPath() implementation
@@ -82,6 +126,120 @@ final class MainPathCoordinator: Coordinator<MainPathRoute> {
     }
 }
 
+/// Parent coordinator that delegates to a supplied child coordinator.
+/// Used to verify the delegated child validates its own navigation path before parent mutation.
+final class DelegatingPathParentCoordinator: Coordinator<MainPathRoute> {
+    init(child: Coordinator<some Route>) {
+        super.init(router: Router(initial: .home, factory: DummyPathFactory()))
+        addChild(child)
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is MainPathRoute
+    }
+}
+
+/// Parent coordinator that delegates to a registered modal coordinator of the same route type.
+/// Used to verify modal children validate their own path before presentation.
+final class ModalDelegatingPathParentCoordinator: Coordinator<MalformedPathRoute> {
+    init(modal: Coordinator<MalformedPathRoute>) {
+        super.init(router: Router(initial: .root, factory: DummyPathFactory()))
+        addModalCoordinator(modal)
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        guard let route = route as? MalformedPathRoute else { return false }
+        return route == .root
+    }
+}
+
+/// Child coordinator that validates successfully but fails during execution.
+/// Used to verify parents do not mask unexpected delegated navigation failures.
+final class FailingDelegatedNavigationCoordinator: Coordinator<MalformedPathRoute> {
+    init() {
+        super.init(router: Router(initial: .root, factory: DummyPathFactory()))
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is MalformedPathRoute
+    }
+
+    override func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
+        .success
+    }
+
+    override func navigate(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+        false
+    }
+}
+
+/// Parent coordinator that needs to build its own route stack before delegating to a pushed child.
+final class DescendantPathParentCoordinator: Coordinator<DescendantPathParentRoute> {
+    init(grandchild: DescendantPathGrandchildCoordinator) {
+        super.init(router: Router(initial: .root, factory: DummyPathFactory()))
+        addChild(grandchild)
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is DescendantPathParentRoute
+    }
+
+    override func navigationPath(for route: any Route) -> [any Route]? {
+        if route is DescendantPathGrandchildRoute {
+            return [DescendantPathParentRoute.context]
+        }
+
+        return nil
+    }
+}
+
+final class MalformedDescendantPathParentCoordinator: Coordinator<DescendantPathParentRoute> {
+    enum PathKind {
+        case modalRoute
+        case foreignRoute
+    }
+
+    private let pathKind: PathKind
+
+    init(grandchild: DescendantPathGrandchildCoordinator, pathKind: PathKind) {
+        self.pathKind = pathKind
+        super.init(router: Router(initial: .root, factory: DummyPathFactory()))
+        addChild(grandchild)
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is DescendantPathParentRoute
+    }
+
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let route = route as? DescendantPathParentRoute else { return .push }
+        return route == .modalContext ? .modal : .push
+    }
+
+    override func navigationPath(for route: any Route) -> [any Route]? {
+        if route is DescendantPathGrandchildRoute {
+            switch pathKind {
+            case .modalRoute:
+                return [DescendantPathParentRoute.modalContext]
+            case .foreignRoute:
+                return [ForeignPathRoute.invalid]
+            }
+        }
+
+        return nil
+    }
+}
+
+final class DescendantPathGrandchildCoordinator: Coordinator<DescendantPathGrandchildRoute> {
+    init() {
+        super.init(router: Router(initial: .root, factory: DummyPathFactory()))
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is DescendantPathGrandchildRoute
+    }
+}
+
 /// Test coordinator that returns empty array for navigationPath
 /// Used for testing empty path handling
 final class EmptyPathCoordinator: Coordinator<EmptyPathRoute> {
@@ -126,6 +284,56 @@ final class LongPathCoordinator: Coordinator<LongPathRoute> {
                     LongPathRoute.final]
         }
         return nil
+    }
+}
+
+/// Test coordinator for regression coverage around malformed navigation paths.
+/// Paths must be fully validated before any stack mutation occurs.
+final class MalformedPathCoordinator: Coordinator<MalformedPathRoute> {
+    enum PathKind {
+        case foreignRoute
+        case modalRoute
+        case validPathIncludingDestination
+        case validPathExcludingDestination
+        case validPathStartingWithRoot
+        case sameIdentifierAsDestination
+    }
+
+    private let pathKind: PathKind
+
+    init(pathKind: PathKind) {
+        self.pathKind = pathKind
+        super.init(router: Router(initial: .root, factory: DummyPathFactory()))
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is MalformedPathRoute
+    }
+
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let route = route as? MalformedPathRoute else { return .push }
+        return route == .modalPrerequisite ? .modal : .push
+    }
+
+    override func navigationPath(for route: any Route) -> [any Route]? {
+        guard route as? MalformedPathRoute == .destination else { return nil }
+
+        switch pathKind {
+        case .foreignRoute:
+            return [MalformedPathRoute.prerequisite, ForeignPathRoute.invalid]
+        case .modalRoute:
+            return [MalformedPathRoute.prerequisite, MalformedPathRoute.modalPrerequisite]
+        case .validPathIncludingDestination:
+            return [MalformedPathRoute.prerequisite, MalformedPathRoute.destination]
+        case .validPathExcludingDestination:
+            return [MalformedPathRoute.prerequisite]
+        case .validPathStartingWithRoot:
+            return [MalformedPathRoute.root,
+                    MalformedPathRoute.prerequisite,
+                    MalformedPathRoute.destination]
+        case .sameIdentifierAsDestination:
+            return [MalformedPathRoute.alias]
+        }
     }
 }
 

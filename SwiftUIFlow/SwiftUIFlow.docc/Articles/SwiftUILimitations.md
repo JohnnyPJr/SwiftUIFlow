@@ -178,6 +178,22 @@ SwiftUIFlow's flattened navigation architecture is **not a workaround** - it's t
 ✅ Prevents navigation bugs
 ✅ Enables advanced features (modals from children, detours, etc.)
 
+Pushed child hierarchies are flattened recursively. For example:
+
+```text
+ParentCoordinator
+└── ChildCoordinator
+    └── GrandchildCoordinator
+```
+
+renders as one ordered `NavigationStack` path:
+
+```text
+Parent routes → Child routes → Grandchild routes
+```
+
+This keeps deep pushed coordinator flows visible without relying on unsupported nested stacks.
+
 ### 2. Don't Try to Nest NavigationStacks
 
 Never attempt to create nested NavigationStacks manually:

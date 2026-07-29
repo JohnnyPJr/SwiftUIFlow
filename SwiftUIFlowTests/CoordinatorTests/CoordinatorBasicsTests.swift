@@ -32,10 +32,13 @@ final class CoordinatorBasicsTests: XCTestCase {
 
         XCTAssertTrue(sut.coordinator.children.contains(where: { $0 === child }))
         XCTAssertTrue(child.parent === sut.coordinator)
+        XCTAssertEqual(child.presentationContext, .pushed)
 
         sut.coordinator.removeChild(child)
         XCTAssertFalse(sut.coordinator.children.contains(where: { $0 === child }))
         XCTAssertNil((child as Coordinator<MockRoute>).parent, "Expected parent to be nil after removal")
+        XCTAssertEqual(child.presentationContext, .root,
+                       "Removed child should reset to root presentation context")
     }
 
     // MARK: - Route Handling

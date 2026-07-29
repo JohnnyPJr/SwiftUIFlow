@@ -6,12 +6,164 @@
 //  These tests ensure bugs that were discovered during development stay fixed.
 //
 
+import SwiftUI
 @testable import SwiftUIFlow
 import XCTest
 
 /// Regression tests for pushed child coordinator bugs
 /// These tests catch specific scenarios that previously caused bugs
 final class PushedChildRegressionTests: XCTestCase {
+    // MARK: - Recursive Pushed Child Flattening
+
+    func test_Flattening_EmptyPushedChildren_ReturnsEmptyRoutes() {
+        XCTAssertTrue(PushedChildRouteFlattener.routes(from: []).isEmpty)
+        XCTAssertTrue(PushedChildRouteFlattener.coordinators(from: []).isEmpty)
+    }
+
+    func test_Flattening_IncludesGrandchildRoutesInVisibleNavigationOrder() {
+        let grandchild = RegressionGrandchildCoordinator()
+        let child = RegressionChildCoordinator(grandchild: grandchild)
+        let parent = RegressionParentCoordinator(child: child)
+
+        XCTAssertTrue(parent.navigate(to: RegressionGrandchildRoute.destination))
+
+        let flattenedRoutes = PushedChildRouteFlattener.routes(from: parent.router.state.pushedChildren)
+
+        XCTAssertEqual(flattenedRoutes.map(\.route.identifier),
+                       [RegressionChildRoute.root.identifier,
+                        RegressionGrandchildRoute.root.identifier,
+                        RegressionGrandchildRoute.destination.identifier])
+        XCTAssertTrue(flattenedRoutes[0].coordinator === child)
+        XCTAssertTrue(flattenedRoutes[1].coordinator === grandchild)
+        XCTAssertTrue(flattenedRoutes[2].coordinator === grandchild)
+    }
+
+    func test_Flattening_PreservesSiblingOrderWithNestedChildren() {
+        let grandchild = RegressionGrandchildCoordinator()
+        let firstChild = RegressionChildCoordinator(grandchild: grandchild)
+        let secondChild = RegressionSecondChildCoordinator()
+        let parent = RegressionParentCoordinator(firstChild: firstChild, secondChild: secondChild)
+
+        XCTAssertTrue(parent.navigate(to: RegressionGrandchildRoute.destination))
+        XCTAssertTrue(parent.navigate(to: RegressionSecondChildRoute.root))
+
+        let flattenedRoutes = PushedChildRouteFlattener.routes(from: parent.router.state.pushedChildren)
+
+        XCTAssertEqual(flattenedRoutes.map(\.route.identifier),
+                       [RegressionChildRoute.root.identifier,
+                        RegressionGrandchildRoute.root.identifier,
+                        RegressionGrandchildRoute.destination.identifier,
+                        RegressionSecondChildRoute.root.identifier])
+        XCTAssertTrue(flattenedRoutes[0].coordinator === firstChild)
+        XCTAssertTrue(flattenedRoutes[1].coordinator === grandchild)
+        XCTAssertTrue(flattenedRoutes[2].coordinator === grandchild)
+        XCTAssertTrue(flattenedRoutes[3].coordinator === secondChild)
+    }
+
+    func test_RouteChange_UpdatesFlattenedRoutesWithoutChangingCoordinatorMembership() {
+        let grandchild = RegressionGrandchildCoordinator()
+        let child = RegressionChildCoordinator(grandchild: grandchild)
+        let parent = RegressionParentCoordinator(child: child)
+
+        XCTAssertTrue(parent.navigate(to: RegressionGrandchildRoute.root))
+
+        let initialCoordinatorIDs = PushedChildRouteFlattener
+            .coordinators(from: parent.router.state.pushedChildren)
+            .map(ObjectIdentifier.init)
+
+        XCTAssertTrue(grandchild.navigate(to: RegressionGrandchildRoute.destination))
+
+        let updatedCoordinatorIDs = PushedChildRouteFlattener
+            .coordinators(from: parent.router.state.pushedChildren)
+            .map(ObjectIdentifier.init)
+        let flattenedRoutes = PushedChildRouteFlattener.routes(from: parent.router.state.pushedChildren)
+
+        XCTAssertEqual(updatedCoordinatorIDs, initialCoordinatorIDs)
+        XCTAssertEqual(flattenedRoutes.map(\.route.identifier),
+                       [RegressionChildRoute.root.identifier,
+                        RegressionGrandchildRoute.root.identifier,
+                        RegressionGrandchildRoute.destination.identifier])
+    }
+
+    func test_PushChild_EmitsRoutesDidChangeWithPushedChildPayload() {
+        let grandchild = RegressionGrandchildCoordinator()
+        let child = RegressionChildCoordinator(grandchild: grandchild)
+        var emittedRoutes: [[String]] = []
+
+        let cancellable = child.routesDidChange.sink { routes in
+            emittedRoutes.append(routes.map(\.identifier))
+        }
+
+        XCTAssertTrue(child.navigate(to: RegressionGrandchildRoute.destination))
+
+        XCTAssertEqual(emittedRoutes, [[RegressionChildRoute.root.identifier]])
+
+        cancellable.cancel()
+    }
+
+    func test_PopChild_EmitsRoutesDidChangeAndShrinksFlattenedRoutes() {
+        let grandchild = RegressionGrandchildCoordinator()
+        let child = RegressionChildCoordinator(grandchild: grandchild)
+        let parent = RegressionParentCoordinator(child: child)
+
+        XCTAssertTrue(parent.navigate(to: RegressionChildRoute.root))
+
+        var emittedRoutes: [[String]] = []
+        let cancellable = parent.routesDidChange.sink { routes in
+            emittedRoutes.append(routes.map(\.identifier))
+        }
+
+        parent.pop()
+
+        XCTAssertEqual(emittedRoutes, [[RegressionParentRoute.root.identifier]])
+        XCTAssertTrue(parent.router.state.pushedChildren.isEmpty)
+        XCTAssertTrue(PushedChildRouteFlattener.routes(from: parent.router.state.pushedChildren).isEmpty)
+
+        cancellable.cancel()
+    }
+
+    func test_Pop_FromPushedGrandchildAtRoot_RemovesOnlyGrandchild() {
+        let grandchild = RegressionGrandchildCoordinator()
+        let child = RegressionChildCoordinator(grandchild: grandchild)
+        let parent = RegressionParentCoordinator(child: child)
+
+        XCTAssertTrue(parent.navigate(to: RegressionGrandchildRoute.root))
+        XCTAssertTrue(parent.router.state.pushedChildren.contains(where: { $0 === child }))
+        XCTAssertTrue(child.router.state.pushedChildren.contains(where: { $0 === grandchild }))
+
+        parent.pop()
+
+        XCTAssertTrue(parent.router.state.pushedChildren.contains(where: { $0 === child }))
+        XCTAssertTrue(child.router.state.pushedChildren.isEmpty)
+
+        let flattenedRoutes = PushedChildRouteFlattener.routes(from: parent.router.state.pushedChildren)
+        XCTAssertEqual(flattenedRoutes.map(\.route.identifier), [RegressionChildRoute.root.identifier])
+    }
+
+    func test_Pop_PushedChildWithOwnStackAndGrandchild_PopsGrandchildBeforeOwnStack() {
+        let grandchild = RegressionGrandchildCoordinator()
+        let child = RegressionChildCoordinator(grandchild: grandchild)
+        let parent = RegressionParentCoordinator(child: child)
+
+        XCTAssertTrue(parent.navigate(to: RegressionChildRoute.root))
+        XCTAssertTrue(child.navigate(to: RegressionChildRoute.detail))
+        XCTAssertTrue(child.navigate(to: RegressionGrandchildRoute.root))
+
+        parent.pop()
+
+        XCTAssertTrue(parent.router.state.pushedChildren.contains(where: { $0 === child }))
+        XCTAssertTrue(child.router.state.pushedChildren.isEmpty)
+        XCTAssertEqual(child.router.state.stack, [.detail])
+
+        parent.pop()
+
+        XCTAssertTrue(parent.router.state.pushedChildren.contains(where: { $0 === child }))
+        XCTAssertTrue(child.router.state.stack.isEmpty)
+
+        let flattenedRoutes = PushedChildRouteFlattener.routes(from: parent.router.state.pushedChildren)
+        XCTAssertEqual(flattenedRoutes.map(\.route.identifier), [RegressionChildRoute.root.identifier])
+    }
+
     // MARK: - Double-Push Bug (Regression Test)
 
     func test_DoublePush_ChildNotPushedTwiceAfterTabSwitch() {
@@ -233,6 +385,9 @@ final class PushedChildRegressionTests: XCTestCase {
         XCTAssertTrue(tab2.router.state.pushedChildren.isEmpty, "Pushed children should be empty")
         XCTAssertNil(tab2.router.state.presented, "No modal should be presented")
         XCTAssertNil(tab2.currentModalCoordinator, "Modal coordinator should be nil")
+        XCTAssertNil(unlock.parent, "Removed pushed child should not retain parent")
+        XCTAssertEqual(unlock.presentationContext, .root,
+                       "Removed pushed child should reset to root context")
     }
 
     // MARK: - cleanStateForBubbling Pops Pushed Children
@@ -267,7 +422,118 @@ final class PushedChildRegressionTests: XCTestCase {
         XCTAssertTrue(tab2.router.state.stack.isEmpty,
                       "Stack should be cleared before bubbling")
 
+        // Bubbling cleanup is render-state only. The parent chain must remain intact until
+        // the in-flight bubble reaches the coordinator that can handle the route.
+        XCTAssertTrue(unlock.parent === tab2,
+                      "Bubbling cleanup should preserve the in-flight parent chain")
+        XCTAssertEqual(unlock.presentationContext, .pushed,
+                       "Bubbling cleanup should preserve the in-flight presentation context")
+
         // Verify we successfully switched to tab3
         XCTAssertEqual(mainCoordinator.router.state.selectedTab, 2)
+    }
+}
+
+private enum RegressionParentRoute: Route {
+    case root
+
+    var identifier: String {
+        "regression.parent.root"
+    }
+}
+
+private enum RegressionChildRoute: Route {
+    case root
+    case detail
+
+    var identifier: String {
+        switch self {
+        case .root: return "regression.child.root"
+        case .detail: return "regression.child.detail"
+        }
+    }
+}
+
+private enum RegressionSecondChildRoute: Route {
+    case root
+
+    var identifier: String {
+        "regression.secondChild.root"
+    }
+}
+
+private enum RegressionGrandchildRoute: Route {
+    case root
+    case destination
+
+    var identifier: String {
+        switch self {
+        case .root: return "regression.grandchild.root"
+        case .destination: return "regression.grandchild.destination"
+        }
+    }
+}
+
+private final class RegressionParentCoordinator: Coordinator<RegressionParentRoute> {
+    init(child: RegressionChildCoordinator) {
+        let factory = RegressionFactory<RegressionParentRoute>()
+        super.init(router: Router(initial: .root, factory: factory))
+        factory.coordinator = self
+        addChild(child)
+    }
+
+    init(firstChild: RegressionChildCoordinator, secondChild: RegressionSecondChildCoordinator) {
+        let factory = RegressionFactory<RegressionParentRoute>()
+        super.init(router: Router(initial: .root, factory: factory))
+        factory.coordinator = self
+        addChild(firstChild)
+        addChild(secondChild)
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is RegressionParentRoute
+    }
+}
+
+private final class RegressionChildCoordinator: Coordinator<RegressionChildRoute> {
+    init(grandchild: RegressionGrandchildCoordinator) {
+        let factory = RegressionFactory<RegressionChildRoute>()
+        super.init(router: Router(initial: .root, factory: factory))
+        factory.coordinator = self
+        addChild(grandchild)
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is RegressionChildRoute
+    }
+}
+
+private final class RegressionSecondChildCoordinator: Coordinator<RegressionSecondChildRoute> {
+    init() {
+        let factory = RegressionFactory<RegressionSecondChildRoute>()
+        super.init(router: Router(initial: .root, factory: factory))
+        factory.coordinator = self
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is RegressionSecondChildRoute
+    }
+}
+
+private final class RegressionGrandchildCoordinator: Coordinator<RegressionGrandchildRoute> {
+    init() {
+        let factory = RegressionFactory<RegressionGrandchildRoute>()
+        super.init(router: Router(initial: .root, factory: factory))
+        factory.coordinator = self
+    }
+
+    override func canHandle(_ route: any Route) -> Bool {
+        route is RegressionGrandchildRoute
+    }
+}
+
+private final class RegressionFactory<R: Route>: ViewFactory<R> {
+    override func buildView(for route: R) -> AnyView? {
+        AnyView(Text(route.identifier))
     }
 }

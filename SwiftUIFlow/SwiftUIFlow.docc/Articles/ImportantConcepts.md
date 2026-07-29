@@ -80,6 +80,8 @@ class AppCoordinator: Coordinator<AppRoute> {
 ```
 
 **Why:** Detours are explicitly presented via `presentDetour()`, not through route matching.
+They still need to be fresh, unowned coordinators. Do not pass an existing child, tab, or modal
+coordinator as a detour.
 
 ## canHandle() vs Modal Coordinator Ownership
 
@@ -338,6 +340,10 @@ override func navigationPath(for route: any Route) -> [any Route]? {
 
 **Rule:** Paths can only contain `.push` or `.replace` routes. Modal presentation happens AFTER path building.
 
+SwiftUIFlow validates the whole path before mutating router state. If a path contains a
+route from another coordinator type, or a route whose navigation type is `.modal`,
+navigation fails without partially building the stack.
+
 ## Replace Navigation Type
 
 ### What Replace Does
@@ -345,8 +351,10 @@ override func navigationPath(for route: any Route) -> [any Route]? {
 `.replace` pops the current route, then pushes the new route:
 
 ```swift
-override func navigationType(for route: WorkflowRoute) -> NavigationType {
-    switch route {
+override func navigationType(for route: any Route) -> NavigationType {
+    guard let workflowRoute = route as? WorkflowRoute else { return .push }
+
+    switch workflowRoute {
     case .loading:
         return .push
     case .success, .failure:
@@ -410,13 +418,23 @@ class AppCoordinator: Coordinator<AppRoute> {
    presentDetour(coordinator, presenting: route)
    ```
 
-2. **Back button automatically provided:**
+2. **Use a fresh, unowned coordinator:**
+   - Create a new coordinator for the temporary detour flow
+   - Do not reuse an existing child, tab, or modal coordinator
+   - Already-owned coordinators are rejected and reported through `SwiftUIFlowErrorHandler`
+
+3. **Consecutive detours nest:**
+   - Presenting a detour while one is already active forwards it to the deepest active detour
+   - This preserves notification-style interruptions without replacing the existing detour chain
+   - Dismissing the host detour recursively tears down the nested detour subtree
+
+4. **Back button automatically provided:**
    - Framework sets `canNavigateBack` environment value to `true`
    - Framework injects `navigationBackAction` to dismiss the detour
    - Custom navigation bars automatically show back buttons based on these environment values
    - Example app's `CustomNavigationBar` demonstrates this pattern
 
-3. **Detours auto-dismiss during cross-flow navigation:**
+4. **Detours auto-dismiss during cross-flow navigation:**
    - No need for manual dismissal logic
    - Framework handles cleanup automatically
 
@@ -438,7 +456,7 @@ class AppCoordinator: Coordinator<AppRoute> {
 class AppViewFactory: ViewFactory<AppRoute> {
     weak var coordinator: AppCoordinator?  // ← MUST be weak!
 
-    override func buildView(for route: AppRoute) -> AnyView {
+    override func buildView(for route: AppRoute) -> AnyView? {
         guard let coordinator else {
             return AnyView(Text("Error: Coordinator not set"))
         }
@@ -526,8 +544,10 @@ struct CustomView: View {
 class AppCoordinator: Coordinator<AppRoute> {
     let modal = ModalCoordinator()
 
-    override func navigationType(for route: AppRoute) -> NavigationType {
-        if route == .settings {
+    override func navigationType(for route: any Route) -> NavigationType {
+        guard let appRoute = route as? AppRoute else { return .push }
+
+        if appRoute == .settings {
             return .modal  // Will fail! Modal not registered
         }
         return .push
@@ -545,7 +565,23 @@ class AppCoordinator: Coordinator<AppRoute> {
 }
 ```
 
-### 2. Modal Coordinator Using Wrong Route Type
+### 2. Reusing Existing Coordinators as Modals
+
+```swift
+// ❌ WRONG - existingTab already belongs to the structural hierarchy
+addChild(existingTab)
+addModalCoordinator(existingTab)
+
+// ✅ CORRECT - create/register a standalone modal coordinator
+let settingsModal = SettingsModalCoordinator()
+addModalCoordinator(settingsModal)
+```
+
+Modal coordinators must be standalone. Reusing an existing child, tab, or pushed coordinator as a
+modal is rejected and reported through ``SwiftUIFlowErrorHandler`` so dismissal cannot corrupt the
+permanent coordinator hierarchy.
+
+### 3. Modal Coordinator Using Wrong Route Type
 
 ```swift
 // ❌ WRONG - Type mismatch
@@ -565,7 +601,7 @@ class SettingsCoordinator: Coordinator<AppRoute> {  // ← Same type!
 }
 ```
 
-### 3. Including Modal Routes in Navigation Paths
+### 4. Including Modal Routes in Navigation Paths
 
 ```swift
 // ❌ WRONG - Path contains modal
@@ -579,7 +615,7 @@ override func navigationPath(for route: any Route) -> [any Route]? {
 }
 ```
 
-### 4. Router Methods Are Internal
+### 5. Router Methods Are Internal
 
 All router mutation methods are **internal** - clients cannot access them:
 

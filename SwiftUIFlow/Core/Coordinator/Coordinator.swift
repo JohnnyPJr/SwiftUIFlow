@@ -70,6 +70,10 @@ open class Coordinator<R: Route>: AnyCoordinator {
         [router.state.root] + router.state.stack
     }
 
+    var pushedChildren: [AnyCoordinator] {
+        router.state.pushedChildren
+    }
+
     /// The root/initial route for this coordinator (type-erased)
     var rootRoute: any Route {
         router.state.root
@@ -191,7 +195,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     ///
     /// - Parameter route: The route to build a view for
     /// - Returns: A type-erased `CoordinatorRouteView`
-    public func buildCoordinatorRouteView(for route: any Route) -> Any {
+    func buildCoordinatorRouteView(for route: any Route) -> Any {
         return CoordinatorRouteView(coordinator: self, route: route)
     }
 
@@ -290,8 +294,8 @@ open class Coordinator<R: Route>: AnyCoordinator {
     ///
     /// - `.large` - Full screen height
     /// - `.medium` - Half screen height
-    /// - `.custom` - Specific height or percentage
-    /// - `.height(adaptive:)` - Adaptive height based on content
+    /// - `.custom` - Adaptive height based on measured content
+    /// - `.fullscreen` - True fullscreen presentation using `fullScreenCover`
     ///
     /// ## Example
     ///
@@ -309,8 +313,8 @@ open class Coordinator<R: Route>: AnyCoordinator {
     ///         // Sized by the view's content
     ///         return ModalDetentConfiguration(detents: [.custom])
     ///     case .confirmation:
-    ///         // Custom height modal
-    ///         return ModalDetentConfiguration(detents: [.height(adaptive: true)])
+    ///         // Content-sized modal
+    ///         return ModalDetentConfiguration(detents: [.custom])
     ///     }
     /// }
     /// ```
@@ -352,8 +356,9 @@ open class Coordinator<R: Route>: AnyCoordinator {
     ///
     /// ## Important Notes
     ///
-    /// - Circular references are prevented - you cannot add a coordinator as its own child
+    /// - Circular references are prevented - you cannot add a coordinator as its own child or descendant
     /// - Duplicate children are prevented - each coordinator can only be added once
+    /// - Already-owned coordinators are rejected - create a fresh instance for each parent
     /// - The framework automatically sets up the parent-child relationship
     ///
     /// - Parameter coordinator: The child coordinator to add
@@ -371,9 +376,25 @@ open class Coordinator<R: Route>: AnyCoordinator {
             return
         }
 
-        // Check for duplicate child
+        // Check for duplicate child before the ownership guard so re-adding the same
+        // child to the same parent reports the more specific duplicateChild error.
         if internalChildren.contains(where: { $0 === coordinator }) {
             let error = SwiftUIFlowError.duplicateChild(coordinator: String(describing: type(of: coordinator)))
+            reportError(error)
+            return
+        }
+
+        guard coordinator.parent == nil else {
+            let message = """
+            Cannot add an already-owned coordinator as a child. \
+            Create a fresh coordinator instance for each parent.
+            """
+            reportError(.configurationError(message: message))
+            return
+        }
+
+        guard !hasAncestor(coordinator) else {
+            let error = SwiftUIFlowError.circularReference(coordinator: String(describing: type(of: coordinator)))
             reportError(error)
             return
         }
@@ -381,6 +402,17 @@ open class Coordinator<R: Route>: AnyCoordinator {
         internalChildren.append(coordinator)
         coordinator.parent = self
         coordinator.presentationContext = context
+    }
+
+    private func hasAncestor(_ coordinator: AnyCoordinator) -> Bool {
+        var current = parent
+        while let ancestor = current {
+            if ancestor === coordinator {
+                return true
+            }
+            current = ancestor.parent
+        }
+        return false
     }
 
     /// Remove a child coordinator from this coordinator's hierarchy.
@@ -405,10 +437,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     ///
     /// - Parameter coordinator: The child coordinator to remove
     public func removeChild(_ coordinator: Coordinator<some Route>) {
-        internalChildren.removeAll { $0 === coordinator }
-        if coordinator.parent === self {
-            coordinator.parent = nil
-        }
+        removeChild(coordinator as AnyCoordinator)
     }
 
     /// Remove a child coordinator (internal version for framework use)
@@ -417,6 +446,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         internalChildren.removeAll { $0 === coordinator }
         if coordinator.parent === self {
             coordinator.parent = nil
+            coordinator.presentationContext = .root
         }
     }
 
@@ -451,11 +481,40 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// ## Important Notes
     ///
     /// - Modal coordinator must use the same route type `R` as the parent coordinator
+    /// - Modal coordinator must be standalone; do not reuse an existing child, tab,
+    ///   or pushed coordinator
     /// - The modal coordinator is presented automatically when navigating to a modal route
     /// - Only one modal can be presented at a time
     ///
     /// - Parameter coordinator: The modal coordinator to register (must have same route type)
     public func addModalCoordinator(_ coordinator: Coordinator<R>) {
+        if coordinator === self {
+            let error = SwiftUIFlowError.circularReference(coordinator: String(describing: type(of: self)))
+            reportError(error)
+            return
+        }
+
+        if modalCoordinators.contains(where: { $0 === coordinator }) {
+            let error = SwiftUIFlowError.duplicateChild(coordinator: String(describing: type(of: coordinator)))
+            reportError(error)
+            return
+        }
+
+        guard coordinator.parent == nil else {
+            let message = """
+            Cannot register an already-owned coordinator as a modal.
+            Register a standalone modal coordinator instead.
+            """
+            reportError(.configurationError(message: message))
+            return
+        }
+
+        guard !hasAncestor(coordinator) else {
+            let error = SwiftUIFlowError.circularReference(coordinator: String(describing: type(of: coordinator)))
+            reportError(error)
+            return
+        }
+
         modalCoordinators.append(coordinator)
     }
 
@@ -700,10 +759,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
             router.popToRoot()
         }
 
-        // Pop all pushed children
-        while !router.state.pushedChildren.isEmpty {
-            router.popChild()
-        }
+        clearPushedChildRenderState()
     }
 
     /// Called by the framework when navigationType returns .modal
@@ -711,6 +767,15 @@ open class Coordinator<R: Route>: AnyCoordinator {
                       presenting route: R,
                       detentConfiguration: ModalDetentConfiguration)
     {
+        guard coordinator.parent == nil else {
+            let message = """
+            Cannot present an already-owned coordinator as a modal. \
+            Register a standalone modal coordinator instead.
+            """
+            reportError(.configurationError(message: message))
+            return
+        }
+
         currentModalCoordinator = coordinator
         coordinator.parent = self
         coordinator.presentationContext = .modal
@@ -725,6 +790,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
         if currentModalCoordinator?.parent === self {
             currentModalCoordinator?.parent = nil
+            currentModalCoordinator?.presentationContext = .root
         }
         currentModalCoordinator = nil
         router.dismissModal()
@@ -764,10 +830,43 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// Or if a navigation action bubbles back.
     /// Unlike modals, detours don't participate in navigation bubbling.
     ///
+    /// ## Ownership
+    ///
+    /// Pass a fresh, unowned coordinator to `presentDetour`. Do not reuse a coordinator that
+    /// already belongs to another hierarchy, such as an existing tab child. Already-owned
+    /// coordinators are rejected and reported through `SwiftUIFlowErrorHandler`.
+    ///
+    /// If this coordinator already has an active detour, the new detour is forwarded to the
+    /// deepest active detour. This supports consecutive notification-style interruptions without
+    /// replacing or orphaning the existing detour chain.
+    ///
     /// - Parameters:
     ///   - coordinator: The detour coordinator to present
     ///   - route: The initial route for the detour flow
     public func presentDetour(_ coordinator: Coordinator<some Route>, presenting route: any Route) {
+        presentDetour(coordinator as AnyCoordinator, presenting: route)
+    }
+
+    /// Present a type-erased detour coordinator.
+    ///
+    /// If this coordinator already has an active detour, the new detour is forwarded to
+    /// the deepest active detour instead of replacing the existing one. This preserves
+    /// each active detour in the ownership chain.
+    func presentDetour(_ coordinator: AnyCoordinator, presenting route: any Route) {
+        guard coordinator.parent == nil else {
+            let message = """
+            Cannot present an already-owned coordinator as a detour. \
+            Create a fresh detour coordinator instead.
+            """
+            reportError(.configurationError(message: message))
+            return
+        }
+
+        if let activeDetour = detourCoordinator {
+            activeDetour.presentDetour(coordinator, presenting: route)
+            return
+        }
+
         detourCoordinator = coordinator
         coordinator.parent = self
         coordinator.presentationContext = .detour
@@ -777,8 +876,13 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// Dismiss the currently presented detour
     /// **Framework internal only** - detours are dismissed via back/close button or navigation bubbling
     func dismissDetour() {
+        // Reset the outgoing detour before clearing ownership so nested detour
+        // subtrees are torn down recursively.
+        detourCoordinator?.resetToCleanState()
+
         if detourCoordinator?.parent === self {
             detourCoordinator?.parent = nil
+            detourCoordinator?.presentationContext = .root
         }
         detourCoordinator = nil
         router.dismissDetour()
@@ -790,9 +894,29 @@ open class Coordinator<R: Route>: AnyCoordinator {
         dismissModal()
         dismissDetour()
 
-        // Pop all pushed children
+        removeAllPushedChildren()
+    }
+
+    /// Remove pushed children from the render stack only.
+    /// Ownership is left intact because this is used mid-navigation while bubbling,
+    /// where the caller chain must survive until the navigation finishes.
+    private func clearPushedChildRenderState() {
         while !router.state.pushedChildren.isEmpty {
             router.popChild()
+        }
+    }
+
+    /// Remove pushed children and reset their ownership/context.
+    /// Terminal teardown only: flow transition or full coordinator reset.
+    private func removeAllPushedChildren() {
+        while let child = router.state.pushedChildren.last {
+            router.popChild()
+
+            if child.parent === self {
+                child.parent = nil
+            }
+
+            child.presentationContext = .root
         }
     }
 
@@ -806,6 +930,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         router.setRoot(root)
         dismissModal()
         dismissDetour()
+        removeAllPushedChildren()
     }
 
     // MARK: - Internal Error Reporting

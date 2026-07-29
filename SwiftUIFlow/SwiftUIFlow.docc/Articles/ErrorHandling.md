@@ -116,7 +116,7 @@ case .viewCreationFailed(coordinator: "ProductCoordinator",
 
 ```swift
 class ProductViewFactory: ViewFactory<ProductRoute> {
-    override func buildView(for route: ProductRoute) -> AnyView {
+    override func buildView(for route: ProductRoute) -> AnyView? {
         guard let coordinator else {
             return AnyView(Text("Error: Coordinator not set"))
         }
@@ -134,14 +134,16 @@ class ProductViewFactory: ViewFactory<ProductRoute> {
 
 ## Error Reporting View
 
-When view creation fails, the framework automatically shows ``ErrorReportingView`` in place of the failed view:
+When view creation fails, the framework creates ``ErrorReportingView`` in place of the failed view:
 
 ```swift
-// Framework shows this automatically when buildView() returns nil
+// Framework creates this automatically when buildView() returns nil
 ErrorReportingView(error: error)
 ```
 
-This ensures your app never shows a blank screen - users always see an error indicator while you receive the error through the global handler.
+``ErrorReportingView`` is a report-only placeholder. It intentionally renders no user-facing UI.
+SwiftUIFlow reports the failure through ``SwiftUIFlowErrorHandler``; your app decides whether to
+show a toast, banner, full-screen fallback, log the error, or combine those responses.
 
 ## Displaying Errors to Users
 
@@ -259,7 +261,7 @@ SwiftUIFlowErrorHandler.shared.setHandler { [weak self] error in
 Ensure your view factories handle all route cases to prevent view creation errors:
 
 ```swift
-override func buildView(for route: AppRoute) -> AnyView {
+override func buildView(for route: AppRoute) -> AnyView? {
     // Handle ALL cases in your enum
     switch route {
     case .home: return AnyView(HomeView(...))
@@ -274,4 +276,3 @@ override func buildView(for route: AppRoute) -> AnyView {
 - ``SwiftUIFlowError``
 - ``SwiftUIFlowErrorHandler``
 - ``ErrorReportingView``
-- ``ValidationResult``

@@ -71,11 +71,37 @@ final class NavigationStateTests: XCTestCase {
         XCTAssertEqual(state.detour?.identifier, "other")
     }
 
+    func test_StateEquality_DetoursWithSameIdentifierButDifferentRouteTypes_AreNotEqual() {
+        var lhs = NavigationState(root: MockRoute.home)
+        var rhs = NavigationState(root: MockRoute.home)
+
+        lhs.detour = FirstCollisionRoute.details
+        rhs.detour = SecondCollisionRoute.details
+
+        XCTAssertNotEqual(lhs, rhs)
+    }
+
     // MARK: - Tab Selection
 
     func test_CanChangeSelectedTab() {
         var state = NavigationState(root: MockRoute.home)
         state.selectedTab = 2
         XCTAssertEqual(state.selectedTab, 2)
+    }
+}
+
+private enum FirstCollisionRoute: Route {
+    case details
+
+    var identifier: String {
+        "details"
+    }
+}
+
+private enum SecondCollisionRoute: Route {
+    case details
+
+    var identifier: String {
+        "details"
     }
 }
