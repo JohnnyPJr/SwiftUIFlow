@@ -14,20 +14,33 @@ import SwiftUI
 ///
 /// ## Example Usage
 ///
+/// Configure modal detents by registering a modal coordinator, routing modal
+/// destinations with `.modal`, and overriding `modalDetentConfiguration(for:)`.
+///
 /// ```swift
-/// // Simple fixed detent
-/// coordinator.presentModal(modalCoordinator, presenting: .settings, detent: .medium)
+/// final class AppCoordinator: Coordinator<AppRoute> {
+///     init() {
+///         let router = Router(initial: AppRoute.home, factory: AppViewFactory())
+///         super.init(router: router)
 ///
-/// // Content-sized modal (automatic height)
-/// coordinator.presentModal(modalCoordinator, presenting: .details, detent: .custom)
+///         addModalCoordinator(SettingsCoordinator())
+///     }
 ///
-/// // Multiple detents with selection
-/// coordinator.presentModal(
-///     modalCoordinator,
-///     presenting: .options,
-///     detents: [.small, .medium, .custom],
-///     selectedDetent: .custom
-/// )
+///     override func navigationType(for route: any Route) -> NavigationType {
+///         guard route as? AppRoute == .settings else { return .push }
+///         return .modal
+///     }
+///
+///     override func modalDetentConfiguration(
+///         for route: any Route
+///     ) -> ModalDetentConfiguration {
+///         guard route as? AppRoute == .settings else { return ModalDetentConfiguration() }
+///         return ModalDetentConfiguration(
+///             detents: [.medium, .custom],
+///             selectedDetent: .custom
+///         )
+///     }
+/// }
 /// ```
 public enum ModalPresentationDetent: Equatable {
     /// A small detent, typically the shortest height.
