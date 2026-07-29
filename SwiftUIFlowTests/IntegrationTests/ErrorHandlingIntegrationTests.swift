@@ -231,6 +231,56 @@ final class ErrorHandlingIntegrationTests: XCTestCase {
         XCTAssertEqual(coordinator.children.count, 0, "Coordinator should not be its own child")
     }
 
+    func test_AddChild_RejectsAlreadyOwnedCoordinatorWithoutMutatingOwnership() {
+        let firstParent = TestCoordinator(router: Router<MockRoute>(initial: .home,
+                                                                    factory: MockViewFactory()))
+        let secondParent = TestCoordinator(router: Router<MockRoute>(initial: .login,
+                                                                     factory: MockViewFactory()))
+        let child = TestCoordinator(router: Router<MockRoute>(initial: .details,
+                                                              factory: MockViewFactory()))
+        firstParent.addChild(child)
+
+        var capturedError: SwiftUIFlowError?
+        SwiftUIFlowErrorHandler.shared.setHandler { capturedError = $0 }
+
+        secondParent.addChild(child)
+
+        XCTAssertNotNil(capturedError, "Error handler should be called")
+        if case .configurationError = capturedError {
+            // Success
+        } else {
+            XCTFail("Expected configurationError")
+        }
+        XCTAssertTrue(firstParent.children.contains { $0 === child })
+        XCTAssertFalse(secondParent.children.contains { $0 === child })
+        XCTAssertTrue(child.parent === firstParent)
+        XCTAssertEqual(child.presentationContext, .pushed)
+    }
+
+    func test_AddChild_RejectsAncestorCoordinatorWithoutMutatingHierarchy() {
+        let root = TestCoordinator(router: Router<MockRoute>(initial: .home,
+                                                             factory: MockViewFactory()))
+        let child = TestCoordinator(router: Router<MockRoute>(initial: .login,
+                                                              factory: MockViewFactory()))
+        root.addChild(child)
+
+        var capturedError: SwiftUIFlowError?
+        SwiftUIFlowErrorHandler.shared.setHandler { capturedError = $0 }
+
+        child.addChild(root)
+
+        XCTAssertNotNil(capturedError, "Error handler should be called")
+        if case .circularReference = capturedError {
+            // Success
+        } else {
+            XCTFail("Expected circularReference error")
+        }
+        XCTAssertTrue(root.children.contains { $0 === child })
+        XCTAssertFalse(child.children.contains { $0 === root })
+        XCTAssertTrue(child.parent === root)
+        XCTAssertNil(root.parent)
+    }
+
     // MARK: - Error Properties Tests
 
     func test_ErrorProperties_AreAccessible() throws {

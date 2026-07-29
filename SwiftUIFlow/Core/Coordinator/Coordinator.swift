@@ -356,8 +356,9 @@ open class Coordinator<R: Route>: AnyCoordinator {
     ///
     /// ## Important Notes
     ///
-    /// - Circular references are prevented - you cannot add a coordinator as its own child
+    /// - Circular references are prevented - you cannot add a coordinator as its own child or descendant
     /// - Duplicate children are prevented - each coordinator can only be added once
+    /// - Already-owned coordinators are rejected - create a fresh instance for each parent
     /// - The framework automatically sets up the parent-child relationship
     ///
     /// - Parameter coordinator: The child coordinator to add
@@ -375,9 +376,25 @@ open class Coordinator<R: Route>: AnyCoordinator {
             return
         }
 
-        // Check for duplicate child
+        // Check for duplicate child before the ownership guard so re-adding the same
+        // child to the same parent reports the more specific duplicateChild error.
         if internalChildren.contains(where: { $0 === coordinator }) {
             let error = SwiftUIFlowError.duplicateChild(coordinator: String(describing: type(of: coordinator)))
+            reportError(error)
+            return
+        }
+
+        guard coordinator.parent == nil else {
+            let message = """
+            Cannot add an already-owned coordinator as a child. \
+            Create a fresh coordinator instance for each parent.
+            """
+            reportError(.configurationError(message: message))
+            return
+        }
+
+        guard !hasAncestor(coordinator) else {
+            let error = SwiftUIFlowError.circularReference(coordinator: String(describing: type(of: coordinator)))
             reportError(error)
             return
         }
@@ -385,6 +402,17 @@ open class Coordinator<R: Route>: AnyCoordinator {
         internalChildren.append(coordinator)
         coordinator.parent = self
         coordinator.presentationContext = context
+    }
+
+    private func hasAncestor(_ coordinator: AnyCoordinator) -> Bool {
+        var current = parent
+        while let ancestor = current {
+            if ancestor === coordinator {
+                return true
+            }
+            current = ancestor.parent
+        }
+        return false
     }
 
     /// Remove a child coordinator from this coordinator's hierarchy.
