@@ -126,8 +126,9 @@ public struct CoordinatorView<R: Route>: View {
             }
         }
         .onReceive(router.$state) { _ in
-            // When router state changes (including pushedChildren), setup subscriptions
-            setupChildSubscriptions()
+            // When router state changes, refresh subscriptions only if pushed child
+            // membership/order changed; otherwise rebuild the flattened stack only.
+            refreshChildSubscriptionsIfNeeded()
         }
         .sheet(item: shouldUseFullScreenCover ? .constant(nil) : presentedRoute) { route in
             // Render modal sheet with full coordinator navigation support
