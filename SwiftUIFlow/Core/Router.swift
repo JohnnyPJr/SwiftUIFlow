@@ -79,7 +79,12 @@ public final class Router<R: Route>: ObservableObject {
 
     private let factory: ViewFactory<R>
 
-    /// Publisher for route changes (type-erased for parent observation)
+    /// Emits pushed-route composition changes for parent observation and flattened
+    /// NavigationStack rebuilding.
+    ///
+    /// This is intentionally narrower than `@Published state`: modal, detour,
+    /// selected-tab, and detent changes are observed through `state`, not this publisher.
+    ///
     /// **Framework internal only** - Exposed via Coordinator.routesDidChange
     let routesDidChange = PassthroughSubject<[any Route], Never>()
 

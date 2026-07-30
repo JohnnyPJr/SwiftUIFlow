@@ -135,14 +135,7 @@ public struct CoordinatorView<R: Route>: View {
             if let modalCoordinator = coordinator.currentModalCoordinator {
                 let coordinatorView = modalCoordinator.buildCoordinatorView()
                 eraseToAnyView(coordinatorView)
-                    .onPreferenceChange(IdealHeightPreferenceKey.self) { height in
-                        updateIdealHeight(height)
-                    }
-                    .onPreferenceChange(MinHeightPreferenceKey.self) { height in
-                        updateMinHeight(height)
-                    }
-                    .presentationDetents(presentationDetentsSet,
-                                         selection: presentationDetentSelection)
+                    .modalDetents(router: router)
             } else {
                 ErrorReportingView(error: coordinator
                     .makeError(for: route,
@@ -156,14 +149,7 @@ public struct CoordinatorView<R: Route>: View {
             if let modalCoordinator = coordinator.currentModalCoordinator {
                 let coordinatorView = modalCoordinator.buildCoordinatorView()
                 eraseToAnyView(coordinatorView)
-                    .onPreferenceChange(IdealHeightPreferenceKey.self) { height in
-                        updateIdealHeight(height)
-                    }
-                    .onPreferenceChange(MinHeightPreferenceKey.self) { height in
-                        updateMinHeight(height)
-                    }
-                    .presentationDetents(presentationDetentsSet,
-                                         selection: presentationDetentSelection)
+                    .modalDetents(router: router)
             }
         }
         #if os(iOS)
@@ -277,43 +263,7 @@ public struct CoordinatorView<R: Route>: View {
 
     /// Check if the current modal should use fullScreenCover
     private var shouldUseFullScreenCover: Bool {
-        router.state.modalDetentConfiguration?.shouldUseFullScreenCover ?? false
-    }
-
-    /// Convert modal detent configuration to SwiftUI PresentationDetent set
-    private var presentationDetentsSet: Set<PresentationDetent> {
-        guard let config = router.state.modalDetentConfiguration else {
-            return [.large]
-        }
-
-        return Set(config.detents.map { config.toPresentationDetent($0) })
-    }
-
-    /// Create a binding for the currently selected presentation detent
-    private var presentationDetentSelection: Binding<PresentationDetent> {
-        Binding(get: {
-                    guard let config = router.state.modalDetentConfiguration,
-                          let selected = config.selectedDetent
-                    else {
-                        return .large
-                    }
-                    return config.toPresentationDetent(selected)
-                },
-                set: { newDetent in
-                    guard let config = router.state.modalDetentConfiguration else { return }
-                    let modalDetent = config.fromPresentationDetent(newDetent)
-                    router.updateModalSelectedDetent(modalDetent)
-                })
-    }
-
-    /// Update the ideal height in the modal detent configuration
-    private func updateIdealHeight(_ height: CGFloat?) {
-        router.updateModalIdealHeight(height)
-    }
-
-    /// Update the minimum height in the modal detent configuration
-    private func updateMinHeight(_ height: CGFloat?) {
-        router.updateModalMinHeight(height)
+        router.shouldUseFullScreenCoverForCurrentModal
     }
 
     // MARK: - Child Route Observation
@@ -364,50 +314,6 @@ public struct CoordinatorView<R: Route>: View {
             setupChildSubscriptions()
         } else {
             rebuildPushedChildStack()
-        }
-    }
-}
-
-enum PushedChildRouteFlattener {
-    /// Recursively collect pushed coordinators in visible navigation order.
-    static func coordinators(from children: [AnyCoordinator]) -> [AnyCoordinator] {
-        coordinators(from: children, visited: [])
-    }
-
-    private static func coordinators(from children: [AnyCoordinator],
-                                     visited: Set<ObjectIdentifier>) -> [AnyCoordinator]
-    {
-        children.flatMap { child -> [AnyCoordinator] in
-            let identifier = ObjectIdentifier(child)
-            guard !visited.contains(identifier) else { return [] }
-
-            var nextVisited = visited
-            nextVisited.insert(identifier)
-
-            return [child] + coordinators(from: child.pushedChildren, visited: nextVisited)
-        }
-    }
-
-    /// Recursively flatten pushed child routes in the same order SwiftUI should render them.
-    static func routes(from children: [AnyCoordinator]) -> [ChildRouteWrapper] {
-        routes(from: children, visited: [])
-    }
-
-    private static func routes(from children: [AnyCoordinator],
-                               visited: Set<ObjectIdentifier>) -> [ChildRouteWrapper]
-    {
-        children.flatMap { child -> [ChildRouteWrapper] in
-            let identifier = ObjectIdentifier(child)
-            guard !visited.contains(identifier) else { return [] }
-
-            var nextVisited = visited
-            nextVisited.insert(identifier)
-
-            let ownRoutes = child.allRoutes.map { route in
-                ChildRouteWrapper(route: route, coordinator: child)
-            }
-
-            return ownRoutes + routes(from: child.pushedChildren, visited: nextVisited)
         }
     }
 }

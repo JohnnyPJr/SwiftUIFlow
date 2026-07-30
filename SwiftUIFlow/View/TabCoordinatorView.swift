@@ -45,6 +45,15 @@ public struct TabCoordinatorView<R: Route>: View {
     private let coordinator: TabCoordinator<R>
     @ObservedObject private var router: Router<R>
 
+    private struct TabCoordinatorChild: Identifiable {
+        let index: Int
+        let coordinator: AnyCoordinator
+
+        var id: ObjectIdentifier {
+            ObjectIdentifier(coordinator)
+        }
+    }
+
     public init(coordinator: TabCoordinator<R>) {
         self.coordinator = coordinator
         router = coordinator.router
@@ -52,12 +61,18 @@ public struct TabCoordinatorView<R: Route>: View {
 
     public var body: some View {
         TabView(selection: selectedTabBinding) {
-            ForEach(Array(coordinator.internalChildren.enumerated()), id: \.offset) { index, child in
-                tabContent(for: child, at: index)
-                    .tag(index)
+            ForEach(tabChildren) { item in
+                tabContent(for: item.coordinator, at: item.index)
+                    .tag(item.index)
             }
         }
         .withTabCoordinatorPresentations(coordinator: coordinator)
+    }
+
+    private var tabChildren: [TabCoordinatorChild] {
+        coordinator.internalChildren.enumerated().map { index, child in
+            TabCoordinatorChild(index: index, coordinator: child)
+        }
     }
 
     /// Create the content for a single tab

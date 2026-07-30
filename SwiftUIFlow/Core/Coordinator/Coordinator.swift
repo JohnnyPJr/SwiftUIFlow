@@ -79,8 +79,12 @@ open class Coordinator<R: Route>: AnyCoordinator {
         router.state.root
     }
 
-    /// Publisher that emits when this coordinator's routes change
-    /// Type-erased so parent coordinators can subscribe without knowing route type
+    /// Publisher that emits pushed-route composition changes for flattened
+    /// NavigationStack rebuilding.
+    ///
+    /// Type-erased so parent coordinators can subscribe without knowing route type.
+    /// Modal, detour, selected-tab, and detent state changes are observed through
+    /// the router's `@Published state`, not this publisher.
     var routesDidChange: AnyPublisher<[any Route], Never> {
         router.routesDidChange.eraseToAnyPublisher()
     }
@@ -956,10 +960,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
             return .modalCoordinatorNotConfigured(coordinator: coordinatorName,
                                                   route: routeId,
                                                   routeType: routeType)
-        case .invalidDetourNavigation:
-            return .invalidDetourNavigation(coordinator: coordinatorName,
-                                            route: routeId,
-                                            routeType: routeType)
         case let .viewCreationFailed(viewType):
             return .viewCreationFailed(coordinator: coordinatorName,
                                        route: routeId,

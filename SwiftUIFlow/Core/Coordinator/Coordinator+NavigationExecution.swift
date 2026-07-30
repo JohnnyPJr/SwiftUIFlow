@@ -1,5 +1,5 @@
 //
-//  Coordinator+NavigationHelpers.swift
+//  Coordinator+NavigationExecution.swift
 //  SwiftUIFlow
 //
 //  Created by Ioannis Platsis on 7/11/25.
@@ -7,173 +7,11 @@
 
 import Foundation
 
-// MARK: - Validation Phase (No Side Effects)
-extension Coordinator {
-    /// Base implementation of validation - called from validateNavigationPath()
-    func validateNavigationPathBase(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
-        // 1. Smart navigation check (no side effects - just checking state)
-        if let typedRoute = route as? R, canValidateSmartNavigation(to: typedRoute) {
-            return .success
-        }
-
-        // 2. Modal/Detour navigation check (mirrors handleModalNavigation/handleDetourNavigation)
-        if let modalDetourResult = validateModalAndDetourNavigation(to: route, from: caller) {
-            return modalDetourResult
-        }
-
-        // 3. Direct handling check (mirrors canHandle + executeNavigation)
-        if let directHandlingResult = validateDirectHandling(of: route) {
-            return directHandlingResult // Can be success OR failure (specific error)
-        }
-
-        // 4. Delegate to children (mirrors delegateToChildren)
-        if let childrenResult = validateChildrenCanHandle(route: route, caller: caller) {
-            return childrenResult
-        }
-
-        // 5. Bubble to parent (mirrors bubbleToParent)
-        return validateBubbleToParent(route: route)
-    }
-
-    private func canValidateSmartNavigation(to route: R) -> Bool {
-        // Already at route?
-        if isAlreadyAt(route: route) {
-            return true
-        }
-
-        // Route in stack? (would pop back)
-        if router.state.stack.firstIndex(where: { $0 == route }) != nil {
-            return true
-        }
-
-        // Route is root? (would pop to root or already there)
-        if route == router.state.root {
-            return true
-        }
-
-        return false
-    }
-
-    /// Internal (not private) so TabCoordinator's validation can reuse the exact same
-    /// modal/detour validation stage, keeping validation in lockstep with execution.
-    func validateModalAndDetourNavigation(to route: any Route,
-                                          from caller: AnyCoordinator?) -> ValidationResult?
-    {
-        // Only check modal/detour if caller is NOT one of our children/modal/detour
-        // (If caller is a child, we already checked modal before delegating to children)
-        let callerIsOurChild = caller != nil && internalChildren.contains(where: { $0 === caller })
-        let callerIsOurModalOrDetour = (caller === currentModalCoordinator) || (caller === detourCoordinator)
-
-        // Check modal
-        if let modal = currentModalCoordinator, !callerIsOurChild, !callerIsOurModalOrDetour {
-            let modalResult = modal.validateNavigationPath(to: route, from: self)
-            if modalResult.isSuccess {
-                return modalResult
-            }
-            // Modal didn't handle - in execution we'd dismiss and continue
-            // So continue validation (don't return failure)
-        }
-
-        // Check detour
-        if let detour = detourCoordinator, !callerIsOurChild, !callerIsOurModalOrDetour {
-            let detourResult = detour.validateNavigationPath(to: route, from: self)
-            if detourResult.isSuccess {
-                return detourResult
-            }
-            // Detour didn't handle - in execution we'd dismiss and continue
-            // So continue validation (don't return failure)
-        }
-
-        return nil // Neither modal nor detour handled it - continue to next check
-    }
-
-    private func validateDirectHandling(of route: any Route) -> ValidationResult? {
-        guard let typedRoute = route as? R, canHandle(typedRoute) else {
-            return nil // Can't handle - continue to next check
-        }
-
-        // Validate this coordinator's own navigationPath(for:) before accepting direct handling.
-        // This keeps validation in lockstep with executeNavigation/buildNavigationPath, including
-        // when this coordinator is reached through parent delegation with caller != nil.
-        if let pathResult = validateNavigationPathDefinition(for: route) {
-            if case .failure = pathResult {
-                return pathResult
-            }
-        }
-
-        // Check if this navigation type can be executed
-        switch navigationType(for: typedRoute) {
-        case .push, .replace:
-            return .success
-        case .modal:
-            // Can we execute modal navigation?
-            // Check if modal is already presented with this root route
-            if let currentModal = currentModalCoordinator, currentModal.rootRoute.identifier == route.identifier {
-                return .success
-            }
-            // Check if we have a modal coordinator configured with this root route
-            if modalCoordinators.contains(where: { $0.router.state.root.identifier == route.identifier }) {
-                return .success
-            }
-            // Modal navigation type but no coordinator configured
-            return .failure(makeError(for: route, errorType: .modalCoordinatorNotConfigured))
-        }
-    }
-
-    private func validateChildrenCanHandle(route: any Route, caller: AnyCoordinator?) -> ValidationResult? {
-        for child in internalChildren where child !== caller {
-            // Safety check: Ensure parent relationship is consistent
-            // This should always be true, but we verify to maintain invariants
-            guard child.parent === self else { continue }
-
-            // Check if child or its descendants can handle this route (mirrors execution with canNavigate)
-            if child.canNavigate(to: route) {
-                if let pathResult = validateNavigationPathDefinition(for: route) {
-                    if case .failure = pathResult {
-                        return pathResult
-                    }
-                }
-
-                return child.validateNavigationPath(to: route, from: self)
-            }
-        }
-
-        // Check if any modal coordinator can handle this route for subsequent navigation
-        // (mirrors delegateToChildren execution)
-        for modal in modalCoordinators where modal !== caller {
-            if modal.canNavigate(to: route) {
-                if let pathResult = validateNavigationPathDefinition(for: route) {
-                    if case .failure = pathResult {
-                        return pathResult
-                    }
-                }
-
-                // Modal coordinator or its descendants can handle subsequent navigation.
-                // Validate the modal's own path before execution presents it.
-                return modal.validateNavigationPath(to: route, from: self)
-            }
-        }
-
-        return nil // No child handled it - continue to next check
-    }
-
-    private func validateBubbleToParent(route: any Route) -> ValidationResult {
-        guard let parent else {
-            // At root - check if flow change can be handled (without executing it)
-            if canHandleFlowChange(to: route) {
-                return .success
-            }
-            // No coordinator in hierarchy can handle this route
-            return
-                .failure(makeError(for: route,
-                                   errorType:
-                                   .navigationFailed(context: "No coordinator in hierarchy can handle this route")))
-        }
-
-        // In execution we'd clean state before bubbling, but validation doesn't need to check
-        // We just validate that parent can handle the route
-        return parent.validateNavigationPath(to: route, from: self)
-    }
+private enum NavigationPathEntryValidation<R: Route> {
+    case valid(route: R, navigationType: NavigationType)
+    case skipRoot(route: R)
+    case invalidRouteType
+    case modalRoute
 }
 
 // MARK: - Execution Phase (With Side Effects)
@@ -416,31 +254,27 @@ extension Coordinator {
         var resolvedPath: [(route: R, navigationType: NavigationType)] = []
         var includesDestination = false
         for intermediateRoute in path {
-            // Cast BEFORE comparing to root: a foreign route must be rejected even if its
-            // identifier happens to collide with the root's identifier.
-            guard let typedRoute = intermediateRoute as? R else {
+            switch classifyNavigationPathEntry(intermediateRoute) {
+            case .invalidRouteType:
                 reportInvalidPathRouteType(for: route)
                 return .failed
-            }
-
-            // Track whether the destination itself appears in the path (typed equality).
-            if let typedDestination, typedRoute == typedDestination {
-                includesDestination = true
-            }
-
-            // Skip the current root (don't push root onto the stack) - typed equality, post-cast.
-            if typedRoute == router.state.root {
-                NavigationLogger.debug("⏭️ \(Self.self): Skipping root \(typedRoute.identifier) in path")
-                continue
-            }
-
-            let navType = navigationType(for: typedRoute)
-            guard navType != .modal else {
+            case .modalRoute:
                 reportModalRouteInPath(for: route)
                 return .failed
+            case let .skipRoot(typedRoute):
+                // Track before skipping root so a destination that is also root still counts
+                // as already included in the path.
+                if let typedDestination, typedRoute == typedDestination {
+                    includesDestination = true
+                }
+                NavigationLogger.debug("⏭️ \(Self.self): Skipping root \(typedRoute.identifier) in path")
+            case let .valid(typedRoute, navType):
+                // Track whether the destination itself appears in the path (typed equality).
+                if let typedDestination, typedRoute == typedDestination {
+                    includesDestination = true
+                }
+                resolvedPath.append((typedRoute, navType))
             }
-
-            resolvedPath.append((typedRoute, navType))
         }
 
         // Phase 2: All routes are valid - apply them. State is only mutated once the whole path
@@ -459,37 +293,60 @@ extension Coordinator {
         return .built(includesDestination: includesDestination)
     }
 
-    private func validateNavigationPathDefinition(for route: any Route) -> ValidationResult? {
+    func validateNavigationPathDefinition(for route: any Route) -> ValidationResult? {
         guard let path = navigationPath(for: route),
               !path.isEmpty,
               router.state.stack.isEmpty else { return nil }
 
         for intermediateRoute in path {
-            guard let typedRoute = intermediateRoute as? R else {
-                return .failure(makeError(for: route,
-                                          errorType:
-                                          .navigationFailed(context: """
-                                          navigationPath(for:) returned a route of a different type; \
-                                          a path may only contain this coordinator's own routes
-                                          """)))
-            }
-
-            if typedRoute == router.state.root {
+            switch classifyNavigationPathEntry(intermediateRoute) {
+            case .invalidRouteType:
+                return .failure(invalidPathRouteTypeError(for: route))
+            case .modalRoute:
+                return .failure(modalRouteInPathError(for: route))
+            case .skipRoot, .valid:
                 continue
-            }
-
-            let navType = navigationType(for: typedRoute)
-            guard navType != .modal else {
-                return .failure(makeError(for: route,
-                                          errorType:
-                                          .navigationFailed(context: """
-                                          navigationPath(for:) returned a modal route; \
-                                          a path may only contain pushed/replaced routes
-                                          """)))
             }
         }
 
         return .success
+    }
+
+    private func classifyNavigationPathEntry(_ pathRoute: any Route) -> NavigationPathEntryValidation<R> {
+        // Cast before any root comparison: a foreign route must be rejected even if its
+        // identifier happens to collide with the root's identifier.
+        guard let typedRoute = pathRoute as? R else {
+            return .invalidRouteType
+        }
+
+        if typedRoute == router.state.root {
+            return .skipRoot(route: typedRoute)
+        }
+
+        let navType = navigationType(for: typedRoute)
+        guard navType != .modal else {
+            return .modalRoute
+        }
+
+        return .valid(route: typedRoute, navigationType: navType)
+    }
+
+    private func invalidPathRouteTypeError(for route: any Route) -> SwiftUIFlowError {
+        makeError(for: route,
+                  errorType:
+                  .navigationFailed(context: """
+                  navigationPath(for:) returned a route of a different type; \
+                  a path may only contain this coordinator's own routes
+                  """))
+    }
+
+    private func modalRouteInPathError(for route: any Route) -> SwiftUIFlowError {
+        makeError(for: route,
+                  errorType:
+                  .navigationFailed(context: """
+                  navigationPath(for:) returned a modal route; \
+                  a path may only contain pushed/replaced routes
+                  """))
     }
 
     private func reportInvalidPathRouteType(for route: any Route) {
@@ -498,12 +355,7 @@ extension Coordinator {
             ❌ \(Self.self): Navigation path contains invalid route type - \
             aborting without mutating state
             """)
-        reportError(makeError(for: route,
-                              errorType:
-                              .navigationFailed(context: """
-                              navigationPath(for:) returned a route of a different type; \
-                              a path may only contain this coordinator's own routes
-                              """)))
+        reportError(invalidPathRouteTypeError(for: route))
     }
 
     private func reportModalRouteInPath(for route: any Route) {
@@ -512,12 +364,7 @@ extension Coordinator {
             ❌ \(Self.self): Navigation path cannot contain modal routes - \
             aborting without mutating state
             """)
-        reportError(makeError(for: route,
-                              errorType:
-                              .navigationFailed(context: """
-                              navigationPath(for:) returned a modal route; \
-                              a path may only contain pushed/replaced routes
-                              """)))
+        reportError(modalRouteInPathError(for: route))
     }
 
     func bubbleToParent(route: any Route) -> Bool {
