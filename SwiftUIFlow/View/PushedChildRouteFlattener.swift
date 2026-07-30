@@ -9,14 +9,14 @@ import Foundation
 
 enum PushedChildRouteFlattener {
     /// Recursively collect pushed coordinators in visible navigation order.
-    static func coordinators(from children: [AnyCoordinator]) -> [AnyCoordinator] {
+    static func coordinators(from children: [any AnyCoordinator]) -> [any AnyCoordinator] {
         coordinators(from: children, visited: [])
     }
 
-    private static func coordinators(from children: [AnyCoordinator],
-                                     visited: Set<ObjectIdentifier>) -> [AnyCoordinator]
+    private static func coordinators(from children: [any AnyCoordinator],
+                                     visited: Set<ObjectIdentifier>) -> [any AnyCoordinator]
     {
-        children.flatMap { child -> [AnyCoordinator] in
+        children.flatMap { child -> [any AnyCoordinator] in
             let identifier = ObjectIdentifier(child)
             guard !visited.contains(identifier) else { return [] }
 
@@ -28,11 +28,11 @@ enum PushedChildRouteFlattener {
     }
 
     /// Recursively flatten pushed child routes in the same order SwiftUI should render them.
-    static func routes(from children: [AnyCoordinator]) -> [ChildRouteWrapper] {
+    static func routes(from children: [any AnyCoordinator]) -> [ChildRouteWrapper] {
         routes(from: children, visited: [])
     }
 
-    private static func routes(from children: [AnyCoordinator],
+    private static func routes(from children: [any AnyCoordinator],
                                visited: Set<ObjectIdentifier>) -> [ChildRouteWrapper]
     {
         children.flatMap { child -> [ChildRouteWrapper] in

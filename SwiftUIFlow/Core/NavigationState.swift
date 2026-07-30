@@ -85,7 +85,7 @@ public struct NavigationState<R: Route>: Equatable {
 
     /// Child coordinators currently pushed in the navigation stack
     /// **Framework internal only** - Maintained in parallel with the route stack for rendering
-    var pushedChildren: [AnyCoordinator]
+    var pushedChildren: [any AnyCoordinator]
 
     /// Configuration for modal presentation detents (sheet sizes).
     ///

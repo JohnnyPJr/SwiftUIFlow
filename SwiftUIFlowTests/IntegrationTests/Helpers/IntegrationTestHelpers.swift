@@ -91,7 +91,7 @@ final class MainTabCoordinator: TabCoordinator<MainTabRoute> {
         return .push
     }
 
-    override func navigate(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+    override func navigate(to route: any Route, from caller: (any AnyCoordinator)?) -> Bool {
         // Handle MainTabRoute by switching to the corresponding tab
         if let tabRoute = route as? MainTabRoute {
             let tabIndex = switch tabRoute {
@@ -331,7 +331,7 @@ final class AppFlowCoordinator: Coordinator<AppFlowRoute> {
         }
     }
 
-    override func navigate(to route: any Route, from caller: AnyCoordinator? = nil) -> Bool {
+    override func navigate(to route: any Route, from caller: (any AnyCoordinator)? = nil) -> Bool {
         guard let appRoute = route as? AppFlowRoute else {
             return super.navigate(to: route, from: caller)
         }

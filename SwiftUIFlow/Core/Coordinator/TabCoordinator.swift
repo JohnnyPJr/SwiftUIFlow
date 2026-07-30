@@ -83,7 +83,7 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
 
     /// Get the tab index for a coordinator
     /// **Framework internal only**
-    func getTabIndex(for coordinator: AnyCoordinator) -> Int? {
+    func getTabIndex(for coordinator: any AnyCoordinator) -> Int? {
         for (index, child) in internalChildren.enumerated() {
             if child === coordinator {
                 return index
@@ -130,13 +130,13 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
 
     /// Override to use TabCoordinator-specific validation logic
     /// **Framework internal only**
-    override func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
+    override func validateNavigationPath(to route: any Route, from caller: (any AnyCoordinator)?) -> ValidationResult {
         return validateNavigationPathTabImpl(to: route, from: caller)
     }
 
     /// Internal navigation with caller tracking - overridden for tab logic
     /// **Framework internal only**
-    override func navigate(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+    override func navigate(to route: any Route, from caller: (any AnyCoordinator)?) -> Bool {
         NavigationLogger.debug("📑 \(Self.self): Tab navigation to \(route.identifier)")
 
         // First check if we can handle it directly
@@ -201,7 +201,7 @@ open class TabCoordinator<R: Route>: Coordinator<R> {
 // MARK: - Validation Implementation
 extension TabCoordinator {
     /// TabCoordinator-specific validation implementation
-    func validateNavigationPathTabImpl(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
+    func validateNavigationPathTabImpl(to route: any Route, from caller: (any AnyCoordinator)?) -> ValidationResult {
         // First check if we can handle it directly
         if let typedRoute = route as? R, canHandle(typedRoute) {
             // Let the base class validate

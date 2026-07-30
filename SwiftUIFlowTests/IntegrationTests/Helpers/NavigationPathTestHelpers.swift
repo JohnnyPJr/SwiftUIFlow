@@ -164,11 +164,11 @@ final class FailingDelegatedNavigationCoordinator: Coordinator<MalformedPathRout
         route is MalformedPathRoute
     }
 
-    override func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
+    override func validateNavigationPath(to route: any Route, from caller: (any AnyCoordinator)?) -> ValidationResult {
         .success
     }
 
-    override func navigate(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+    override func navigate(to route: any Route, from caller: (any AnyCoordinator)?) -> Bool {
         false
     }
 }
