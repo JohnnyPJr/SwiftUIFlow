@@ -1,5 +1,5 @@
 //
-//  AnyCoordinator.swift
+//  CoordinatorType.swift
 //  SwiftUIFlow
 //
 //  Created by Ioannis Platsis on 8/8/25.
@@ -19,18 +19,18 @@ public protocol CoordinatorUISupport: AnyObject {
 }
 
 /// Internal protocol for type-erased coordinator operations
-protocol AnyCoordinator: CoordinatorUISupport {
-    var parent: (any AnyCoordinator)? { get set }
+protocol CoordinatorType: CoordinatorUISupport {
+    var parent: (any CoordinatorType)? { get set }
 
     var presentationContext: CoordinatorPresentationContext { get set }
 
     func navigationType(for route: any Route) -> NavigationType
-    func navigate(to route: any Route, from caller: (any AnyCoordinator)?) -> Bool
-    func validateNavigationPath(to route: any Route, from caller: (any AnyCoordinator)?) -> ValidationResult
+    func navigate(to route: any Route, from caller: (any CoordinatorType)?) -> Bool
+    func validateNavigationPath(to route: any Route, from caller: (any CoordinatorType)?) -> ValidationResult
     func canHandle(_ route: any Route) -> Bool
     func canNavigate(to route: any Route) -> Bool
     func resetToCleanState()
-    func presentDetour(_ coordinator: any AnyCoordinator, presenting route: any Route)
+    func presentDetour(_ coordinator: any CoordinatorType, presenting route: any Route)
     func dismissModal()
     func dismissDetour()
     func pop()
@@ -42,7 +42,7 @@ protocol AnyCoordinator: CoordinatorUISupport {
     var tabItem: (text: String, image: String)? { get }
 
     var allRoutes: [any Route] { get }
-    var pushedChildren: [any AnyCoordinator] { get }
+    var pushedChildren: [any CoordinatorType] { get }
     var routesDidChange: AnyPublisher<[any Route], Never> { get }
 
     var rootRoute: any Route { get }
@@ -52,7 +52,7 @@ protocol AnyCoordinator: CoordinatorUISupport {
 /// A Hashable wrapper for child route + coordinator pairs
 struct ChildRouteWrapper: Hashable {
     let route: any Route
-    let coordinator: any AnyCoordinator
+    let coordinator: any CoordinatorType
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(route.identifier)

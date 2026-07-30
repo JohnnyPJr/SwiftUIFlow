@@ -47,7 +47,7 @@ public struct TabCoordinatorView<R: Route>: View {
 
     private struct TabCoordinatorChild: Identifiable {
         let index: Int
-        let coordinator: any AnyCoordinator
+        let coordinator: any CoordinatorType
 
         var id: ObjectIdentifier {
             ObjectIdentifier(coordinator)
@@ -77,7 +77,7 @@ public struct TabCoordinatorView<R: Route>: View {
 
     /// Create the content for a single tab
     @ViewBuilder
-    private func tabContent(for child: any AnyCoordinator, at index: Int) -> some View {
+    private func tabContent(for child: any CoordinatorType, at index: Int) -> some View {
         if let item = child.tabItem {
             // Coordinator provided tab item - render normally
             let coordinatorView = child.buildCoordinatorView()

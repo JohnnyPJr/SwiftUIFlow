@@ -100,11 +100,11 @@ open class FlowOrchestrator<R: Route>: Coordinator<R> {
     ///   - root: The new root route to transition to
     public func transitionToFlow(_ coordinator: Coordinator<some Route>, root: R) {
         // 1. Deallocate old flow
-        if let current = currentFlow as? any AnyCoordinator {
+        if let current = currentFlow as? any CoordinatorType {
             removeChild(current)
         }
 
-        // 2. Install new flow (stored as Any publicly, AnyCoordinator internally)
+        // 2. Install new flow (stored as Any publicly, CoordinatorType internally)
         addChild(coordinator)
         currentFlow = coordinator
 

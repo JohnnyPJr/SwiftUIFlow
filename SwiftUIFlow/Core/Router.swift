@@ -116,7 +116,7 @@ public final class Router<R: Route>: ObservableObject {
 
     /// Push a child coordinator onto the navigation stack.
     /// **Internal:** Used when delegating navigation to a child coordinator.
-    func pushChild(_ coordinator: any AnyCoordinator) {
+    func pushChild(_ coordinator: any CoordinatorType) {
         state.pushedChildren.append(coordinator)
         notifyRoutesChanged()
     }

@@ -42,7 +42,7 @@ extension Coordinator {
         return false
     }
 
-    func handleModalNavigation(to route: any Route, from caller: (any AnyCoordinator)?) -> Bool {
+    func handleModalNavigation(to route: any Route, from caller: (any CoordinatorType)?) -> Bool {
         guard let modal = currentModalCoordinator else { return false }
 
         var modalHandledRoute = false
@@ -66,7 +66,7 @@ extension Coordinator {
         return false
     }
 
-    func handleDetourNavigation(to route: any Route, from caller: (any AnyCoordinator)?) -> Bool {
+    func handleDetourNavigation(to route: any Route, from caller: (any CoordinatorType)?) -> Bool {
         guard let detour = detourCoordinator else { return false }
 
         var detourHandledRoute = false
@@ -91,7 +91,7 @@ extension Coordinator {
         return false
     }
 
-    func delegateToChildren(route: any Route, caller: (any AnyCoordinator)?) -> Bool {
+    func delegateToChildren(route: any Route, caller: (any CoordinatorType)?) -> Bool {
         // Try delegating to internal children first
         if delegateToInternalChildren(route: route, caller: caller) {
             return true
@@ -101,7 +101,7 @@ extension Coordinator {
         return delegateToModalChildren(route: route, caller: caller)
     }
 
-    private func delegateToInternalChildren(route: any Route, caller: (any AnyCoordinator)?) -> Bool {
+    private func delegateToInternalChildren(route: any Route, caller: (any CoordinatorType)?) -> Bool {
         for child in internalChildren where child !== caller {
             if child.canNavigate(to: route) {
                 if let pathResult = validateNavigationPathDefinition(for: route) {
@@ -163,7 +163,7 @@ extension Coordinator {
         return false
     }
 
-    private func delegateToModalChildren(route: any Route, caller: (any AnyCoordinator)?) -> Bool {
+    private func delegateToModalChildren(route: any Route, caller: (any CoordinatorType)?) -> Bool {
         // Check if any modal coordinator can handle this route (for subsequent navigation)
         // Parent doesn't handle this route, but modal child or its descendants might
         for modal in modalCoordinators where modal !== caller {

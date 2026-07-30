@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Validation Phase (No Side Effects)
 extension Coordinator {
     /// Base implementation of validation - called from validateNavigationPath()
-    func validateNavigationPathBase(to route: any Route, from caller: (any AnyCoordinator)?) -> ValidationResult {
+    func validateNavigationPathBase(to route: any Route, from caller: (any CoordinatorType)?) -> ValidationResult {
         // 1. Smart navigation check (no side effects - just checking state)
         if let typedRoute = route as? R, canValidateSmartNavigation(to: typedRoute) {
             return .success
@@ -57,7 +57,7 @@ extension Coordinator {
     /// Internal (not private) so TabCoordinator's validation can reuse the exact same
     /// modal/detour validation stage, keeping validation in lockstep with execution.
     func validateModalAndDetourNavigation(to route: any Route,
-                                          from caller: (any AnyCoordinator)?) -> ValidationResult?
+                                          from caller: (any CoordinatorType)?) -> ValidationResult?
     {
         // Only check modal/detour if caller is NOT one of our children/modal/detour
         // (If caller is a child, we already checked modal before delegating to children)
@@ -120,7 +120,7 @@ extension Coordinator {
         }
     }
 
-    private func validateChildrenCanHandle(route: any Route, caller: (any AnyCoordinator)?) -> ValidationResult? {
+    private func validateChildrenCanHandle(route: any Route, caller: (any CoordinatorType)?) -> ValidationResult? {
         for child in internalChildren where child !== caller {
             // Safety check: Ensure parent relationship is consistent
             // This should always be true, but we verify to maintain invariants
