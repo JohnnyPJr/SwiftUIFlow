@@ -7,6 +7,13 @@
 
 import Foundation
 
+private enum NavigationPathEntryValidation<R: Route> {
+    case valid(route: R, navigationType: NavigationType)
+    case skipRoot(route: R)
+    case invalidRouteType
+    case modalRoute
+}
+
 // MARK: - Execution Phase (With Side Effects)
 extension Coordinator {
     func trySmartNavigation(to route: R) -> Bool {
@@ -247,31 +254,27 @@ extension Coordinator {
         var resolvedPath: [(route: R, navigationType: NavigationType)] = []
         var includesDestination = false
         for intermediateRoute in path {
-            // Cast BEFORE comparing to root: a foreign route must be rejected even if its
-            // identifier happens to collide with the root's identifier.
-            guard let typedRoute = intermediateRoute as? R else {
+            switch classifyNavigationPathEntry(intermediateRoute) {
+            case .invalidRouteType:
                 reportInvalidPathRouteType(for: route)
                 return .failed
-            }
-
-            // Track whether the destination itself appears in the path (typed equality).
-            if let typedDestination, typedRoute == typedDestination {
-                includesDestination = true
-            }
-
-            // Skip the current root (don't push root onto the stack) - typed equality, post-cast.
-            if typedRoute == router.state.root {
-                NavigationLogger.debug("⏭️ \(Self.self): Skipping root \(typedRoute.identifier) in path")
-                continue
-            }
-
-            let navType = navigationType(for: typedRoute)
-            guard navType != .modal else {
+            case .modalRoute:
                 reportModalRouteInPath(for: route)
                 return .failed
+            case let .skipRoot(typedRoute):
+                // Track before skipping root so a destination that is also root still counts
+                // as already included in the path.
+                if let typedDestination, typedRoute == typedDestination {
+                    includesDestination = true
+                }
+                NavigationLogger.debug("⏭️ \(Self.self): Skipping root \(typedRoute.identifier) in path")
+            case let .valid(typedRoute, navType):
+                // Track whether the destination itself appears in the path (typed equality).
+                if let typedDestination, typedRoute == typedDestination {
+                    includesDestination = true
+                }
+                resolvedPath.append((typedRoute, navType))
             }
-
-            resolvedPath.append((typedRoute, navType))
         }
 
         // Phase 2: All routes are valid - apply them. State is only mutated once the whole path
@@ -296,31 +299,54 @@ extension Coordinator {
               router.state.stack.isEmpty else { return nil }
 
         for intermediateRoute in path {
-            guard let typedRoute = intermediateRoute as? R else {
-                return .failure(makeError(for: route,
-                                          errorType:
-                                          .navigationFailed(context: """
-                                          navigationPath(for:) returned a route of a different type; \
-                                          a path may only contain this coordinator's own routes
-                                          """)))
-            }
-
-            if typedRoute == router.state.root {
+            switch classifyNavigationPathEntry(intermediateRoute) {
+            case .invalidRouteType:
+                return .failure(invalidPathRouteTypeError(for: route))
+            case .modalRoute:
+                return .failure(modalRouteInPathError(for: route))
+            case .skipRoot, .valid:
                 continue
-            }
-
-            let navType = navigationType(for: typedRoute)
-            guard navType != .modal else {
-                return .failure(makeError(for: route,
-                                          errorType:
-                                          .navigationFailed(context: """
-                                          navigationPath(for:) returned a modal route; \
-                                          a path may only contain pushed/replaced routes
-                                          """)))
             }
         }
 
         return .success
+    }
+
+    private func classifyNavigationPathEntry(_ pathRoute: any Route) -> NavigationPathEntryValidation<R> {
+        // Cast before any root comparison: a foreign route must be rejected even if its
+        // identifier happens to collide with the root's identifier.
+        guard let typedRoute = pathRoute as? R else {
+            return .invalidRouteType
+        }
+
+        if typedRoute == router.state.root {
+            return .skipRoot(route: typedRoute)
+        }
+
+        let navType = navigationType(for: typedRoute)
+        guard navType != .modal else {
+            return .modalRoute
+        }
+
+        return .valid(route: typedRoute, navigationType: navType)
+    }
+
+    private func invalidPathRouteTypeError(for route: any Route) -> SwiftUIFlowError {
+        makeError(for: route,
+                  errorType:
+                  .navigationFailed(context: """
+                  navigationPath(for:) returned a route of a different type; \
+                  a path may only contain this coordinator's own routes
+                  """))
+    }
+
+    private func modalRouteInPathError(for route: any Route) -> SwiftUIFlowError {
+        makeError(for: route,
+                  errorType:
+                  .navigationFailed(context: """
+                  navigationPath(for:) returned a modal route; \
+                  a path may only contain pushed/replaced routes
+                  """))
     }
 
     private func reportInvalidPathRouteType(for route: any Route) {
@@ -329,12 +355,7 @@ extension Coordinator {
             ❌ \(Self.self): Navigation path contains invalid route type - \
             aborting without mutating state
             """)
-        reportError(makeError(for: route,
-                              errorType:
-                              .navigationFailed(context: """
-                              navigationPath(for:) returned a route of a different type; \
-                              a path may only contain this coordinator's own routes
-                              """)))
+        reportError(invalidPathRouteTypeError(for: route))
     }
 
     private func reportModalRouteInPath(for route: any Route) {
@@ -343,12 +364,7 @@ extension Coordinator {
             ❌ \(Self.self): Navigation path cannot contain modal routes - \
             aborting without mutating state
             """)
-        reportError(makeError(for: route,
-                              errorType:
-                              .navigationFailed(context: """
-                              navigationPath(for:) returned a modal route; \
-                              a path may only contain pushed/replaced routes
-                              """)))
+        reportError(modalRouteInPathError(for: route))
     }
 
     func bubbleToParent(route: any Route) -> Bool {
