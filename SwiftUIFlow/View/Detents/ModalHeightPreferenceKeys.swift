@@ -49,7 +49,7 @@ import SwiftUI
 /// }
 /// ```
 public struct IdealHeightPreferenceKey: PreferenceKey {
-    public static var defaultValue: CGFloat?
+    public static let defaultValue: CGFloat? = nil
 
     public static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) {
         guard let current = value, let next = nextValue() else {
@@ -101,7 +101,7 @@ public struct IdealHeightPreferenceKey: PreferenceKey {
 /// }
 /// ```
 public struct MinHeightPreferenceKey: PreferenceKey {
-    public static var defaultValue: CGFloat?
+    public static let defaultValue: CGFloat? = nil
 
     public static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) {
         guard let current = value, let next = nextValue() else {

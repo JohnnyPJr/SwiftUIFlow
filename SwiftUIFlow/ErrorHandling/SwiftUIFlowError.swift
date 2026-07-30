@@ -137,7 +137,7 @@ public enum SwiftUIFlowError: Error, LocalizedError, Equatable {
 ///
 /// Indicates which type of view the framework was trying to create when the
 /// ViewFactory returned nil.
-public enum ViewType: Equatable {
+public enum ViewType: Equatable, Sendable {
     /// The root view of a coordinator
     case root
 
