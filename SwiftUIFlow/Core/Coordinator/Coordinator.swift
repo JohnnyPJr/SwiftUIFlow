@@ -960,10 +960,6 @@ open class Coordinator<R: Route>: AnyCoordinator {
             return .modalCoordinatorNotConfigured(coordinator: coordinatorName,
                                                   route: routeId,
                                                   routeType: routeType)
-        case .invalidDetourNavigation:
-            return .invalidDetourNavigation(coordinator: coordinatorName,
-                                            route: routeId,
-                                            routeType: routeType)
         case let .viewCreationFailed(viewType):
             return .viewCreationFailed(coordinator: coordinatorName,
                                        route: routeId,

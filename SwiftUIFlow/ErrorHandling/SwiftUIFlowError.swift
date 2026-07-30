@@ -50,7 +50,6 @@ import Foundation
 /// **Navigation Errors:**
 /// - `.navigationFailed` - No coordinator could handle the route
 /// - `.modalCoordinatorNotConfigured` - Modal route but no modal coordinator registered
-/// - `.invalidDetourNavigation` - Detour route used with navigate() instead of presentDetour()
 ///
 /// **View Creation Errors:**
 /// - `.viewCreationFailed` - ViewFactory returned nil for a route
@@ -91,9 +90,6 @@ public enum SwiftUIFlowError: Error, LocalizedError, Equatable {
     /// Attempted to present a modal but no modal coordinator was configured
     case modalCoordinatorNotConfigured(coordinator: String, route: String, routeType: String)
 
-    /// Attempted to navigate to a detour route via navigate() instead of presentDetour()
-    case invalidDetourNavigation(coordinator: String, route: String, routeType: String)
-
     // MARK: - View Creation Errors
 
     /// ViewFactory failed to create a view for the given route
@@ -120,8 +116,6 @@ public enum SwiftUIFlowError: Error, LocalizedError, Equatable {
         case let (.navigationFailed(c1, r1, rt1, ctx1), .navigationFailed(c2, r2, rt2, ctx2)):
             return c1 == c2 && r1 == r2 && rt1 == rt2 && ctx1 == ctx2
         case let (.modalCoordinatorNotConfigured(c1, r1, rt1), .modalCoordinatorNotConfigured(c2, r2, rt2)):
-            return c1 == c2 && r1 == r2 && rt1 == rt2
-        case let (.invalidDetourNavigation(c1, r1, rt1), .invalidDetourNavigation(c2, r2, rt2)):
             return c1 == c2 && r1 == r2 && rt1 == rt2
         case let (.viewCreationFailed(c1, r1, rt1, v1), .viewCreationFailed(c2, r2, rt2, v2)):
             return c1 == c2 && r1 == r2 && rt1 == rt2 && v1 == v2
@@ -185,7 +179,6 @@ extension SwiftUIFlowError {
     enum ErrorType {
         case navigationFailed(context: String)
         case modalCoordinatorNotConfigured
-        case invalidDetourNavigation
         case viewCreationFailed(viewType: ViewType)
     }
 }
@@ -198,8 +191,6 @@ public extension SwiftUIFlowError {
             return "Navigation failed for '\(route)'. \(context)"
         case let .modalCoordinatorNotConfigured(_, route, _):
             return "Cannot present '\(route)' as modal - no modal coordinator configured"
-        case let .invalidDetourNavigation(_, route, _):
-            return "Cannot navigate to '\(route)' - detours must use presentDetour()"
         case let .viewCreationFailed(_, route, _, viewType):
             return "Failed to create \(viewType) view for '\(route)'"
         case let .invalidTabIndex(index, validRange):
@@ -220,8 +211,6 @@ public extension SwiftUIFlowError {
             "NavigationFailed: coordinator=\(coordinator) route=\(route) routeType=\(routeType) context=\(context)"
         case let .modalCoordinatorNotConfigured(coordinator, route, routeType):
             "ModalCoordinatorNotConfigured: coordinator=\(coordinator) route=\(route) routeType=\(routeType)"
-        case let .invalidDetourNavigation(coordinator, route, routeType):
-            "InvalidDetourNavigation: coordinator=\(coordinator) route=\(route) routeType=\(routeType)"
         case let .viewCreationFailed(coordinator, route, routeType, viewType):
             "ViewCreationFailed: coordinator=\(coordinator) route=\(route) routeType=\(routeType) viewType=\(viewType)"
         case let .invalidTabIndex(index, validRange):
@@ -242,8 +231,6 @@ public extension SwiftUIFlowError {
             return "Ensure a coordinator in the hierarchy implements canHandle() for \(routeType) routes"
         case let .modalCoordinatorNotConfigured(coordinator, _, routeType):
             return "Call addModalCoordinator() on \(coordinator) with a coordinator that handles \(routeType)"
-        case .invalidDetourNavigation:
-            return "Use coordinator.presentDetour(_:presenting:) instead of coordinator.navigate(to:)"
         case let .viewCreationFailed(_, _, routeType, _):
             return "Ensure ViewFactory.view(for:) returns a view for \(routeType) routes"
         case let .invalidTabIndex(_, validRange):

@@ -15,7 +15,6 @@ public enum SwiftUIFlowError: Error {
     case navigationFailed(coordinator: String, route: String, routeType: String, context: String)
     case viewCreationFailed(coordinator: String, route: String, routeType: String, viewType: ViewType)
     case modalCoordinatorNotConfigured(coordinator: String, route: String, routeType: String)
-    case invalidDetourNavigation(coordinator: String, route: String, routeType: String)
     case circularReference(coordinator: String)
     case duplicateChild(coordinator: String, child: String)
     case invalidTabIndex(index: Int, validRange: Range<Int>)
