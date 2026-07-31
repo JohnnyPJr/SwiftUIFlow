@@ -2,7 +2,7 @@
 
 A type-safe, coordinator-based navigation framework for SwiftUI that makes complex navigation hierarchies simple and predictable.
 
-[![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
+[![Swift](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%2017+%20|%20macOS%2014+-blue.svg)](https://developer.apple.com)
 [![SPM](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://swift.org/package-manager)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -25,8 +25,8 @@ A type-safe, coordinator-based navigation framework for SwiftUI that makes compl
 ## Requirements
 
 - iOS 17.0+ / macOS 14.0+
-- Xcode 15.0+
-- Swift 5.9+
+- Xcode 16.0+
+- Swift 6.0+
 
 
 ## Swift Concurrency
