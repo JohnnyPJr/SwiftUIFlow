@@ -8,7 +8,7 @@ on:
 
 jobs:
   macos-test:
-    name: Lint, Build, and Test (macOS, Xcode 16.4)
+    name: Lint, Build, and Test (macOS, Xcode 26.3)
     runs-on: macos-15
 
     steps:
@@ -49,17 +49,27 @@ jobs:
           set -eo pipefail
           swiftlint lint --config swiftlint.yml --reporter github-actions-logging
 
-      # 6️⃣ Setup Xcode 16.4
-      - name: Setup Xcode 16.4
+      # 6️⃣ Setup Xcode 26.3
+      - name: Setup Xcode 26.3
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "16.4"
+          xcode-version: "26.3"
 
-      # 7️⃣ Install xcpretty for nice log output
+      # 7️⃣ Validate SwiftPM package under Swift 6
+      - name: SwiftPM Build
+        run: swift build
+
+      - name: SwiftPM Strict Concurrency Build
+        run: swift build -Xswiftc -strict-concurrency=complete
+
+      - name: SwiftPM Tests
+        run: swift test
+
+      # 8️⃣ Install xcpretty for nice log output
       - name: Install xcpretty
         run: gem install xcpretty
 
-      # 8️⃣ Build & Test the SwiftUIFlow scheme (macOS)
+      # 9️⃣ Build & Test the SwiftUIFlow scheme (macOS)
       - name: Clean & Test SwiftUIFlow
         run: |
           set -eo pipefail
@@ -81,7 +91,7 @@ jobs:
               | xcpretty
           fi
 
-      # 9️⃣ Save test logs as an artifact (optional)
+      # 🔟 Save test logs as an artifact (optional)
       - name: Save Test Results
         if: always()
         uses: actions/upload-artifact@v4
