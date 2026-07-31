@@ -81,6 +81,7 @@ import SwiftUI
 ///
 /// - `Coordinator` - Manages navigation and owns the ViewFactory
 /// - `Router` - Uses the ViewFactory to build views for routes
+@MainActor
 open class ViewFactory<R: Route>: ObservableObject {
     /// Weak reference to the coordinator that owns this factory.
     /// Set this in your coordinator's init: `factory.coordinator = self`

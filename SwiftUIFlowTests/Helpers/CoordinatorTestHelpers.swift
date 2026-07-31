@@ -16,6 +16,7 @@ struct SUT {
     let childCoordinator: TestCoordinator?
 }
 
+@MainActor
 func makeSUT(router: Router<MockRoute>? = nil, addChild: Bool = false) -> SUT {
     let resolvedRouter = router ?? Router<MockRoute>(initial: .home, factory: MockViewFactory())
     let coordinator = TestCoordinator(router: resolvedRouter)

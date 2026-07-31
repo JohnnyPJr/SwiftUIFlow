@@ -19,6 +19,17 @@ SwiftUIFlow provides a powerful yet intuitive navigation system for SwiftUI appl
 - **Two-Phase Navigation**: Validation before execution prevents broken navigation states
 - **Zero Configuration**: Presentation contexts and back button behavior handled automatically
 
+
+### Swift Concurrency
+
+SwiftUIFlow's runtime navigation layer is explicitly `@MainActor`. Coordinators, routers, view factories, and error handling are main-actor operations because they mutate SwiftUI-observed navigation state and build SwiftUI views. If navigation is triggered from background work, hop to the main actor before calling into the framework:
+
+```swift
+Task { @MainActor in
+    coordinator.navigate(to: AppRoute.home)
+}
+```
+
 ### Quick Example
 
 ```swift

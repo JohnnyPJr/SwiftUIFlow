@@ -8,9 +8,12 @@
 @testable import SwiftUIFlow
 import XCTest
 
+@MainActor
 final class CoordinatorPresentationTests: XCTestCase {
     override func tearDown() {
-        SwiftUIFlowErrorHandler.shared.reset()
+        MainActor.assumeIsolated {
+            SwiftUIFlowErrorHandler.shared.reset()
+        }
         super.tearDown()
     }
 

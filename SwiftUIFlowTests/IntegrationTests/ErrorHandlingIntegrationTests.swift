@@ -8,11 +8,14 @@
 @testable import SwiftUIFlow
 import XCTest
 
+@MainActor
 final class ErrorHandlingIntegrationTests: XCTestCase {
     override func tearDown() {
         super.tearDown()
         // Reset global error handler after each test
-        SwiftUIFlowErrorHandler.shared.reset()
+        MainActor.assumeIsolated {
+            SwiftUIFlowErrorHandler.shared.reset()
+        }
     }
 
     // MARK: - Navigation Error Tests

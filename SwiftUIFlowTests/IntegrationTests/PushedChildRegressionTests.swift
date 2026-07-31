@@ -12,6 +12,7 @@ import XCTest
 
 /// Regression tests for pushed child coordinator bugs
 /// These tests catch specific scenarios that previously caused bugs
+@MainActor
 final class PushedChildRegressionTests: XCTestCase {
     // MARK: - Recursive Pushed Child Flattening
 

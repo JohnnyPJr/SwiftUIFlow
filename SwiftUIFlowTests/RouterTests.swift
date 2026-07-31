@@ -9,6 +9,7 @@ import SwiftUI
 @testable import SwiftUIFlow
 import XCTest
 
+@MainActor
 final class RouterTests: XCTestCase {
     // MARK: - Initialization
 

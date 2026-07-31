@@ -8,6 +8,7 @@
 @testable import SwiftUIFlow
 import XCTest
 
+@MainActor
 final class CoordinatorBasicsTests: XCTestCase {
     // MARK: - Initialization
 

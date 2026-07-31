@@ -9,6 +9,7 @@ import SwiftUI
 @testable import SwiftUIFlow
 import XCTest
 
+@MainActor
 final class ModalDetentConfigurationTests: XCTestCase {
     func test_FullscreenOnly_UsesFullScreenCover() {
         let sut = ModalDetentConfiguration(detents: [.fullscreen])

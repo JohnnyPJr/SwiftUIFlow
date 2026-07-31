@@ -9,6 +9,7 @@ import SwiftUI
 @testable import SwiftUIFlow
 import XCTest
 
+@MainActor
 final class FlowChangeIntegrationTests: XCTestCase {
     // MARK: - Login/Logout Flow Tests
 

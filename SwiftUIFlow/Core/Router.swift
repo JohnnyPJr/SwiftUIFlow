@@ -67,6 +67,7 @@ import SwiftUI
 /// - `Coordinator` - Owns the router and provides navigation methods
 /// - `NavigationState` - The state managed by the router
 /// - `ViewFactory` - Builds views for routes
+@MainActor
 public final class Router<R: Route>: ObservableObject {
     /// The current navigation state.
     ///
@@ -116,7 +117,7 @@ public final class Router<R: Route>: ObservableObject {
 
     /// Push a child coordinator onto the navigation stack.
     /// **Internal:** Used when delegating navigation to a child coordinator.
-    func pushChild(_ coordinator: AnyCoordinator) {
+    func pushChild(_ coordinator: any CoordinatorType) {
         state.pushedChildren.append(coordinator)
         notifyRoutesChanged()
     }

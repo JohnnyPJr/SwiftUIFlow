@@ -1,5 +1,5 @@
 //
-//  AnyCoordinator.swift
+//  CoordinatorType.swift
 //  SwiftUIFlow
 //
 //  Created by Ioannis Platsis on 8/8/25.
@@ -10,6 +10,7 @@ import Foundation
 
 /// Public protocol for coordinator UI operations
 /// Provides minimal interface for custom UI implementations (e.g., custom tab bars)
+@MainActor
 public protocol CoordinatorUISupport: AnyObject {
     /// Build a CoordinatorView for this coordinator
     func buildCoordinatorView() -> Any
@@ -19,18 +20,19 @@ public protocol CoordinatorUISupport: AnyObject {
 }
 
 /// Internal protocol for type-erased coordinator operations
-protocol AnyCoordinator: CoordinatorUISupport {
-    var parent: AnyCoordinator? { get set }
+@MainActor
+protocol CoordinatorType: CoordinatorUISupport {
+    var parent: (any CoordinatorType)? { get set }
 
     var presentationContext: CoordinatorPresentationContext { get set }
 
     func navigationType(for route: any Route) -> NavigationType
-    func navigate(to route: any Route, from caller: AnyCoordinator?) -> Bool
-    func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult
+    func navigate(to route: any Route, from caller: (any CoordinatorType)?) -> Bool
+    func validateNavigationPath(to route: any Route, from caller: (any CoordinatorType)?) -> ValidationResult
     func canHandle(_ route: any Route) -> Bool
     func canNavigate(to route: any Route) -> Bool
     func resetToCleanState()
-    func presentDetour(_ coordinator: AnyCoordinator, presenting route: any Route)
+    func presentDetour(_ coordinator: any CoordinatorType, presenting route: any Route)
     func dismissModal()
     func dismissDetour()
     func pop()
@@ -42,7 +44,7 @@ protocol AnyCoordinator: CoordinatorUISupport {
     var tabItem: (text: String, image: String)? { get }
 
     var allRoutes: [any Route] { get }
-    var pushedChildren: [AnyCoordinator] { get }
+    var pushedChildren: [any CoordinatorType] { get }
     var routesDidChange: AnyPublisher<[any Route], Never> { get }
 
     var rootRoute: any Route { get }
@@ -52,7 +54,7 @@ protocol AnyCoordinator: CoordinatorUISupport {
 /// A Hashable wrapper for child route + coordinator pairs
 struct ChildRouteWrapper: Hashable {
     let route: any Route
-    let coordinator: AnyCoordinator
+    let coordinator: any CoordinatorType
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(route.identifier)

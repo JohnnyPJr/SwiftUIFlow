@@ -58,8 +58,9 @@ import Foundation
 /// - `FlowOrchestrator` - Specialized coordinator for managing major app flow transitions
 /// - `Router` - Manages navigation state and view presentation
 /// - `ViewFactory` - Maps routes to SwiftUI views
-open class Coordinator<R: Route>: AnyCoordinator {
-    weak var parent: AnyCoordinator?
+@MainActor
+open class Coordinator<R: Route>: CoordinatorType {
+    weak var parent: (any CoordinatorType)?
 
     /// The router managing navigation state.
     public let router: Router<R>
@@ -70,7 +71,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         [router.state.root] + router.state.stack
     }
 
-    var pushedChildren: [AnyCoordinator] {
+    var pushedChildren: [any CoordinatorType] {
         router.state.pushedChildren
     }
 
@@ -94,7 +95,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     /// Internal storage for child coordinators
     /// **Framework internal only** - Subclasses can access via internalChildren
-    var internalChildren: [AnyCoordinator] = []
+    var internalChildren: [any CoordinatorType] = []
 
     /// Read-only access to child coordinators for custom UI implementations.
     ///
@@ -123,13 +124,13 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// ```
     ///
     /// - Returns: Array of child coordinators conforming to `CoordinatorUISupport`
-    public var children: [CoordinatorUISupport] {
+    public var children: [any CoordinatorUISupport] {
         return internalChildren
     }
 
     var modalCoordinators: [Coordinator<R>] = []
-    var currentModalCoordinator: AnyCoordinator?
-    var detourCoordinator: AnyCoordinator?
+    var currentModalCoordinator: (any CoordinatorType)?
+    var detourCoordinator: (any CoordinatorType)?
 
     public init(router: Router<R>) {
         self.router = router
@@ -408,7 +409,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
         coordinator.presentationContext = context
     }
 
-    private func hasAncestor(_ coordinator: AnyCoordinator) -> Bool {
+    private func hasAncestor(_ coordinator: any CoordinatorType) -> Bool {
         var current = parent
         while let ancestor = current {
             if ancestor === coordinator {
@@ -441,12 +442,12 @@ open class Coordinator<R: Route>: AnyCoordinator {
     ///
     /// - Parameter coordinator: The child coordinator to remove
     public func removeChild(_ coordinator: Coordinator<some Route>) {
-        removeChild(coordinator as AnyCoordinator)
+        removeChild(coordinator as any CoordinatorType)
     }
 
     /// Remove a child coordinator (internal version for framework use)
     /// **Framework internal only**
-    func removeChild(_ coordinator: AnyCoordinator) {
+    func removeChild(_ coordinator: any CoordinatorType) {
         internalChildren.removeAll { $0 === coordinator }
         if coordinator.parent === self {
             coordinator.parent = nil
@@ -561,7 +562,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
 
     /// Validates navigation path without side effects - mirrors navigate() logic exactly.
     /// Override in subclasses if needed. Default implementation delegates to extension helper.
-    func validateNavigationPath(to route: any Route, from caller: AnyCoordinator?) -> ValidationResult {
+    func validateNavigationPath(to route: any Route, from caller: (any CoordinatorType)?) -> ValidationResult {
         return validateNavigationPathBase(to: route, from: caller)
     }
 
@@ -674,7 +675,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     }
 
     /// Internal navigation with caller tracking
-    func navigate(to route: any Route, from caller: AnyCoordinator?) -> Bool {
+    func navigate(to route: any Route, from caller: (any CoordinatorType)?) -> Bool {
         // Phase 1: Validation - ONLY at entry point (caller == nil)
         if caller == nil {
             let validationResult = validateNavigationPath(to: route, from: caller)
@@ -767,7 +768,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     }
 
     /// Called by the framework when navigationType returns .modal
-    func presentModal(_ coordinator: AnyCoordinator,
+    func presentModal(_ coordinator: any CoordinatorType,
                       presenting route: R,
                       detentConfiguration: ModalDetentConfiguration)
     {
@@ -848,7 +849,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     ///   - coordinator: The detour coordinator to present
     ///   - route: The initial route for the detour flow
     public func presentDetour(_ coordinator: Coordinator<some Route>, presenting route: any Route) {
-        presentDetour(coordinator as AnyCoordinator, presenting: route)
+        presentDetour(coordinator as any CoordinatorType, presenting: route)
     }
 
     /// Present a type-erased detour coordinator.
@@ -856,7 +857,7 @@ open class Coordinator<R: Route>: AnyCoordinator {
     /// If this coordinator already has an active detour, the new detour is forwarded to
     /// the deepest active detour instead of replacing the existing one. This preserves
     /// each active detour in the ownership chain.
-    func presentDetour(_ coordinator: AnyCoordinator, presenting route: any Route) {
+    func presentDetour(_ coordinator: any CoordinatorType, presenting route: any Route) {
         guard coordinator.parent == nil else {
             let message = """
             Cannot present an already-owned coordinator as a detour. \

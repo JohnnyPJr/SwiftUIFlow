@@ -8,6 +8,7 @@
 @testable import SwiftUIFlow
 import XCTest
 
+@MainActor
 final class NavigationStateTests: XCTestCase {
     // MARK: - Initialization
 

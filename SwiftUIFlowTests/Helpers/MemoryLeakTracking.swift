@@ -7,6 +7,18 @@
 
 import XCTest
 
+/// Safe as `@unchecked Sendable` because leak tracking is registered from
+/// `@MainActor` test methods and XCTest runs teardown blocks on the main thread.
+/// The weak value is therefore created and read serially on the main actor.
+/// Do not use this helper from non-main-actor tests.
+private final class WeakReference: @unchecked Sendable {
+    weak var value: AnyObject?
+
+    init(_ value: AnyObject) {
+        self.value = value
+    }
+}
+
 extension XCTestCase {
     /// Tracks an instance for memory leaks.
     ///
@@ -36,8 +48,10 @@ extension XCTestCase {
                              file: StaticString = #filePath,
                              line: UInt = #line)
     {
-        addTeardownBlock { [weak instance] in
-            XCTAssertNil(instance,
+        let weakReference = WeakReference(instance)
+
+        addTeardownBlock {
+            XCTAssertNil(weakReference.value,
                          "Instance should have been deallocated. Potential memory leak.",
                          file: file,
                          line: line)
