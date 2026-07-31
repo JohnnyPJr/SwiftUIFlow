@@ -5,6 +5,35 @@ All notable changes to SwiftUIFlow will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-07-31
+
+### Changed
+- Migrated SwiftUIFlow to Swift 6 language mode.
+- Added explicit main-actor isolation to the coordinator runtime.
+- Updated existential usage for Swift 6.
+- Updated CI to build and test with Xcode 26.3.
+
+### Breaking Changes
+- Requires Swift 6 / Xcode 16 or later. SwiftUIFlow now builds in Swift 6 language mode.
+- `Coordinator`, `Router`, `ViewFactory`, and error handling APIs are now main-actor isolated.
+- Client code should call navigation APIs from the main actor.
+- Custom coordinator and view factory subclasses may need matching actor isolation.
+- Removed the unused `SwiftUIFlowError.invalidDetourNavigation` case.
+- Tightened internal-only APIs from public to internal, including `ValidationResult`, `onSizeChange`, and `buildCoordinatorRouteView`.
+
+### Fixed
+- Fixed malformed navigation paths mutating partial state or reporting success incorrectly.
+- Fixed delegated navigation returning success when the child coordinator actually failed.
+- Fixed active detour handling so new detours are nested on top of the current detour instead of corrupting ownership state.
+- Fixed TabCoordinator-owned modals and detours being bypassed during child-route navigation.
+- Fixed coordinator ownership corruption when already-owned coordinators were reused as children, modals, or detours.
+- Fixed pushed child and pushed grandchild navigation rendering, back navigation, and deep-link path construction.
+- Fixed modal detent handling for modals presented from tab coordinators and pushed child coordinators.
+- Fixed nested detour presentation and recursive detour teardown.
+- Fixed flow transitions leaving stale pushed child coordinator state behind.
+- Fixed presentation context cleanup across child, modal, and detour dismissal paths.
+- Updated the example app for Swift 6 actor isolation and additional navigation regression scenarios.
+
 ## [1.0.1] - 10/12/2024
 
 ### Added
@@ -63,5 +92,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Complete DocC documentation with guides and examples
 - Full-featured example app demonstrating all capabilities
 
+[2.0.0]: https://github.com/JohnnyPJr/SwiftUIFlow/compare/v1.0.1...v2.0.0
 [1.0.1]: https://github.com/JohnnyPJr/SwiftUIFlow/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/JohnnyPJr/SwiftUIFlow/releases/tag/v1.0.0
