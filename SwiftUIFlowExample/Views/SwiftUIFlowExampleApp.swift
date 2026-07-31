@@ -19,7 +19,8 @@ struct SwiftUIFlowExampleApp: App {
     }
 }
 
-class AppState: ObservableObject {
+@MainActor
+final class AppState: ObservableObject {
     let appCoordinator: AppCoordinator
     @Published var currentError: SwiftUIFlowError?
     @Published var showErrorToast: Bool = false
@@ -34,10 +35,8 @@ class AppState: ObservableObject {
 
         // Set up global error handler to show toast
         SwiftUIFlowErrorHandler.shared.setHandler { [weak self] error in
-            DispatchQueue.main.async {
-                self?.currentError = error
-                self?.showErrorToast = true
-            }
+            self?.currentError = error
+            self?.showErrorToast = true
         }
     }
 }

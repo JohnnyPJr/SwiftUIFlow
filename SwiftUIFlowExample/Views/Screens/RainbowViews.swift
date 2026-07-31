@@ -285,6 +285,7 @@ struct RainbowDetailView: View {
                         .multilineTextAlignment(.center)
                 }
                 .padding()
+                .padding(.bottom, 120)
             }
         }
         .customNavigationBar(title: "Rainbow Detail", backgroundColor: .purple)
