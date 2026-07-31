@@ -42,6 +42,7 @@ import Foundation
 /// ## Default Behavior
 ///
 /// If no handler is set, errors are logged to the console via `NavigationLogger`.
+@MainActor
 public final class SwiftUIFlowErrorHandler {
     /// Shared singleton instance
     public static let shared = SwiftUIFlowErrorHandler()

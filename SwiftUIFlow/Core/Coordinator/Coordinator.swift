@@ -58,6 +58,7 @@ import Foundation
 /// - `FlowOrchestrator` - Specialized coordinator for managing major app flow transitions
 /// - `Router` - Manages navigation state and view presentation
 /// - `ViewFactory` - Maps routes to SwiftUI views
+@MainActor
 open class Coordinator<R: Route>: CoordinatorType {
     weak var parent: (any CoordinatorType)?
 

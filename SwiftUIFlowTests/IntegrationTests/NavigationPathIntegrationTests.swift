@@ -10,6 +10,7 @@ import XCTest
 
 /// Integration tests for navigationPath(for:) functionality
 /// Tests path building during deeplink scenarios
+@MainActor
 final class NavigationPathIntegrationTests: XCTestCase {
     // MARK: - Test: Basic Path Building
 

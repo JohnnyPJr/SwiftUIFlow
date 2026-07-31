@@ -10,8 +10,8 @@ import SwiftUI
 /// Environment key for the navigation back action.
 /// This allows views to get the correct back action based on their context
 /// (regular navigation, detour, modal, etc.)
-private struct NavigationBackActionKey: EnvironmentKey {
-    static let defaultValue: (() -> Void)? = nil
+private struct NavigationBackActionKey: @MainActor EnvironmentKey {
+    @MainActor static let defaultValue: (@MainActor @Sendable () -> Void)? = nil
 }
 
 /// Environment key to indicate if the current view can navigate back.
@@ -28,7 +28,8 @@ public extension EnvironmentValues {
     /// - Detour presentation: `coordinator.dismissDetour()`
     ///
     /// Views can read this to implement custom back/close buttons.
-    var navigationBackAction: (() -> Void)? {
+    @MainActor
+    var navigationBackAction: (@MainActor @Sendable () -> Void)? {
         get { self[NavigationBackActionKey.self] }
         set { self[NavigationBackActionKey.self] = newValue }
     }

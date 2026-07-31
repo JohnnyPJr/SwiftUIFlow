@@ -8,6 +8,7 @@
 @testable import SwiftUIFlow
 import XCTest
 
+@MainActor
 final class AdvancedNavigationIntegrationTests: XCTestCase {
     // MARK: - Pushed Child Coordinator Full Lifecycle
 

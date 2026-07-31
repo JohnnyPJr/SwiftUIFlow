@@ -10,6 +10,7 @@ import Foundation
 
 /// Public protocol for coordinator UI operations
 /// Provides minimal interface for custom UI implementations (e.g., custom tab bars)
+@MainActor
 public protocol CoordinatorUISupport: AnyObject {
     /// Build a CoordinatorView for this coordinator
     func buildCoordinatorView() -> Any
@@ -19,6 +20,7 @@ public protocol CoordinatorUISupport: AnyObject {
 }
 
 /// Internal protocol for type-erased coordinator operations
+@MainActor
 protocol CoordinatorType: CoordinatorUISupport {
     var parent: (any CoordinatorType)? { get set }
 

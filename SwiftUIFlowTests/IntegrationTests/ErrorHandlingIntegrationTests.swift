@@ -8,6 +8,7 @@
 @testable import SwiftUIFlow
 import XCTest
 
+@MainActor
 final class ErrorHandlingIntegrationTests: XCTestCase {
     override func tearDown() {
         super.tearDown()

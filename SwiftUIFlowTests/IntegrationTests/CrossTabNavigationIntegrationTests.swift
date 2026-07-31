@@ -8,6 +8,7 @@
 @testable import SwiftUIFlow
 import XCTest
 
+@MainActor
 final class CrossTabNavigationIntegrationTests: XCTestCase {
     func test_unlockFlowNavigatesToBatteryStatusAutomatically() throws {
         let router = Router<MainTabRoute>(initial: .tab1, factory: DummyFactory())

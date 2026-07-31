@@ -19,9 +19,10 @@ class TestCoordinator: Coordinator<MockRoute> {
 final class TestCoordinatorWithChild: Coordinator<MockRoute> {
     let child: TestCoordinator
 
-    override init(router: Router<MockRoute> = Router<MockRoute>(initial: .home, factory: MockViewFactory())) {
+    override init(router: Router<MockRoute>? = nil) {
+        let resolvedRouter = router ?? Router<MockRoute>(initial: .home, factory: MockViewFactory())
         child = TestCoordinator(router: Router<MockRoute>(initial: .home, factory: MockViewFactory()))
-        super.init(router: router)
+        super.init(router: resolvedRouter)
         addChild(child)
     }
 
@@ -34,9 +35,10 @@ final class TestCoordinatorWithChild: Coordinator<MockRoute> {
 final class TestCoordinatorWithChildThatCantHandleNavigation: TestCoordinator {
     let child: Coordinator<MockRoute>
 
-    override init(router: Router<MockRoute> = Router<MockRoute>(initial: .home, factory: MockViewFactory())) {
-        child = Coordinator(router: router)
-        super.init(router: router)
+    override init(router: Router<MockRoute>? = nil) {
+        let resolvedRouter = router ?? Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        child = Coordinator(router: resolvedRouter)
+        super.init(router: resolvedRouter)
         addChild(child)
     }
 }
@@ -114,8 +116,9 @@ final class TestCoordinatorWithFlowChange: TestCoordinator {
     var flowChangeRoute: (any Route)?
     var shouldHandleFlowChange = true
 
-    override init(router: Router<MockRoute> = Router<MockRoute>(initial: .home, factory: MockViewFactory())) {
-        super.init(router: router)
+    override init(router: Router<MockRoute>? = nil) {
+        let resolvedRouter = router ?? Router<MockRoute>(initial: .home, factory: MockViewFactory())
+        super.init(router: resolvedRouter)
     }
 
     override func canHandleFlowChange(to route: any Route) -> Bool {

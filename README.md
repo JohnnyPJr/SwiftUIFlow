@@ -28,6 +28,17 @@ A type-safe, coordinator-based navigation framework for SwiftUI that makes compl
 - Xcode 15.0+
 - Swift 5.9+
 
+
+## Swift Concurrency
+
+SwiftUIFlow's runtime navigation APIs are explicitly `@MainActor`. This includes coordinators, routers, view factories, and error handling. Call navigation APIs and configure error handling from the main actor. If you receive navigation input from background work, hop to the main actor before calling into SwiftUIFlow:
+
+```swift
+Task { @MainActor in
+    coordinator.navigate(to: AppRoute.home)
+}
+```
+
 ## Installation
 
 ### Swift Package Manager

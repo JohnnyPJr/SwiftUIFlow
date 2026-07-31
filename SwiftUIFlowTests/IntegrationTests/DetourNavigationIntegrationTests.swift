@@ -8,6 +8,7 @@
 @testable import SwiftUIFlow
 import XCTest
 
+@MainActor
 final class DetourNavigationIntegrationTests: XCTestCase {
     override func tearDown() {
         SwiftUIFlowErrorHandler.shared.reset()

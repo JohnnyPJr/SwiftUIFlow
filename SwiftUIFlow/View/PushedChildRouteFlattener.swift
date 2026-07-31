@@ -7,6 +7,7 @@
 
 import Foundation
 
+@MainActor
 enum PushedChildRouteFlattener {
     /// Recursively collect pushed coordinators in visible navigation order.
     static func coordinators(from children: [any CoordinatorType]) -> [any CoordinatorType] {

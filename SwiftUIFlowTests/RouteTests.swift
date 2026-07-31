@@ -9,6 +9,7 @@ import SwiftUI
 @testable import SwiftUIFlow
 import XCTest
 
+@MainActor
 final class RouteTests: XCTestCase {
     func test_StringRawRepresentableRoute_UsesRawValueAsIdentifier() {
         enum TestRoute: String, Route {
